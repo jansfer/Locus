@@ -10,7 +10,7 @@ export function AutomationGuideExamples() {
         <div className="text-xs font-medium uppercase tracking-[0.2em] text-[#1b3f2d]">真实示例</div>
         <h2 className="mt-4 text-3xl font-light tracking-tight text-neutral-900 md:text-4xl">让每天的代码质量检查自动运行</h2>
         <p className="mt-4 text-base leading-[1.7] text-neutral-600 md:text-lg">
-          安排好时间后，只要 Proma 是打开状态，就会在设定时间自动执行。
+          安排好时间后，只要 Locus 是打开状态，就会在设定时间自动执行。
         </p>
       </div>
 
@@ -23,7 +23,7 @@ export function AutomationGuideExamples() {
             <div className="text-xs font-medium uppercase tracking-[0.18em] text-[#1b3f2d]">示例 01 · 安排</div>
             <h3 className="mt-3 text-2xl font-medium text-neutral-900 md:text-3xl">每天 09:00 检查昨天的代码</h3>
             <p className="mt-4 text-base leading-[1.7] text-neutral-600 md:text-lg">
-              把任务设为每天定点 09:00，设定好频率/模型/绑定的项目/是否开启飞书通知等，并保持 Proma 处于打开状态。
+              把任务设为每天定点 09:00，设定好频率/模型/绑定的项目/是否开启飞书通知等，并保持 Locus 处于打开状态。
             </p>
             <div className="mt-5 border-l-2 border-[#1b3f2d]/35 pl-4">
               <div className="text-base font-medium text-[#1b3f2d]">这样告诉 Agent</div>

@@ -345,7 +345,7 @@ export function GeneralSettings(): React.ReactElement {
               <Volume2 className="mt-0.5 size-3.5 shrink-0" />
               <div className="min-w-0">
                 <p>音效与卡片插画来自 UI SFX，采用 CC0 公共领域许可。</p>
-                <p className="mt-0.5">Proma 非常喜欢这个音效库，并特别还原了一部分 UI SFX 的设计风格，推荐大家访问和使用他们的产品。</p>
+                <p className="mt-0.5">Locus 非常喜欢这个音效库，并特别还原了一部分 UI SFX 的设计风格，推荐大家访问和使用他们的产品。</p>
               </div>
             </div>
             <a
@@ -425,7 +425,7 @@ export function GeneralSettings(): React.ReactElement {
           )}
           <SettingsToggle
             label="Git/PR 标识"
-            description="Agent 代你提交 commit 或创建 PR 时，附加 Made-with: Proma 与官网链接，便于推广；可随时关闭"
+            description="Agent 代你提交 commit 或创建 PR 时，附加 Made-with: Locus 与官网链接，便于推广；可随时关闭"
             checked={gitAttributionEnabled}
             onCheckedChange={(checked) => {
               void handleGitAttributionChange(checked)

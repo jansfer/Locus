@@ -75,7 +75,7 @@ export interface SlackMultiBridgeState {
   bots: Record<string, SlackBotBridgeState>
 }
 
-/** 一个 Slack thread + 发言人映射到一个独立 Proma 会话。 */
+/** 一个 Slack thread + 发言人映射到一个独立 Locus 会话。 */
 export interface SlackThreadBinding {
   key: string
   botId: string

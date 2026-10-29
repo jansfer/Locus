@@ -15,7 +15,7 @@ function createRepository(prefix: string, fileName: string): string {
   const path = mkdtempSync(join(tmpdir(), prefix))
   execFileSync('git', ['init'], { cwd: path, stdio: 'pipe' })
   execFileSync('git', ['config', 'user.email', 'test@proma.local'], { cwd: path, stdio: 'pipe' })
-  execFileSync('git', ['config', 'user.name', 'Proma Test'], { cwd: path, stdio: 'pipe' })
+  execFileSync('git', ['config', 'user.name', 'Locus Test'], { cwd: path, stdio: 'pipe' })
   writeFileSync(join(path, fileName), 'base\n')
   execFileSync('git', ['add', fileName], { cwd: path, stdio: 'pipe' })
   execFileSync('git', ['commit', '-m', 'initial'], { cwd: path, stdio: 'pipe' })

@@ -194,7 +194,7 @@ export class AgentRuntimeClient {
       && this.state.status === 'starting'
     const runtimeProcess = await startUtilityProcessWithRetry(
       () => utilityProcess.fork(this.entryPath, [], {
-        serviceName: 'Proma Runtime',
+        serviceName: 'Locus Runtime',
         env: { ...process.env, ...this.env, PROMA_AGENT_SESSION_ID: this.sessionId },
       }),
       { shouldContinue: shouldContinueStartup },

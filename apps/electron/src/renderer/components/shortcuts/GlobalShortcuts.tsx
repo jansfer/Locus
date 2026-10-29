@@ -403,7 +403,7 @@ export function GlobalShortcuts(): null {
     return cleanup
   }, [store])
 
-  // ===== 语音输入 → 写入当前 Proma 输入框 =====
+  // ===== 语音输入 → 写入当前 Locus 输入框 =====
 
   useEffect(() => {
     const cleanupPreview = window.electronAPI.onVoiceDictationPreviewText((data) => {

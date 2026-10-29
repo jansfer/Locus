@@ -1,7 +1,7 @@
 /**
- * Proma Git / PR 推广标识
+ * Locus Git / PR 推广标识
  *
- * 目标：当 Agent 代用户创建 commit / PR 时，附带可搜索、可关闭的 Proma 标识，
+ * 目标：当 Agent 代用户创建 commit / PR 时，附带可搜索、可关闭的 Locus 标识，
  * 用于产品曝光；同时避免 Co-Authored-By 假冒作者、污染 GitHub contributors。
  *
  * System prompt 指令 — 引导 Agent 在 git commit / gh pr 时附加标识。
@@ -12,21 +12,21 @@
 /** 默认开启：对齐 Claude Code / Cursor「默认归因 + 可关」策略 */
 export const DEFAULT_GIT_ATTRIBUTION_ENABLED = true
 
-/** 官方站点（商业版 / 产品主页） */
-export const PROMA_OFFICIAL_URL = 'https://proma.cool'
+/** 项目主页（本 fork 无独立站点，与源码仓库复用同一地址） */
+export const PROMA_OFFICIAL_URL = 'https://github.com/jansfer/Locus'
 
 /** 开源仓库完整地址 */
-export const PROMA_GITHUB_URL = 'https://github.com/proma-ai/Proma'
+export const PROMA_GITHUB_URL = 'https://github.com/jansfer/Locus'
 
 /** Commit trailer（标准 git trailer，不进入 GitHub co-author 列表） */
-export const PROMA_COMMIT_TRAILER = 'Made-with: Proma'
+export const PROMA_COMMIT_TRAILER = 'Made-with: Locus'
 
 /**
  * PR / MR 描述底部标识。
- * 含官方站 + 开源仓库完整链接，便于推广与引流。
+ * 含开源仓库链接，便于追溯与引流。
  */
 export const PROMA_PR_ATTRIBUTION =
-  `Made with [Proma](${PROMA_OFFICIAL_URL}) · [GitHub](${PROMA_GITHUB_URL})`
+  `Made with [Locus](${PROMA_GITHUB_URL})`
 
 export interface GitAttributionConfig {
   /** 是否启用；undefined 视为默认开启 */
@@ -46,7 +46,7 @@ export function isGitAttributionEnabled(config?: GitAttributionConfig | boolean 
 export function buildGitAttributionPromptSection(enabled: boolean): string {
   if (!enabled) {
     return `## Git / PR 标识
-用户已关闭 Proma 标识；除非当次明确要求，不要添加任何 Proma 归因。`
+用户已关闭 Locus 标识；除非当次明确要求，不要添加任何 Locus 归因。`
   }
 
   return `## Git / PR 标识

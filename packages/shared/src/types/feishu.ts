@@ -146,7 +146,7 @@ export interface FeishuUpdateBindingInput {
   archived?: boolean
 }
 
-/** 飞书聊天 → Proma 会话绑定（由各 Bot 绑定文件持久化） */
+/** 飞书聊天 → Locus 会话绑定（由各 Bot 绑定文件持久化） */
 export interface FeishuChatBinding {
   /** 飞书 chat_id（单聊或群聊） */
   chatId: string
@@ -154,7 +154,7 @@ export interface FeishuChatBinding {
   botId: string
   /** 飞书用户 open_id */
   userId: string
-  /** 绑定的 Proma 会话 ID */
+  /** 绑定的 Locus 会话 ID */
   sessionId: string
   /** 绑定的工作区 ID */
   workspaceId: string
@@ -162,7 +162,7 @@ export interface FeishuChatBinding {
   channelId: string
   /** 模型 ID */
   modelId?: string
-  /** 绑定来源：飞书主动绑定或 Proma 桌面 Session 镜像 */
+  /** 绑定来源：飞书主动绑定或 Locus 桌面 Session 镜像 */
   source?: 'feishu' | 'session-mirror'
   /** 是否已归档 */
   archived?: boolean

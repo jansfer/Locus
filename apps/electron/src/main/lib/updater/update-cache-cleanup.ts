@@ -42,7 +42,7 @@ export function shouldDeferUpdateCacheCleanup(hasActiveDownload: boolean, isDown
 }
 
 export interface UpdateCacheCleanupOptions {
-  /** Proma 自己拥有的状态文件，不写入 electron-updater 的私有状态。 */
+  /** Locus 自己拥有的状态文件，不写入 electron-updater 的私有状态。 */
   stateFilePath: string
   /** electron-updater 使用的系统级缓存根目录。 */
   baseCacheDirectory: string

@@ -2043,7 +2043,7 @@ export function AgentView({ sessionId, embedded = false }: AgentViewProps): Reac
     const additionalDirectoriesForRun = createBaseAdditionalDirectories()
 
     if (streaming) {
-      // Agent 正在输出时，用户消息默认进入 Proma 托管队列，不打断当前 turn。
+      // Agent 正在输出时，用户消息默认进入 Locus 托管队列，不打断当前 turn。
       const attachmentContext = pendingFilesSnapshot.length > 0
         ? await preparePendingFilesForSend(pendingFilesSnapshot, additionalDirectoriesForRun)
         : null

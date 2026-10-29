@@ -23,7 +23,7 @@ export function getLastFocusedVoiceInputId(): string | null {
 /**
  * 在听写会话开始时冻结状态归属和文本回填目标。
  *
- * 按钮来源始终用于显示录音状态；只有本次输出应写回 Proma 时，它才同时成为文本目标。
+ * 按钮来源始终用于显示录音状态；只有本次输出应写回 Locus 时，它才同时成为文本目标。
  * 这样“复制到剪贴板”模式仍会在发起按钮上显示录音状态，却不会向编辑器派发预览或最终文本。
  */
 export function resolveVoiceDictationSessionInputIds(

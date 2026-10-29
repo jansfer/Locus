@@ -45,7 +45,7 @@ function createUndiciOriginDispatcher(origin: string | URL, options: Pool.Option
   }))
 }
 
-/** 在首次 Pi 请求前安装全局 fetch 路由；非 Pi 上下文仍调用 Proma 原 fetch。 */
+/** 在首次 Pi 请求前安装全局 fetch 路由；非 Pi 上下文仍调用 Locus 原 fetch。 */
 export function installPiRequestProxyFetch(): void {
   if (proxyFetchInstalled) return
   proxyFetchInstalled = true

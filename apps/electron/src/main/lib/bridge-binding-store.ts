@@ -2,7 +2,7 @@
  * IM Bridge 聊天绑定持久化工具。
  *
  * 用于钉钉/微信等共享 BridgeCommandHandler 的平台，将外部 chatId
- * 与 Proma Agent sessionId 的映射保存到本地 JSON 文件。
+ * 与 Locus Agent sessionId 的映射保存到本地 JSON 文件。
  */
 
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'

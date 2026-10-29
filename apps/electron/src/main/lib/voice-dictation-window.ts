@@ -1,7 +1,7 @@
 /**
  * 语音输入会话路由
  *
- * Proma 前台时，听写状态内嵌在底部输入工具栏。
+ * Locus 前台时，听写状态内嵌在底部输入工具栏。
  * 外部应用前台时，显示无焦点、无转写文本的轻量状态条，避免用户失去听写反馈。
  */
 
@@ -37,7 +37,7 @@ interface VoiceDictationToggleOptions {
 }
 
 /**
- * 保留原导出以兼容启动流程；Proma 内部听写不再创建独立窗口。
+ * 保留原导出以兼容启动流程；Locus 内部听写不再创建独立窗口。
  */
 export function createVoiceDictationWindow(): void {
   const mainWindow = getMainWindow()

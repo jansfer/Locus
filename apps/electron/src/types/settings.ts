@@ -102,13 +102,13 @@ export interface VoiceDictationToggleInput {
 
 /** 主进程冻结的一次听写输出上下文。 */
 export interface VoiceDictationOutputContext {
-  /** 本次听写是否写入 Proma 内部输入框。 */
+  /** 本次听写是否写入 Locus 内部输入框。 */
   routeToPromaInput: boolean
   /** 会话开始时选择的输出模式。 */
   outputMode: VoiceDictationOutputMode
 }
 
-/** 主进程确认开始听写时，告知渲染进程本次输出是否应路由到 Proma 输入框。 */
+/** 主进程确认开始听写时，告知渲染进程本次输出是否应路由到 Locus 输入框。 */
 export interface VoiceDictationShownEvent {
   routeToPromaInput: boolean
   /** 主进程生成的冻结输出上下文 ID，后续 preview / commit / cancel 必须原样带回。 */
@@ -136,11 +136,11 @@ export interface VoiceDictationAudioChunkInput {
   data: ArrayBuffer
 }
 
-/** 将当前识别结果作为 Proma 输入框中的临时组合文本预览。 */
+/** 将当前识别结果作为 Locus 输入框中的临时组合文本预览。 */
 export interface VoiceDictationPreviewInput {
   sessionId: string
   text: string
-  /** 本次听写会话冻结的 Proma 输入目标；null 表示不路由到内部输入框。 */
+  /** 本次听写会话冻结的 Locus 输入目标；null 表示不路由到内部输入框。 */
   targetInputId?: string | null
   /** 主进程生成的冻结输出上下文 ID。 */
   outputContextId?: string
@@ -152,7 +152,7 @@ export interface VoiceDictationStopInput {
   sessionId: string
   /** 跨 ASR 重连保持稳定的听写会话 ID */
   previewSessionId?: string
-  /** 取消预览时应清理的 Proma 输入目标。 */
+  /** 取消预览时应清理的 Locus 输入目标。 */
   targetInputId?: string | null
   /** 主进程生成的冻结输出上下文 ID。 */
   outputContextId?: string
@@ -162,7 +162,7 @@ export interface VoiceDictationStopInput {
 export interface VoiceDictationCommitInput {
   sessionId: string
   text: string
-  /** 本次听写会话冻结的 Proma 输入目标；null 表示不路由到内部输入框。 */
+  /** 本次听写会话冻结的 Locus 输入目标；null 表示不路由到内部输入框。 */
   targetInputId?: string | null
   /** 主进程生成的冻结输出上下文 ID。 */
   outputContextId?: string
@@ -172,7 +172,7 @@ export interface VoiceDictationCommitInput {
 export interface VoiceDictationTextEvent {
   sessionId: string
   text: string
-  /** 本次听写会话冻结的 Proma 输入目标；null 表示交给全局 fallback 处理。 */
+  /** 本次听写会话冻结的 Locus 输入目标；null 表示交给全局 fallback 处理。 */
   targetInputId?: string | null
 }
 
@@ -355,7 +355,7 @@ export interface AppSettings {
   appIconVariant?: string
   /** 语音输入设置（Access Token 以加密态存储，由专用服务解密后返回渲染进程） */
   voiceDictation?: VoiceDictationPersistedSettings
-  /** 飞书 Session 镜像设置：每个 Proma Session 可创建一个仅包含用户与指定 Bot 的飞书群 */
+  /** 飞书 Session 镜像设置：每个 Locus Session 可创建一个仅包含用户与指定 Bot 的飞书群 */
   feishuSessionMirror?: FeishuSessionMirrorSettings
   /** 无视觉输入能力 Agent 的视觉助手路由 */
   visionRelay?: VisionRelaySettings
@@ -368,9 +368,9 @@ export interface AppSettings {
   /** 自动清理 N 天前已归档会话的 SDK 数据（0 = 禁用，默认 0） */
   autoCleanupArchivedDays?: number
   /**
-   * Agent 代创建 git commit / PR 时是否附加 Proma 推广标识。
-   * 默认 true：commit trailer `Made-with: Proma`，PR body 末尾含 https://proma.cool 与 https://github.com/proma-ai/Proma。
-   * 关闭后不注入任何 Proma 归因，并覆盖 Claude SDK 默认 Co-Authored-By。
+   * Agent 代创建 git commit / PR 时是否附加 Locus 推广标识。
+   * 默认 true：commit trailer `Made-with: Locus`，PR body 末尾含 https://github.com/jansfer/Locus。
+   * 关闭后不注入任何 Locus 归因，并覆盖 Claude SDK 默认 Co-Authored-By。
    */
   gitAttributionEnabled?: boolean
   /** macOS 原生 Agent 灵动岛偏好。 */
@@ -476,7 +476,7 @@ export const VOICE_DICTATION_IPC_CHANNELS = {
   STOP: 'voice-dictation:stop',
   /** 取消语音输入会话 */
   CANCEL: 'voice-dictation:cancel',
-  /** 同步 Proma 输入框中的临时识别文本 */
+  /** 同步 Locus 输入框中的临时识别文本 */
   PREVIEW: 'voice-dictation:preview',
   /** 输出最终文本 */
   COMMIT: 'voice-dictation:commit',

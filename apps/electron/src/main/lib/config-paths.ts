@@ -1,7 +1,7 @@
 /**
  * 配置路径工具
  *
- * 管理 Proma 应用的本地配置文件路径。
+ * 管理 Locus 应用的本地配置文件路径。
  * 所有用户配置存储在 ~/.proma/ 目录下。
  */
 
@@ -169,14 +169,14 @@ export function getVaultConfigPath(): string {
 }
 
 /**
- * 解析 Proma 管理的默认 Markdown Vault 目录。
+ * 解析 Locus 管理的默认 Markdown Vault 目录。
  */
 export function resolveDefaultVaultDir(configDir: string): string {
   return join(configDir, 'vault')
 }
 
 /**
- * 获取 Proma 管理的默认 Markdown Vault 目录，并在首次使用时创建。
+ * 获取 Locus 管理的默认 Markdown Vault 目录，并在首次使用时创建。
  *
  * @returns 正式版本 ~/.proma/vault/，开发模式 ~/.proma-dev/vault/
  */
@@ -657,7 +657,7 @@ export function getSlackConfigPath(): string {
   return join(getConfigDir(), 'slack.json')
 }
 
-/** 获取单个 Slack Bot 的 thread → Proma session 绑定文件。 */
+/** 获取单个 Slack Bot 的 thread → Locus session 绑定文件。 */
 export function getSlackBotBindingsPath(botId: string): string {
   return join(getConfigDir(), `slack-bindings-${botId}.json`)
 }
@@ -733,7 +733,7 @@ export function getAgentSessionWorkspacePath(workspaceSlug: string, sessionId: s
  * 获取 SDK 隔离配置目录路径
  *
  * 用于保存 Pi session artifact 等运行时数据，
- * 而不是用户的 ~/.claude.json，实现 Proma 与 Claude Code CLI 的配置隔离。
+ * 而不是用户的 ~/.claude.json，实现 Locus 与 Claude Code CLI 的配置隔离。
  *
  * 如果目录不存在则自动创建。
  *
@@ -803,7 +803,7 @@ function findScratchPadMigrationDestination(vaultDir: string, legacyContentSha25
 /**
  * 获取 Scratch Pad 文件路径。
  *
- * 保留原始旧版 scratch-pad.md，并按其内容指纹仅复制到 Proma 管理的默认 Vault 一次。
+ * 保留原始旧版 scratch-pad.md，并按其内容指纹仅复制到 Locus 管理的默认 Vault 一次。
  * 已存在的 Vault 内容绝不覆盖；旧文件优先复制为草稿.md，重名时使用草稿 N.md。
  * 内容复制成功后以崩溃安全的状态文件记录指纹；重启或重复调用只返回 canonical Vault 路径。
  * 迁移失败时继续使用旧路径，以便下次安全重试。

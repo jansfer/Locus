@@ -727,7 +727,7 @@ export interface ElectronAPI {
   /** 查询本机 CLI 集成状态；不返回任何认证值。 */
   getCliIntegrationStatuses: (workspaceSlug: string) => Promise<import('@proma/shared').CliIntegrationStatus[]>
 
-  /** 仅切换 Proma 对工作区 CLI 集成的使用权限；绝不登出或撤销第三方授权。 */
+  /** 仅切换 Locus 对工作区 CLI 集成的使用权限；绝不登出或撤销第三方授权。 */
   setCliIntegrationEnabled: (workspaceSlug: string, id: string, enabled: boolean) => Promise<import('@proma/shared').CliIntegrationStatus[]>
 
   /** 测试 MCP 服务器连接 */
@@ -1249,7 +1249,7 @@ export interface ElectronAPI {
   cancelVoiceDictation: (input: VoiceDictationStopInput) => Promise<void>
   /** 输出最终语音文本 */
   commitVoiceDictation: (input: VoiceDictationCommitInput) => Promise<VoiceDictationCommitResult>
-  /** 更新 Proma 输入框中的临时识别文本 */
+  /** 更新 Locus 输入框中的临时识别文本 */
   previewVoiceDictation: (input: VoiceDictationPreviewInput) => Promise<void>
   /** 隐藏语音输入窗口 */
   hideVoiceDictation: () => Promise<void>
@@ -1288,7 +1288,7 @@ export interface ElectronAPI {
 
   // ===== 数据迁移 =====
 
-  /** 在系统文件管理器中打开 Proma 数据文件夹 */
+  /** 在系统文件管理器中打开 Locus 数据文件夹 */
   openMigrationDataFolder: () => Promise<void>
 
   // ===== 存储管理 =====

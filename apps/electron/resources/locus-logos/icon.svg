@@ -1,0 +1,12 @@
+<svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+  <!--
+    Locus 菜单栏图标（macOS Template 图像：仅 alpha 参与渲染，颜色由系统决定）
+    几何与 icon.svg 一致，按 32 画布等比缩放。
+  -->
+  <circle cx="16" cy="16" r="7.25" fill="none" stroke="#FFFFFF" stroke-width="1.63" />
+  <circle cx="16" cy="16" r="2" fill="#FFFFFF" />
+  <rect x="15.25" y="3.63" width="1.5" height="3.75" rx="0.75" fill="#FFFFFF" />
+  <rect x="15.25" y="24.63" width="1.5" height="3.75" rx="0.75" fill="#FFFFFF" />
+  <rect x="3.63" y="15.25" width="3.75" height="1.5" rx="0.75" fill="#FFFFFF" />
+  <rect x="24.63" y="15.25" width="3.75" height="1.5" rx="0.75" fill="#FFFFFF" />
+</svg>

@@ -18,7 +18,7 @@ import { SlackSettings } from './SlackSettings'
 import { DingTalkSettings } from './DingTalkSettings'
 import { WeChatSettings } from './WeChatSettings'
 import { BotDefaultSettings } from './BotDefaultSettings'
-import { PromaLogoSettings } from './PromaLogoSettings'
+import { LocusLogoSettings } from './LocusLogoSettings'
 import feishuLogo from '@/assets/bots/feishu.png'
 import dingtalkLogo from '@/assets/bots/dingding.png'
 import slackLogo from '@/assets/bots/slack.png'
@@ -184,7 +184,7 @@ function renderPlatformPanel(id: BotPlatformId): React.ReactElement {
     case 'defaults':
       return <BotDefaultSettings />
     case 'logos':
-      return <PromaLogoSettings />
+      return <LocusLogoSettings />
   }
 }
 

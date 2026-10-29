@@ -714,9 +714,9 @@ export function isUserPriorityWorkspaceComponentTab(
 
 /** Pi `/tree` 探索分支在右侧工作区的展示信息。 */
 export interface AgentExplorationBranchTab {
-  /** Pi 原生 fork 生成的独立 Proma session。 */
+  /** Pi 原生 fork 生成的独立 Locus session。 */
   sessionId: string
-  /** 作为分叉锚点的 Proma assistant message UUID。 */
+  /** 作为分叉锚点的 Locus assistant message UUID。 */
   sourceMessageId: string
   /** 给用户看的分叉来源。 */
   sourceLabel: string

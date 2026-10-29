@@ -11,7 +11,7 @@ import type { NotificationSoundId, NotificationSoundPackId, NotificationSoundTyp
 import { detectIsWindows } from '@/lib/platform'
 import { getEffectiveSoundPackId } from '@/lib/notification-sound-selection'
 
-// UI SFX 采用 CC0 音频资产；每个 feel 只打包 Proma 需要的四类语义 cue。
+// UI SFX 采用 CC0 音频资产；每个 feel 只打包 Locus 需要的四类语义 cue。
 import sound_minimal_blocked from '@/assets/sound/uisfx/minimal/blocked.mp3'
 import sound_minimal_checkpoint from '@/assets/sound/uisfx/minimal/checkpoint.mp3'
 import sound_minimal_notification from '@/assets/sound/uisfx/minimal/notification.mp3'
@@ -101,7 +101,7 @@ const cueUrls = (
   planningReminder: notification,
 })
 
-/** UI SFX 的 12 个音效 feel；每个 feel 对应四类 Proma 通知场景。 */
+/** UI SFX 的 12 个音效 feel；每个 feel 对应四类 Locus 通知场景。 */
 export const NOTIFICATION_SOUNDS: NotificationSoundMeta[] = [
   { id: 'minimal', label: 'Minimal', description: '干净、精准，几乎隐形', bestFor: '生产力与系统 UI', color: '#e84d2a', image: packImageMinimal, duration: '0.56', urls: cueUrls(sound_minimal_blocked, sound_minimal_checkpoint, sound_minimal_notification, sound_minimal_complete) },
   { id: 'soft', label: 'Soft', description: '圆润、温和，让人安心', bestFor: '友好的日常工作流', color: '#d47b83', image: packImageSoft, duration: '0.81', urls: cueUrls(sound_soft_blocked, sound_soft_checkpoint, sound_soft_notification, sound_soft_complete) },

@@ -64,7 +64,7 @@ function buildSkillClassificationPrompt(input: {
     })
     .join('\n')
 
-  return `请帮我整理当前项目在 Proma 工作区中保存的 Skills 的分组。
+  return `请帮我整理当前项目在 Locus 工作区中保存的 Skills 的分组。
 
 项目：${input.workspaceName || '当前项目'}
 Skills 目录：${input.skillsDir}
@@ -417,7 +417,7 @@ export function AgentSkillsView({
 
   const guideCatalogCli = React.useCallback(async (integration: CatalogCliIntegration): Promise<void> => {
     try {
-      // “配置”是重新授予 Proma 使用此 CLI 的入口，不会影响 CLI 自己的登录或授权。
+      // “配置”是重新授予 Locus 使用此 CLI 的入口，不会影响 CLI 自己的登录或授权。
       await data.setCliIntegrationEnabled(integration.id, true)
     } catch {
       toast.error(`无法启用 ${integration.name} 集成`)
@@ -432,7 +432,7 @@ export function AgentSkillsView({
   const disconnectCatalogCli = React.useCallback(async (integration: CatalogCliIntegration): Promise<void> => {
     try {
       await data.setCliIntegrationEnabled(integration.id, false)
-      toast.success(`已断开 ${integration.name}`, { description: '仅停止 Proma 使用该 CLI，不会登出或撤销第三方授权。' })
+      toast.success(`已断开 ${integration.name}`, { description: '仅停止 Locus 使用该 CLI，不会登出或撤销第三方授权。' })
     } catch {
       toast.error(`无法断开 ${integration.name}`)
     }
@@ -447,7 +447,7 @@ export function AgentSkillsView({
   const handleClassifySkills = React.useCallback(async (): Promise<void> => {
     if (classifyingSkills) return
     if (!data.skillsDir) {
-      toast.error('无法定位当前项目的 Proma 工作区 Skills 目录')
+      toast.error('无法定位当前项目的 Locus 工作区 Skills 目录')
       return
     }
     setClassifyingSkills(true)
@@ -873,7 +873,7 @@ function SkillsTab({
   onUpdate,
 }: SkillsTabProps): React.ReactElement {
   if (total === 0) {
-    return <EmptyState icon={<Blocks className="size-8 text-foreground/30" />} title="暂无 Skill" hint="可以在 Agent 模式下让 Proma 帮你联网查找并安装 Skill，或从其他项目导入。" />
+    return <EmptyState icon={<Blocks className="size-8 text-foreground/30" />} title="暂无 Skill" hint="可以在 Agent 模式下让 Locus 帮你联网查找并安装 Skill，或从其他项目导入。" />
   }
   if (customSkills.length === 0 && builtinSkills.length === 0) {
     return <EmptyState icon={<Search className="size-8 text-foreground/30" />} title="没有匹配的 Skill" hint="试试更换搜索关键词。" />

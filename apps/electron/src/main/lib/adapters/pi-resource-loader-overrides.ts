@@ -1,7 +1,7 @@
 /**
- * Proma-managed Pi mode deliberately opts out of Pi's ambient local resources.
+ * Locus-managed Pi mode deliberately opts out of Pi's ambient local resources.
  *
- * Proma supplies the system prompt, Skills and product tools explicitly. Do not
+ * Locus supplies the system prompt, Skills and product tools explicitly. Do not
  * let a user project's ancestor context files, extensions, or APPEND_SYSTEM.md
  * silently alter that managed runtime. Inline extension factories remain
  * available: Pi loads them independently of `noExtensions`.
@@ -22,7 +22,7 @@ export function createPromaManagedResourceLoaderOptions() {
 }
 
 /**
- * Pi still owns the final <project_context> formatting. Proma supplies this override only after validating explicit Proma-managed
+ * Pi still owns the final <project_context> formatting. Locus supplies this override only after validating explicit Locus-managed
  * workspace paths and user-authorized project paths, so no ambient context-file
  * discovery is re-enabled.
  */

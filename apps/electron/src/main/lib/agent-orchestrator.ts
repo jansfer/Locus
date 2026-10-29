@@ -196,7 +196,7 @@ function buildPiAdditionalDirectoriesPrompt(directories: string[]): string {
   return `
 
 <attached_directories>
-这些目录已由 Proma 授权给当前会话，和当前工作目录同属于用户允许访问的范围。
+这些目录已由 Locus 授权给当前会话，和当前工作目录同属于用户允许访问的范围。
 如需读取或修改这些目录中的内容，请直接使用绝对路径，不要先复制到当前工作目录。
 ${directoryLines}
 </attached_directories>`
@@ -206,7 +206,7 @@ const LOCAL_PROJECT_ROOT_UNAVAILABLE_CODE = 'local_project_root_unavailable'
 
 function createLocalProjectRootUnavailableError(projectRootPath: string, status?: string): Error {
   const error = new Error(
-    `本地项目根目录不可用: 本地项目根目录不存在或无法访问：${projectRootPath}。请在 Proma 中重新选择项目文件夹。`,
+    `本地项目根目录不可用: 本地项目根目录不存在或无法访问：${projectRootPath}。请在 Locus 中重新选择项目文件夹。`,
   ) as Error & { code?: string; details?: string[] }
   error.code = LOCAL_PROJECT_ROOT_UNAVAILABLE_CODE
   error.details = status ? [`目录状态: ${status}`] : undefined
@@ -826,7 +826,7 @@ export class AgentOrchestrator {
         reportPreflightError({
           code: 'local_project_root_unavailable',
           title: '本地项目根目录不可用',
-          message: `本地项目根目录不存在或无法访问：${workspace.projectRootPath}。请在 Proma 中重新选择项目文件夹。`,
+          message: `本地项目根目录不存在或无法访问：${workspace.projectRootPath}。请在 Locus 中重新选择项目文件夹。`,
           details: [`目录状态: ${projectRootStatus}`],
           actions: [],
           canRetry: false,
@@ -836,7 +836,7 @@ export class AgentOrchestrator {
     }
 
     // Windows 缺少 Git Bash / WSL 时仍允许启动 Pi Agent。
-    // Pi adapter 会移除 Bash 工具并注入基础模式说明；文件工具、对话和本地 Proma 工具不受影响。
+    // Pi adapter 会移除 Bash 工具并注入基础模式说明；文件工具、对话和本地 Locus 工具不受影响。
 
     // 1. 获取渠道信息并解密 API Key
     const channel = getChannelById(channelId)
@@ -1086,7 +1086,7 @@ export class AgentOrchestrator {
 
       // 合并外部注入的自定义 MCP 服务器（如飞书群聊工具）
 
-      // Proma 主进程连接用户 MCP server，并转换为 Pi custom tools。
+      // Locus 主进程连接用户 MCP server，并转换为 Pi custom tools。
       if (Object.keys(mcpServers).length > 0) {
         try {
           piMcpTools = await buildPiMcpTools(mcpServers)
@@ -1183,7 +1183,7 @@ export class AgentOrchestrator {
         )
         return sessionContextDirectory ? join(sessionContextDirectory, 'plan') : undefined
       })()
-      // 计划目录由 Proma 创建，确保后续路径策略不需要为首次写入放宽符号链接校验。
+      // 计划目录由 Locus 创建，确保后续路径策略不需要为首次写入放宽符号链接校验。
       // 运行中切换到 Plan 模式时，也会在首次写入前调用此函数。
       const ensureSessionPlanDirectory = (): boolean => {
         if (!sessionPlanDirectory) return false
@@ -1424,7 +1424,7 @@ export class AgentOrchestrator {
           })
         }
 
-        // Pi 的原生 PowerShell 尚未具备 Proma Bash 等价的命令级安全分类和白名单。
+        // Pi 的原生 PowerShell 尚未具备 Locus Bash 等价的命令级安全分类和白名单。
         // 在需确认的权限模式中，每条命令都必须显示并单次确认；bypassPermissions
         // 则遵从其既有语义，允许用户显式跳过所有工具确认。
         if (toolName === 'PowerShell' && currentMode !== 'bypassPermissions') {
@@ -1860,7 +1860,7 @@ export class AgentOrchestrator {
                 }
 
                 // Thinking signature 不兼容：通常由跨模型 resume 触发。
-                // 先自动清除 SDK resume 关系，改用 Proma 已持久化上下文重跑一次；再失败才展示用户提示。
+                // 先自动清除 SDK resume 关系，改用 Locus 已持久化上下文重跑一次；再失败才展示用户提示。
                 if (
                   typedError.code === THINKING_SIGNATURE_ERROR_CODE &&
                   wasResuming
@@ -1883,7 +1883,7 @@ export class AgentOrchestrator {
                 }
 
                 // 上下文过长：旧 SDK session 已经处于不可继续的超限状态。
-                // 自动清除 resume 指针，改用 Proma 最近历史回填重跑一次；用于飞书/自动任务等无人值守入口自恢复。
+                // 自动清除 resume 指针，改用 Locus 最近历史回填重跑一次；用于飞书/自动任务等无人值守入口自恢复。
                 if (
                   typedError.code === 'prompt_too_long' &&
                   wasResuming
@@ -2133,7 +2133,7 @@ export class AgentOrchestrator {
             continue  // 进入下一次 retry 循环
           }
 
-          // 上下文过长：清除超限 resume 指针，用 Proma 历史回填自动恢复一次。
+          // 上下文过长：清除超限 resume 指针，用 Locus 历史回填自动恢复一次。
           if (catchLooksPromptTooLong && wasResuming) {
             existingSdkSessionId = undefined
             capturedSdkSessionId = undefined
@@ -2333,7 +2333,7 @@ export class AgentOrchestrator {
   /**
    * 运行中动态切换会话的权限模式
    *
-   * 同时更新 Proma 侧（canUseTool 闭包读取的 Map）和 SDK 侧（query.setPermissionMode）。
+   * 同时更新 Locus 侧（canUseTool 闭包读取的 Map）和 SDK 侧（query.setPermissionMode）。
    * 典型场景：用户在 Agent 运行中通过 PermissionModeSelector 切换模式。
    */
   async updateSessionPermissionMode(sessionId: string, mode: PromaPermissionMode): Promise<void> {

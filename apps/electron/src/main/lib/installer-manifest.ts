@@ -7,8 +7,11 @@
 
 import type { InstallerManifest, InstallerSource } from '@proma/shared'
 
-const PROMA_API_BASE = 'https://api.proma.cool'
-const MANIFEST_URL = `${PROMA_API_BASE}/api/v1/installers/manifest`
+/**
+ * 本 fork 不使用上游商业 API（api.proma.cool），始终使用内置清单。
+ * 如需改为自建清单服务，把 MANIFEST_URL 指向自有地址即可。
+ */
+const MANIFEST_URL = ''
 const CACHE_TTL_MS = 5 * 60 * 1000
 
 interface ManifestCache {
@@ -83,11 +86,15 @@ export async function fetchInstallerManifest(force = false): Promise<InstallerMa
     return cache.data
   }
 
+  if (!MANIFEST_URL) {
+    return BUILTIN_FALLBACK
+  }
+
   try {
     const response = await fetch(MANIFEST_URL, {
       headers: {
         'Accept': 'application/json',
-        'User-Agent': 'Proma-Desktop-App',
+        'User-Agent': 'Locus-Desktop-App',
       },
     })
 

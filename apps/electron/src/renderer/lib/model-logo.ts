@@ -112,7 +112,7 @@ import XiaomiLogo from '@/assets/models/xiaomi.png'
 // GitHub / Copilot
 import GitHubLogo from '@/assets/models/github.svg'
 
-// Proma
+// Locus
 import PromaLogo from '@/assets/models/proma.png'
 
 // Cohere

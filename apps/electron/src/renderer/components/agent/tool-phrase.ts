@@ -81,7 +81,7 @@ function filename(path: string): string {
 }
 
 /**
- * 从 Proma Skill 入口文件路径中提取 Skill 名称。
+ * 从 Locus Skill 入口文件路径中提取 Skill 名称。
  *
  * Pi Agent 以普通 Read 工具加载 Skill，因此需在展示层识别
  * `<workspace>/skills/<skill-name>/SKILL.md`，避免标题只显示泛化的 SKILL.md。

@@ -1,0 +1,9 @@
+<svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Locus 标志 - 纯白无背景版，用于启动画面与引导页 -->
+  <circle cx="60" cy="60" r="27.2" fill="none" stroke="#FFFFFF" stroke-width="6.1" />
+  <circle cx="60" cy="60" r="7.5" fill="#FFFFFF" />
+  <rect x="57.2" y="13.6" width="5.6" height="14.1" rx="2.8" fill="#FFFFFF" />
+  <rect x="57.2" y="92.3" width="5.6" height="14.1" rx="2.8" fill="#FFFFFF" />
+  <rect x="13.6" y="57.2" width="14.1" height="5.6" rx="2.8" fill="#FFFFFF" />
+  <rect x="92.3" y="57.2" width="14.1" height="5.6" rx="2.8" fill="#FFFFFF" />
+</svg>

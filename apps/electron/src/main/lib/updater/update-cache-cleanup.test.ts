@@ -10,9 +10,9 @@ function createFixture(platform: NodeJS.Platform = 'win32') {
   const root = mkdtempSync(join(tmpdir(), 'proma-updater-cache-'))
   tempDirectories.push(root)
   const baseCacheDirectory = join(root, 'cache-root')
-  const cacheDirectory = join(baseCacheDirectory, 'com.proma.app-updater')
+  const cacheDirectory = join(baseCacheDirectory, 'com.locus.app-updater')
   const pendingDirectory = join(cacheDirectory, 'pending')
-  const downloadedFile = join(pendingDirectory, 'Proma-0.20.0.exe')
+  const downloadedFile = join(pendingDirectory, 'Locus-0.20.0.exe')
   const stateFilePath = join(root, 'user-data', 'updater-cache-state.json')
 
   mkdirSync(pendingDirectory, { recursive: true })
@@ -83,14 +83,14 @@ describe('更新安装包缓存清理', () => {
     const outsideCacheDirectory = join(dirname(fixture.baseCacheDirectory), 'outside-cache')
     const linkedCacheDirectory = join(fixture.baseCacheDirectory, 'linked-cache')
     const linkedPendingDirectory = join(outsideCacheDirectory, 'pending')
-    const linkedInstaller = join(linkedPendingDirectory, 'Proma-0.20.0.exe')
+    const linkedInstaller = join(linkedPendingDirectory, 'Locus-0.20.0.exe')
     mkdirSync(linkedPendingDirectory, { recursive: true })
     writeFileSync(linkedInstaller, 'installer')
     symlinkSync(outsideCacheDirectory, linkedCacheDirectory)
 
     const cleanup = createUpdateCacheCleanup(fixture)
 
-    expect(cleanup.recordDownloadedUpdate('0.20.0', join(linkedCacheDirectory, 'pending', 'Proma-0.20.0.exe'))).toBe(false)
+    expect(cleanup.recordDownloadedUpdate('0.20.0', join(linkedCacheDirectory, 'pending', 'Locus-0.20.0.exe'))).toBe(false)
     expect(existsSync(fixture.stateFilePath)).toBe(false)
     expect(existsSync(linkedInstaller)).toBe(true)
   })
@@ -143,7 +143,7 @@ describe('更新安装包缓存清理', () => {
 
     cleanup.cleanupForRunningVersion('0.20.0')
     mkdirSync(fixture.pendingDirectory)
-    const nextInstaller = join(fixture.pendingDirectory, 'Proma-0.21.0.zip')
+    const nextInstaller = join(fixture.pendingDirectory, 'Locus-0.21.0.zip')
     writeFileSync(nextInstaller, 'next-installer')
     cleanup.recordDownloadedUpdate('0.21.0', nextInstaller)
 

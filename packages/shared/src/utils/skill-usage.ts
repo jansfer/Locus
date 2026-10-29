@@ -145,7 +145,7 @@ function isWorkspaceSkillEntryPath(path: string, options?: SkillActivationCollec
 }
 
 /**
- * Find successful Read -> tool_result pairs that loaded a Proma Skill entry file.
+ * Find successful Read -> tool_result pairs that loaded a Locus Skill entry file.
  * A bare tool_use is intentionally insufficient: failed reads must not become chips.
  */
 export function collectSuccessfulSkillReadActivations(

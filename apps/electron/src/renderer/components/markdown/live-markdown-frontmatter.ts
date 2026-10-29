@@ -35,7 +35,7 @@ export function getLeadingFrontmatterRange(lines: readonly string[]): LiveMarkdo
 }
 
 /**
- * Parse the conservative subset of YAML frontmatter that Proma can safely edit
+ * Parse the conservative subset of YAML frontmatter that Locus can safely edit
  * without reserializing unrelated YAML syntax. Nested values remain source text.
  */
 export function parseLeadingFrontmatter(lines: readonly string[]): LiveMarkdownPropertyEntry[] | null {

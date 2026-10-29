@@ -27,7 +27,7 @@ import { VersionHistory } from './VersionHistory'
 declare const __APP_VERSION__: string
 const APP_VERSION = __APP_VERSION__
 
-const GITHUB_RELEASES_URL = 'https://github.com/proma-ai/Proma/releases'
+const GITHUB_RELEASES_URL = 'https://github.com/jansfer/Locus/releases'
 
 /** 更新状态卡片 */
 function UpdateCard(): React.ReactElement | null {
@@ -481,8 +481,8 @@ function ShellEnvironmentCard(): React.ReactElement | null {
 export function AboutSettings(): React.ReactElement {
   return (
     <SettingsSection
-      title="关于 Proma"
-      description="集成通用 AI Agent 的下一代人工智能软件"
+      title="关于 Locus"
+      description="本地优先的桌面 AI Agent"
     >
       <SettingsCard>
         <SettingsRow label="版本">
@@ -493,7 +493,7 @@ export function AboutSettings(): React.ReactElement {
         </SettingsRow>
         <SettingsRow
           label="开源协议"
-          description="社区版基于 AGPL-3.0 开源，商业授权请联系 erlichliu@gmail.com"
+          description="本项目是基于 Locus 的修改版，修改日期 2026-10-29；按 AGPL-3.0 第 5 条要求标注修改，衍生作品整体继续以 AGPL-3.0 授权。"
         >
           <a
             href="https://www.gnu.org/licenses/agpl-3.0.html"
@@ -504,14 +504,17 @@ export function AboutSettings(): React.ReactElement {
             AGPL-3.0
           </a>
         </SettingsRow>
-        <SettingsRow label="项目地址">
+        <SettingsRow
+          label="项目地址"
+          description="完整对应源码（含本项目全部修改）在此仓库公开"
+        >
           <a
-            href="https://github.com/proma-ai/Proma.git"
+            href="https://github.com/jansfer/Locus"
             target="_blank"
             rel="noopener noreferrer"
             className="text-sm text-primary hover:underline"
           >
-            github.com/proma-ai/Proma
+            github.com/jansfer/Locus
           </a>
         </SettingsRow>
       </SettingsCard>

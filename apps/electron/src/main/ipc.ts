@@ -1363,7 +1363,7 @@ export function resolveAppIconPath(variantId: string): string | null {
   if (!variantId || variantId === 'default') {
     return join(resourcesDir, 'icon.png')
   }
-  return join(resourcesDir, 'proma-logos', `proma-${variantId}.png`)
+  return join(resourcesDir, 'locus-logos', `locus-${variantId}.png`)
 }
 
 function releaseDirectoryWatcherIfUnreferenced(dirPath: string): void {
@@ -5662,7 +5662,7 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('migration:open-data-folder', async (): Promise<void> => {
     const dataDir = getConfigDir()
     const error = await shell.openPath(dataDir)
-    if (error) throw new Error(`无法打开 Proma 数据文件夹：${error}`)
+    if (error) throw new Error(`无法打开 Locus 数据文件夹：${error}`)
   })
 
   // ===== 窗口控制（Windows 自定义标题栏按钮）=====

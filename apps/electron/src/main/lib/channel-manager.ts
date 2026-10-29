@@ -100,7 +100,7 @@ const QWEN_TOKEN_PLAN_PRESET_MODELS: ChannelModel[] = [
 ]
 /**
  * 一次性模型候选更新。每个更新使用独立 ID，避免新增模型时重新加入用户已删除的旧候选。
- * 更新独立于 config schema version，商业版等更高版本配置也能安全收到 OSS 新模型。
+ * 更新独立于 config schema version，更高版本的配置也能安全收到新模型。
  */
 const PRESET_MODEL_CANDIDATE_UPDATES: readonly {
   id: string
@@ -657,7 +657,7 @@ export function decryptApiKey(channelId: string): string {
  */
 const inflightCodexRefresh = new Map<string, Promise<CodexOAuthCredentials>>()
 
-/** 保存 Pi 或 Proma 刷新后的完整 Codex OAuth 凭据。 */
+/** 保存 Pi 或 Locus 刷新后的完整 Codex OAuth 凭据。 */
 export function persistCodexOAuthCredentials(channelId: string, credentials: CodexOAuthCredentials): void {
   const channel = getChannelById(channelId)
   if (!channel || channel.provider !== 'openai-codex') {
@@ -770,7 +770,7 @@ export async function resolveGithubCopilotOAuthCredentials(channelId: string): P
   return refreshPromise
 }
 
-/** 保存 Pi 或 Proma 刷新后的完整 xAI OAuth 凭据。 */
+/** 保存 Pi 或 Locus 刷新后的完整 xAI OAuth 凭据。 */
 export function persistXaiOAuthCredentials(channelId: string, credentials: XaiOAuthCredentials): void {
   const channel = getChannelById(channelId)
   if (!channel || channel.provider !== 'xai') {
@@ -911,7 +911,7 @@ export async function testChannel(channelId: string): Promise<ChannelTestResult>
       case 'google':
         return await testGoogle(channel.baseUrl, apiKey, proxyUrl)
       default:
-        return { success: false, message: `不支持的供应商: ${provider}。你可能过去使用的是 Proma 商业版，请重新下载商业版覆盖安装，当前版本为开源版本。` }
+        return { success: false, message: `不支持的供应商: ${provider}，请在渠道设置中重新配置该渠道。` }
     }
   } catch (error) {
     return normalizeRequestError(error)
@@ -923,7 +923,7 @@ export async function testChannel(channelId: string): Promise<ChannelTestResult>
  *
  * DeepSeek / Kimi 等内置供应商会按协议根路径补全端点。
  * Anthropic 兼容格式使用用户填写的完整请求地址。
- * Coding Plan 渠道必须发送 Proma User-Agent，否则返回 403。
+ * Coding Plan 渠道必须发送 Locus User-Agent，否则返回 403。
  */
 async function testAnthropicCompatible(
   baseUrl: string,
@@ -2060,7 +2060,7 @@ interface AnthropicModelItem {
  *
  * DeepSeek / Kimi 等内置供应商会按协议根路径补全模型端点。
  * Anthropic 兼容格式使用完整请求地址，不再推导模型端点。
- * Coding Plan 渠道必须发送 Proma User-Agent。
+ * Coding Plan 渠道必须发送 Locus User-Agent。
  * 文档: https://docs.anthropic.com/en/api/models-list
  */
 async function fetchAnthropicCompatibleModels(

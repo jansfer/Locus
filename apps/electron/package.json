@@ -1,12 +1,18 @@
 {
   "name": "@proma/electron",
-  "version": "0.19.58",
-  "description": "Proma，为专业用户设计的 Agent",
+  "version": "0.19.59",
+  "description": "Locus，为专业用户设计的 Agent（基于 Proma 的 AGPL-3.0 修改版）",
   "main": "dist/main.cjs",
   "author": {
-    "name": "ErlichLiu",
-    "email": "erlichliu@gmail.com"
+    "name": "Jansfer",
+    "email": "jansfer@users.noreply.github.com"
   },
+  "contributors": [
+    {
+      "name": "Erlich Liu",
+      "email": "erlichliu@gmail.com"
+    }
+  ],
   "private": true,
   "type": "module",
   "scripts": {
@@ -184,5 +190,5 @@
     "extends": "electron-builder.yml"
   },
   "proma": {},
-  "homepage": "https://github.com/proma-ai/Proma"
+  "homepage": "https://github.com/jansfer/Locus"
 }

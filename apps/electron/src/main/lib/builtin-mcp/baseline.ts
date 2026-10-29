@@ -1,12 +1,12 @@
 /**
- * Proma 内置 MCP 单一事实源加载层
+ * Locus 内置 MCP 单一事实源加载层
  *
  * 唯一从 default-mcp.json 读取内置 MCP 定义的地方。注入器、UI catalog、
  * 系统提示词全部通过这里取 name / displayName / 约束，杜绝多处手写漂移。
  *
  * default-mcp.json 随构建编译进包（参考 channel-manager / agent-orchestrator
  * 的 `import pkg from 'package.json' with { type: 'json' }` 模式），
- * Proma 每次发布即覆盖升级，无需运行时同步到用户目录。
+ * Locus 每次发布即覆盖升级，无需运行时同步到用户目录。
  */
 
 import type { BuiltinMcpCategory, McpToolSummary } from '@proma/shared'

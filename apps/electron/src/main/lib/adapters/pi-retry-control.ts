@@ -91,7 +91,7 @@ function shouldExposePiRetry(event: PiNativeRetryDetails): boolean {
 }
 
 /**
- * 将 Pi native retry 生命周期转换为 Proma UI 已识别的 retry 事件。
+ * 将 Pi native retry 生命周期转换为 Locus UI 已识别的 retry 事件。
  * 前五次恢复的完整生命周期都会被过滤；若最终未恢复，终态 assistant error 仍会正常展示。
  */
 export function mapPiNativeRetryEvent(

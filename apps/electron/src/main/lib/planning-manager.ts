@@ -89,7 +89,7 @@ export interface PlanningSyncOutboxItem {
 export interface PlanningNativeExternalItem {
   calendarItemIdentifier: string
   calendarItemExternalIdentifier?: string
-  /** 仅由 addon 从 Proma 自己写入的 URL marker 解析，绝不透出任意用户 URL。 */
+  /** 仅由 addon 从 Locus 自己写入的 URL marker 解析，绝不透出任意用户 URL。 */
   promaIdentity?: string
   title: string
   notes?: string
@@ -661,14 +661,14 @@ export function listPlanningNativeConnections(entity?: PlanningNativeSyncEntity)
 export function connectPlanningNativeConnection(input: ConnectPlanningNativeConnectionInput): PlanningNativeConnection {
   const now = Date.now(); const target = input.target
   if (!target.id || !target.title) throw new Error('系统集合无效')
-  if (getDatabase().prepare('SELECT id FROM planning_sync_profiles WHERE entity=:entity AND target_id=:targetId').get({ entity: input.entity, targetId: target.id })) throw new Error('Proma 受管目标不能同时作为外部连接')
+  if (getDatabase().prepare('SELECT id FROM planning_sync_profiles WHERE entity=:entity AND target_id=:targetId').get({ entity: input.entity, targetId: target.id })) throw new Error('Locus 受管目标不能同时作为外部连接')
   const old = getDatabase().prepare('SELECT * FROM planning_native_connections WHERE entity=:entity AND target_id=:targetId').get({ entity: input.entity, targetId: target.id }) as NativeConnectionRow | undefined
   const row: NativeConnectionRow = { id: old?.id ?? randomUUID(), entity: input.entity, target_id: target.id, target_title: target.title.slice(0, 500), source_title: target.sourceTitle.slice(0, 500), source_type: target.sourceType, can_write: target.canWrite ? 1 : 0, connected_at: old?.connected_at ?? now, updated_at: now }
   getDatabase().prepare(`INSERT INTO planning_native_connections (id,entity,target_id,target_title,source_title,source_type,can_write,connected_at,updated_at) VALUES (:id,:entity,:target_id,:target_title,:source_title,:source_type,:can_write,:connected_at,:updated_at) ON CONFLICT(entity,target_id) DO UPDATE SET target_title=excluded.target_title,source_title=excluded.source_title,source_type=excluded.source_type,can_write=excluded.can_write,updated_at=excluded.updated_at`).run(row)
   return nativeConnectionFromRow(row)
 }
 
-/** 断开只移除 Proma 投影与映射，绝不删除用户的系统原始事项。 */
+/** 断开只移除 Locus 投影与映射，绝不删除用户的系统原始事项。 */
 function nativeConflictFromRow(row: NativeConflictRow): PlanningNativeSyncConflict {
   const connection = getDatabase().prepare('SELECT * FROM planning_native_connections WHERE id=:id').get({ id: row.connection_id }) as NativeConnectionRow | undefined
   const table = row.entity === 'reminder' ? 'todos' : 'calendar_events'
@@ -679,7 +679,7 @@ function nativeConflictFromRow(row: NativeConflictRow): PlanningNativeSyncConfli
 function managedProfileConflictFromRow(row: SyncProfileConflictRow): PlanningNativeSyncConflict {
   const profile = getDatabase().prepare('SELECT * FROM planning_sync_profiles WHERE id=:id').get({ id: row.profile_id }) as SyncProfileRow | undefined
   const local = getDatabase().prepare('SELECT title FROM calendar_events WHERE id=:id').get({ id: row.proma_entity_id }) as { title?: string } | undefined
-  return { id: row.id, profileId: row.profile_id, entity: 'calendar', promaEntityId: row.proma_entity_id, title: local?.title ?? profile?.target_title ?? 'Proma 日程', kind: row.kind, detectedAt: row.detected_at }
+  return { id: row.id, profileId: row.profile_id, entity: 'calendar', promaEntityId: row.proma_entity_id, title: local?.title ?? profile?.target_title ?? 'Locus 日程', kind: row.kind, detectedAt: row.detected_at }
 }
 
 export function listPlanningNativeSyncConflicts(): PlanningNativeSyncConflict[] {
@@ -688,7 +688,7 @@ export function listPlanningNativeSyncConflicts(): PlanningNativeSyncConflict[] 
   return [...external, ...managed].sort((a, b) => b.detectedAt - a.detectedAt)
 }
 
-/** 冲突必须显式选择；保留系统会回流，保留 Proma 才会继续/重建其出站版本。 */
+/** 冲突必须显式选择；保留系统会回流，保留 Locus 才会继续/重建其出站版本。 */
 export function resolvePlanningNativeSyncConflict(input: ResolvePlanningNativeSyncConflictInput): boolean {
   const conflict = getDatabase().prepare('SELECT * FROM planning_native_sync_conflicts WHERE id=:id AND resolved_at IS NULL').get({ id: input.id }) as NativeConflictRow | undefined
   if (!conflict) return resolveManagedCalendarProfileConflict(input)
@@ -733,7 +733,7 @@ function resolveManagedCalendarProfileConflict(input: ResolvePlanningNativeSyncC
         if (currentBinding?.calendar_item_identifier === native.calendarItemIdentifier) {
           getDatabase().prepare('UPDATE planning_sync_bindings SET last_synced_hash=:hash,last_synced_at=:now WHERE profile_id=:profileId AND proma_entity_id=:promaEntityId').run({ hash: planningNativeCalendarHash(native), now: Date.now(), profileId: profile.id, promaEntityId: conflict.proma_entity_id })
         } else {
-          // 这是 locator recovery 冲突：不能将新系统 locator 自动认领；用户选 Proma 后按新项目发布。
+          // 这是 locator recovery 冲突：不能将新系统 locator 自动认领；用户选 Locus 后按新项目发布。
           getDatabase().prepare('UPDATE planning_sync_bindings SET calendar_item_identifier=NULL,last_synced_hash=NULL WHERE profile_id=:profileId AND proma_entity_id=:promaEntityId').run({ profileId: profile.id, promaEntityId: conflict.proma_entity_id })
         }
         enqueuePlanningSync('calendar_event', conflict.proma_entity_id, 'upsert')
@@ -784,8 +784,8 @@ function enqueuePlanningSync(targetType: PlanningReminderTargetType, promaEntity
   const entity = syncEntityForPlanningTarget(targetType)
   const external = getDatabase().prepare('SELECT bindings.connection_id, connections.can_write FROM planning_native_bindings AS bindings JOIN planning_native_connections AS connections ON connections.id=bindings.connection_id WHERE bindings.proma_entity_id=:promaEntityId AND connections.entity=:entity').get({ promaEntityId, entity }) as { connection_id: string; can_write: number } | undefined
   if (external) {
-    // 用户明确连接的可写 Calendar / Reminder 在 Proma 删除时都写穿 EventKit；只读集合一律不能本地假成功。
-    if (external.can_write !== 1) throw new Error('该系统集合为只读，不能在 Proma 中修改或删除')
+    // 用户明确连接的可写 Calendar / Reminder 在 Locus 删除时都写穿 EventKit；只读集合一律不能本地假成功。
+    if (external.can_write !== 1) throw new Error('该系统集合为只读，不能在 Locus 中修改或删除')
     // native outbox 用 hide 表示“本地投影已删除”；coordinator 根据实体执行受限 EventKit remove。
     const externalOperation = operation === 'delete' ? 'hide' : 'upsert'
     getDatabase().prepare(`INSERT INTO planning_native_outbox (id,connection_id,operation,proma_entity_id,attempts,next_attempt_at,created_at,updated_at) VALUES (:id,:connectionId,:operation,:promaEntityId,0,:now,:now,:now) ON CONFLICT(connection_id,proma_entity_id) DO UPDATE SET operation=excluded.operation,attempts=0,next_attempt_at=excluded.next_attempt_at,last_error=NULL,revision=planning_native_outbox.revision+1,updated_at=excluded.updated_at`).run({ id: randomUUID(), connectionId: external.connection_id, operation: externalOperation, promaEntityId, now })
@@ -936,7 +936,7 @@ export function completePlanningSyncOutbox(item: PlanningSyncOutboxItem, nativeI
 }
 
 export function listDuePlanningNativeOutbox(now = Date.now(), limit = 25): PlanningNativeOutboxItem[] {
-  // 冲突未决时绝不能自动把 Proma 一侧覆盖到系统。
+  // 冲突未决时绝不能自动把 Locus 一侧覆盖到系统。
   const rows = getDatabase().prepare(`SELECT outbox.*, connections.entity,connections.target_id,connections.target_title,connections.source_title,connections.source_type,connections.can_write,connections.connected_at,connections.updated_at AS connection_updated_at,bindings.calendar_item_identifier,bindings.due_date_only,bindings.recreate_pending FROM planning_native_outbox AS outbox JOIN planning_native_connections AS connections ON connections.id=outbox.connection_id JOIN planning_native_bindings AS bindings ON bindings.connection_id=outbox.connection_id AND bindings.proma_entity_id=outbox.proma_entity_id LEFT JOIN planning_native_sync_conflicts AS conflicts ON conflicts.connection_id=outbox.connection_id AND conflicts.proma_entity_id=outbox.proma_entity_id AND conflicts.resolved_at IS NULL WHERE outbox.next_attempt_at<=:now AND conflicts.id IS NULL ORDER BY outbox.created_at LIMIT :limit`).all({ now, limit }) as Array<NativeOutboxRow & NativeConnectionRow & { connection_updated_at: number; calendar_item_identifier: string; due_date_only: number; recreate_pending: number }>
   return rows.map((row) => ({ id: row.id, connection: nativeConnectionFromRow({ ...row, updated_at: row.connection_updated_at }), operation: row.operation, promaEntityId: row.proma_entity_id, calendarItemIdentifier: row.calendar_item_identifier, dueDateOnly: row.due_date_only === 1, recreatePending: row.recreate_pending === 1, attempts: row.attempts, revision: row.revision }))
 }
@@ -1011,7 +1011,7 @@ export function applyPlanningNativeConnectionItems(connectionId: string, items: 
       const hash = JSON.stringify(item)
       if (binding?.last_native_hash === hash) continue
       const localId = binding?.proma_entity_id ?? randomUUID()
-      // 本地写入尚未写回时，让 outbox 优先，避免覆盖用户刚在 Proma 中完成的编辑。
+      // 本地写入尚未写回时，让 outbox 优先，避免覆盖用户刚在 Locus 中完成的编辑。
       const pending = binding && getDatabase().prepare('SELECT id FROM planning_native_outbox WHERE connection_id=:connectionId AND proma_entity_id=:promaEntityId').get({ connectionId, promaEntityId: localId })
       if (pending) {
         // 两侧都在基于同一 binding 修改：停止自动覆盖，留给用户明确选择。
@@ -1031,7 +1031,7 @@ export function applyPlanningNativeConnectionItems(connectionId: string, items: 
     }
     // 只有真正的完整快照才能以缺失推断系统端删除；有界 Calendar 列表不能这样做。
     if (!options.fullSnapshot) return
-    // 系统端删除后只移除 Proma 投影和 binding；绝不通过 outbox 删除 EventKit 原项。
+    // 系统端删除后只移除 Locus 投影和 binding；绝不通过 outbox 删除 EventKit 原项。
     const bindings = getDatabase().prepare('SELECT * FROM planning_native_bindings WHERE connection_id=:connectionId').all({ connectionId }) as NativeBindingRow[]
     for (const binding of bindings) {
       if (seen.has(binding.calendar_item_identifier) || binding.recreate_pending === 1) continue
@@ -1048,7 +1048,7 @@ export function applyPlanningNativeConnectionItems(connectionId: string, items: 
 }
 
 /**
- * Proma 受管 Calendar 的回流路径。直接写 SQLite，绝不调用正常 update/enqueue，
+ * Locus 受管 Calendar 的回流路径。直接写 SQLite，绝不调用正常 update/enqueue，
  * 因而 EventKit 通知不会制造新的 outbox 回声。
  */
 export function applyManagedCalendarProfileItems(profileId: string, items: PlanningNativeExternalItem[]): void {
@@ -1066,7 +1066,7 @@ export function applyManagedCalendarProfileItems(profileId: string, items: Plann
         }
         const markerCandidate = item.promaIdentity ? getDatabase().prepare('SELECT * FROM planning_sync_bindings WHERE profile_id=:profileId AND target_id=:targetId AND proma_entity_id=:promaEntityId').get({ profileId, targetId: profile.target_id, promaEntityId: item.promaIdentity }) as SyncBindingRow | undefined : undefined
         if (markerCandidate) candidates.set(markerCandidate.proma_entity_id, markerCandidate)
-        // 仅“Proma marker + 与既有 binding 相同的 external identifier”可自动认回；单个 external id 或复制 UUID marker 都不足以安全认领。
+        // 仅“Locus marker + 与既有 binding 相同的 external identifier”可自动认回；单个 external id 或复制 UUID marker 都不足以安全认领。
         if (candidates.size === 1 && markerCandidate && item.calendarItemExternalIdentifier && markerCandidate.calendar_item_external_identifier === item.calendarItemExternalIdentifier) binding = markerCandidate
         else if (candidates.size > 0) {
           // locator recovery 需要用户选择。随后 missing-check 会识别冲突并保留旧投影，绝不误删其 tags/reminders。
@@ -1077,7 +1077,7 @@ export function applyManagedCalendarProfileItems(profileId: string, items: Plann
         }
       }
       if (item.isRecurring) {
-        // 不把 recurrence series/exception 误降维为单次 Proma event。
+        // 不把 recurrence series/exception 误降维为单次 Locus event。
         if (binding) {
           getDatabase().prepare('DELETE FROM planning_sync_outbox WHERE profile_id=:profileId AND proma_entity_id=:promaEntityId').run({ profileId, promaEntityId: binding.proma_entity_id })
           getDatabase().prepare("DELETE FROM planning_reminders WHERE target_type='calendar_event' AND target_id=:id").run({ id: binding.proma_entity_id })

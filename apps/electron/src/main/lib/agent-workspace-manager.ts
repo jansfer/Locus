@@ -228,7 +228,7 @@ export function getAgentWorkspaceBySlug(slug: string): AgentWorkspace | undefine
 
 /**
  * 返回项目文件根。本地目录项目直接使用用户选择的目录；空白项目继续
- * 使用 Proma 托管的 workspace-files/，以保持历史项目完全兼容。
+ * 使用 Locus 托管的 workspace-files/，以保持历史项目完全兼容。
  */
 export function getProjectFilesPath(workspaceSlug: string): string {
   return getAgentWorkspaceBySlug(workspaceSlug)?.projectRootPath ?? getWorkspaceFilesDir(workspaceSlug)
@@ -1227,7 +1227,7 @@ function isRegularDirectory(path: string): boolean {
 }
 
 /**
- * 将 Proma 受管工作区的旧指令文件安全地迁移到 AGENTS.md。
+ * 将 Locus 受管工作区的旧指令文件安全地迁移到 AGENTS.md。
  *
  * 迁移按工作区独立且幂等执行：绝不合并或覆盖内容不同的双文件，
  * 确保升级过程中每条既有规则始终至少保留一份完整副本。
@@ -1864,7 +1864,7 @@ interface WorkspaceConfig {
   attachedDirectories?: string[]
   attachedFiles?: string[]
   worktreeRepos?: import('@proma/shared').WorkspaceWorktreeRepo[]
-  /** CLI integrations disabled only for Proma in this workspace; third-party CLI credentials stay untouched. */
+  /** CLI integrations disabled only for Locus in this workspace; third-party CLI credentials stay untouched. */
   disabledCliIntegrationIds?: string[]
   /** User consent for Agent-initiated maintenance of the two AGENTS.md files. */
   projectKnowledgeMaintenanceApproved?: boolean
@@ -1923,13 +1923,13 @@ function writeWorkspaceConfig(workspaceSlug: string, config: WorkspaceConfig): v
   writeJsonFileAtomic(configPath, config)
 }
 
-/** IDs of CLI integrations that are intentionally disabled only for Proma in this workspace. */
+/** IDs of CLI integrations that are intentionally disabled only for Locus in this workspace. */
 export function getDisabledCliIntegrationIds(workspaceSlug: string): Set<string> {
   return new Set(readWorkspaceConfig(workspaceSlug).disabledCliIntegrationIds ?? [])
 }
 
 /**
- * Changes Proma's permission to use a CLI integration without invoking third-party logout,
+ * Changes Locus's permission to use a CLI integration without invoking third-party logout,
  * credential deletion, or token revocation.
  */
 export function setCliIntegrationEnabled(workspaceSlug: string, id: string, enabled: boolean): void {

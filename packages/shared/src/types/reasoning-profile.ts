@@ -2,7 +2,7 @@ import { isGpt6AstraFamily, isGpt6LunaFamily, isGpt6SolFamily } from '../utils/m
 import type { ProviderType } from './channel'
 import type { AgentThinkingLevel } from './agent'
 
-/** Proma 可识别的 reasoning 请求协议族。 */
+/** Locus 可识别的 reasoning 请求协议族。 */
 export type ReasoningTransport =
   | 'anthropic-messages'
   | 'openai-completions'

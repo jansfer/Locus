@@ -44,7 +44,7 @@ type AsyncEventQueue<T> = {
 
 /**
  * Main-process facade for one utility process per active Agent session.
- * Only serializable query data crosses the boundary; Proma callbacks return
+ * Only serializable query data crosses the boundary; Locus callbacks return
  * through capability RPC so business ownership stays in the main process.
  */
 export class PiUtilityAdapter {

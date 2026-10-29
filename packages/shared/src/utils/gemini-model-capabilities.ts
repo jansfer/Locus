@@ -18,7 +18,7 @@ const NO_MINIMAL_LEVELS = ['low', 'medium', 'high'] as const satisfies readonly 
 /**
  * Gemini 文本模型的产品级能力表。
  *
- * Pi catalog 负责 Agent runtime 的协议与计费元数据；这里仅保存 Proma 必须跨
+ * Pi catalog 负责 Agent runtime 的协议与计费元数据；这里仅保存 Locus 必须跨
  * Agent、Chat 和上下文展示共用的官方模型约束，避免把 Image / Live SKU 误判为 1M。
  */
 const GEMINI_TEXT_MODEL_CAPABILITIES: Readonly<Record<string, GeminiModelCapability>> = {

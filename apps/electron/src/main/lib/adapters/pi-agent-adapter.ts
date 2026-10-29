@@ -1,7 +1,7 @@
 /**
  * Pi Agent SDK 适配器
  *
- * Proma 内部继续使用 SDKMessage 兼容协议，避免渲染层、Jotai 状态、
+ * Locus 内部继续使用 SDKMessage 兼容协议，避免渲染层、Jotai 状态、
  * JSONL 持久化和历史会话展示在 SDK 迁移时一起改名。
  */
 
@@ -95,7 +95,7 @@ type PowerShellToolOptions = import('@earendil-works/pi-coding-agent').PowerShel
 type SkillLoadResult = ReturnType<ResourceLoader['getSkills']>
 
 // Pi 0.86 将单次 agent retry 退避限制为 maxAgentDelayMs（默认 60 秒）。
-// Proma 保持约十分钟的重试预算：1 + 2 + 4 + 8 + 16 + 32 + (8 × 60) = 543 秒。
+// Locus 保持约十分钟的重试预算：1 + 2 + 4 + 8 + 16 + 32 + (8 × 60) = 543 秒。
 const PI_NATIVE_MAX_RETRIES = 14
 const PI_NATIVE_RETRY_BASE_DELAY_MS = 1_000
 const PI_NATIVE_MAX_DELAY_MS = 60_000
@@ -115,7 +115,7 @@ export interface PiAgentQueryOptions extends AgentQueryInput {
   apiKey: string
   baseUrl?: string
   provider: ProviderType
-  /** OAuth credential coordination key; equals the selected Proma channel id. */
+  /** OAuth credential coordination key; equals the selected Locus channel id. */
   channelId?: string
   channelName?: string
   maxTurns?: number
@@ -126,7 +126,7 @@ export interface PiAgentQueryOptions extends AgentQueryInput {
     options: CanUseToolOptions,
   ) => Promise<PermissionResult>
   systemPrompt: string
-  /** Proma 已验证的项目根 instruction files；不触发 Pi 的磁盘自动发现。 */
+  /** Locus 已验证的项目根 instruction files；不触发 Pi 的磁盘自动发现。 */
   projectInstructionFiles?: PromaProjectInstructionFile[]
   /** 用于 typed 文件工具的会话级子目录指令激活；不会解析 Bash。 */
   projectInstructionScope?: {
@@ -148,7 +148,7 @@ export interface PiAgentQueryOptions extends AgentQueryInput {
   thinkingLevel?: AgentThinkingLevel
   maxBudgetUsd?: number
   outputFormat?: JsonSchemaOutputFormat
-  /** Proma 聚合的附加目录；Pi 内置工具 factory 不接收多 root 参数，编排层会把它们注入 systemPrompt。 */
+  /** Locus 聚合的附加目录；Pi 内置工具 factory 不接收多 root 参数，编排层会把它们注入 systemPrompt。 */
   additionalDirectories?: string[]
   additionalSkillPaths?: string[]
   /** 当前用户输入显式引用的 Skill name（兼容历史 slug 已在编排层归一化） */
@@ -173,15 +173,15 @@ export interface PiAgentQueryOptions extends AgentQueryInput {
   codexFastMode?: boolean
   /** Pi 的 OAuth credential store 使用真实 expires 和 refresh，不读取 ~/.pi。 */
   codexOAuthCredentials?: CodexOAuthCredentials
-  /** Pi 运行中刷新 OAuth 后，将新凭据回写到 Proma 渠道存储。 */
+  /** Pi 运行中刷新 OAuth 后，将新凭据回写到 Locus 渠道存储。 */
   onCodexOAuthCredentialsRefreshed?: (credentials: CodexOAuthCredentials) => void | Promise<void>
   /** GitHub Copilot OAuth credential store 使用真实 expires、模型策略和 refresh，不读取 ~/.pi。 */
   githubCopilotOAuthCredentials?: GithubCopilotOAuthCredentials
-  /** Pi 运行中刷新 GitHub Copilot OAuth 后，将新凭据及模型策略回写到 Proma 渠道存储。 */
+  /** Pi 运行中刷新 GitHub Copilot OAuth 后，将新凭据及模型策略回写到 Locus 渠道存储。 */
   onGithubCopilotOAuthCredentialsRefreshed?: (credentials: GithubCopilotOAuthCredentials) => void | Promise<void>
   /** xAI OAuth credential store 使用真实 expires 和 refresh，不读取 ~/.pi。 */
   xaiOAuthCredentials?: XaiOAuthCredentials
-  /** Pi 运行中刷新 xAI OAuth 后，将新凭据回写到 Proma 渠道存储。 */
+  /** Pi 运行中刷新 xAI OAuth 后，将新凭据回写到 Locus 渠道存储。 */
   onXaiOAuthCredentialsRefreshed?: (credentials: XaiOAuthCredentials) => void | Promise<void>
   /** 会话级 OpenAI（Codex OAuth / Responses API）思考深度。 */
   openAIThinkingLevel?: AgentThinkingLevel
@@ -832,8 +832,8 @@ export function buildCurrentSessionCompactionTool(
   const definition = sdk.defineTool({
     name: 'CompactContext',
     label: '压缩当前会话上下文',
-    description: 'Compact only the current Pi Agent session after this turn finishes. Before calling, persist a durable handoff or checkpoint to the session workbench or project files as appropriate. Proma will compact the current session, then automatically continue the original task from the compacted context.',
-    promptSnippet: 'CompactContext: after persisting a durable handoff/checkpoint, compact the current session context. Proma will automatically continue the original task after compaction.',
+    description: 'Compact only the current Pi Agent session after this turn finishes. Before calling, persist a durable handoff or checkpoint to the session workbench or project files as appropriate. Locus will compact the current session, then automatically continue the original task from the compacted context.',
+    promptSnippet: 'CompactContext: after persisting a durable handoff/checkpoint, compact the current session context. Locus will automatically continue the original task after compaction.',
     parameters: Type.Object({}),
     async execute() {
       requestCompaction()
@@ -937,7 +937,7 @@ function buildPromaProductToolDefinitions(sdk: PiSdk, canUseTool: PiAgentQueryOp
     sdk.defineTool({
       name: 'EnterPlanMode',
       label: '进入计划模式',
-      description: '进入 Proma 计划模式。进入后只能调研、整理计划；将完整计划写入会话 plan/ 目录，并等待用户批准后再执行写操作。',
+      description: '进入 Locus 计划模式。进入后只能调研、整理计划；将完整计划写入会话 plan/ 目录，并等待用户批准后再执行写操作。',
       promptSnippet: '进入计划模式，先调研，将完整计划写入 plan Markdown 文档，再等待用户确认。',
       parameters: Type.Object({
         reason: Type.Optional(Type.String({ description: '进入计划模式的原因。' })),
@@ -966,7 +966,7 @@ function buildPromaProductToolDefinitions(sdk: PiSdk, canUseTool: PiAgentQueryOp
     sdk.defineTool({
       name: 'AskUserQuestion',
       label: '询问用户',
-      description: '当需要用户选择、补充信息或确认偏好时调用，Proma 会展示可交互问答横幅。',
+      description: '当需要用户选择、补充信息或确认偏好时调用，Locus 会展示可交互问答横幅。',
       promptSnippet: '向用户提出结构化问题并等待回答。',
       parameters: Type.Object({
         questions: Type.Array(Type.Object({
@@ -1244,7 +1244,7 @@ export function isPiBashToolAvailable(
   platform: NodeJS.Platform,
   runtimeEnv: Pick<AgentRuntimeEnv, 'shellKind'> | undefined,
 ): boolean {
-  // Pi 的 Windows Bash 工具只能通过 Proma 配置的 Git Bash 或 WSL 执行。
+  // Pi 的 Windows Bash 工具只能通过 Locus 配置的 Git Bash 或 WSL 执行。
   return platform !== 'win32' || runtimeEnv?.shellKind === 'git-bash' || runtimeEnv?.shellKind === 'wsl'
 }
 
@@ -1319,7 +1319,7 @@ function appendWindowsBaseModeInstruction(systemPrompt: string, runtimeEnv: Agen
   return `${systemPrompt}
 
 <runtime_capabilities>
-当前 Windows 设备未配置 Git Bash 或 WSL，因此 Bash 工具不可用。你仍可使用 Read、Write、Edit、Grep、Find、Ls 及 Proma 提供的其他工具完成任务；不要声称已运行命令、测试或 Git 操作。若任务确实需要命令行，请默认调用 InstallWindowsShell 帮助用户安装 Git Bash；该工具会要求用户确认下载并打开官方安装程序。
+当前 Windows 设备未配置 Git Bash 或 WSL，因此 Bash 工具不可用。你仍可使用 Read、Write、Edit、Grep、Find、Ls 及 Locus 提供的其他工具完成任务；不要声称已运行命令、测试或 Git 操作。若任务确实需要命令行，请默认调用 InstallWindowsShell 帮助用户安装 Git Bash；该工具会要求用户确认下载并打开官方安装程序。
 </runtime_capabilities>`
 }
 
@@ -1366,7 +1366,7 @@ export function installRuntimeGuardHooks(session: AgentSession, guard: AgentRunt
   session.agent.prepareNextTurnWithContext = async (context, signal) => {
     const previousSnapshot = await previousPrepareNextTurnWithContext?.(context, signal)
     if (guard.shouldStopBeforeNextTurn()) {
-      // Pi 的 steer/follow-up 队列在 turn 完成后才 drain；达到 Proma 上限时必须在这里清空，
+      // Pi 的 steer/follow-up 队列在 turn 完成后才 drain；达到 Locus 上限时必须在这里清空，
       // 否则纯文本 turn 之后追加的队列消息会绕过 afterToolCall 继续进入下一轮。
       session.agent.clearAllQueues()
     }
@@ -1689,7 +1689,7 @@ export class PiAgentAdapter implements AgentProviderAdapter {
                 (event.message as AssistantMessage).stopReason === 'error' || shouldDeferNativeOverflow
               )
               if (shouldDeferAssistantTerminal && converted?.type === 'assistant' && assistantUuid) {
-                // Native retry 会丢弃该失败 assistant；不应消耗 Proma 的 turn/budget 配额。
+                // Native retry 会丢弃该失败 assistant；不应消耗 Locus 的 turn/budget 配额。
                 // 关键：此处不能重置 UUID。retry 后的新 partial/final 必须原地替换此前
                 // 已经展示的 partial，避免用户同时看到断流残片和恢复后的完整回答。
                 retryTerminalGate.defer({
@@ -2089,7 +2089,7 @@ export class PiAgentAdapter implements AgentProviderAdapter {
   }
 
   async setPermissionMode(_sessionId: string, _mode: string): Promise<void> {
-    // Proma 权限由工具包装层实时读取 sessionPermissionModes，自身无需同步给 Pi。
+    // Locus 权限由工具包装层实时读取 sessionPermissionModes，自身无需同步给 Pi。
   }
 
   dispose(): void {

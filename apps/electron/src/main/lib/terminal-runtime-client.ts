@@ -126,7 +126,7 @@ export class TerminalRuntimeClient {
     const entryPath = join(__dirname, 'terminal-runtime.cjs')
     const isCurrentStartup = () => generation === this.generation
     const runtimeProcess = await startUtilityProcessWithRetry(
-      () => utilityProcess.fork(entryPath, [], { serviceName: 'Proma Terminal Runtime' }),
+      () => utilityProcess.fork(entryPath, [], { serviceName: 'Locus Terminal Runtime' }),
       { shouldContinue: isCurrentStartup },
     )
     if (!isCurrentStartup()) {

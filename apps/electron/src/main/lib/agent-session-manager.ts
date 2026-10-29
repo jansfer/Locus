@@ -183,7 +183,7 @@ function migrateLegacyOpenAIThinkingDefault(index: AgentSessionsIndex): boolean 
 }
 
 /**
- * Claude runtime 已退役。历史 transcript 仍由 Proma JSONL 展示，但 Claude session
+ * Claude runtime 已退役。历史 transcript 仍由 Locus JSONL 展示，但 Claude session
  * artifact 不能交给 Pi SessionManager 恢复，否则会被误识别为 Pi JSONL。
  */
 function migrateRetiredClaudeRuntime(index: AgentSessionsIndex): boolean {
@@ -371,7 +371,7 @@ export function resolveSessionWorkbenchContextDir(
   return layout === 'root' ? sessionDir : join(sessionDir, '.context')
 }
 
-/** Agent 运行 cwd 与 Proma 会话 sidecar 工作台目录解析。 */
+/** Agent 运行 cwd 与 Locus 会话 sidecar 工作台目录解析。 */
 export function resolveAgentCwd(
   workspace: Pick<AgentWorkspace, 'slug'> | undefined,
   sessionId: string,
@@ -434,7 +434,7 @@ export function createAgentSession(
   // 确保消息目录存在
   getAgentSessionsDir()
 
-  // 若有工作区，创建 session 级别子文件夹和 Proma 工作台目录。
+  // 若有工作区，创建 session 级别子文件夹和 Locus 工作台目录。
   if (workspaceId) {
     const ws = getAgentWorkspace(workspaceId)
     if (ws) {
@@ -858,13 +858,13 @@ export async function forkAgentSession(input: ForkSessionInput): Promise<AgentSe
 
 /**
  * Pi 的 session 是 append-only tree。分叉必须由 SessionManager 导出目标 branch，
- * 不能只复制 Proma 的展示 JSONL，否则下一轮 resume 仍会看到被截断的上下文。
+ * 不能只复制 Locus 的展示 JSONL，否则下一轮 resume 仍会看到被截断的上下文。
  */
 async function forkPiAgentSession(sourceMeta: AgentSessionMeta, input: ForkSessionInput): Promise<AgentSessionMeta> {
   const targetUuid = input.upToMessageUuid
   if (!targetUuid) throw new Error('Pi 分叉需要指定一条已完成的 assistant 消息')
   const entryId = sourceMeta.piEntryBindings?.[targetUuid]
-  if (!entryId) throw new Error('该 Pi 历史消息尚无 entry ID 映射，无法安全分叉；请在新版 Proma 中继续一次对话后再试')
+  if (!entryId) throw new Error('该 Pi 历史消息尚无 entry ID 映射，无法安全分叉；请在新版 Locus 中继续一次对话后再试')
   if (!sourceMeta.piSessionFile || !existsSync(sourceMeta.piSessionFile)) {
     throw new Error('未找到 Pi session artifact，无法安全分叉')
   }
@@ -944,7 +944,7 @@ async function forkPiAgentSession(sourceMeta: AgentSessionMeta, input: ForkSessi
 /**
  * 将当前 Pi 会话切换到指定 assistant turn 的新 branch artifact（持久化回退）。
  *
- * Proma JSONL 和 Pi branch artifact 是两个事实源：先完整校验 JSONL，再创建 branch；
+ * Locus JSONL 和 Pi branch artifact 是两个事实源：先完整校验 JSONL，再创建 branch；
  * JSONL 写入成功后才提交 metadata。metadata 写入失败时会恢复原 JSONL，避免两边分叉。
  */
 export async function rewindPiAgentSession(sessionId: string, assistantMessageUuid: string): Promise<number> {

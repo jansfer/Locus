@@ -347,7 +347,7 @@ export class BridgeCommandHandler {
     const settings = getSettings()
     const channelId = settings.agentChannelId
     if (!channelId) {
-      await this.send(chatId, '请先在 Proma 设置中选择 Agent 渠道。', contextData)
+      await this.send(chatId, '请先在 Locus 设置中选择 Agent 渠道。', contextData)
       return
     }
 
@@ -642,7 +642,7 @@ export class BridgeCommandHandler {
     if (channels.length === 0) {
       await this.send(
         chatId,
-        '暂无可用渠道。请先在 Proma 设置中配置并启用渠道（需填入 API Key 且至少启用一个模型）。',
+        '暂无可用渠道。请先在 Locus 设置中配置并启用渠道（需填入 API Key 且至少启用一个模型）。',
         contextData,
       )
       return
@@ -705,7 +705,7 @@ export class BridgeCommandHandler {
     if (!binding) {
       binding = this.ensureBinding(chatId) ?? undefined
       if (!binding) {
-        await this.send(chatId, '请先发送一条消息创建会话，或在 Proma 设置中选择 Agent 渠道。', contextData)
+        await this.send(chatId, '请先发送一条消息创建会话，或在 Locus 设置中选择 Agent 渠道。', contextData)
         return
       }
     }
@@ -732,13 +732,13 @@ export class BridgeCommandHandler {
     const settings = getSettings()
     const channelId = settings.agentChannelId
     if (!channelId) {
-      await this.send(chatId, '请先在 Proma 设置中选择 Agent 渠道。', contextData)
+      await this.send(chatId, '请先在 Locus 设置中选择 Agent 渠道。', contextData)
       return
     }
 
     let binding = this.ensureBinding(chatId)
     if (!binding) {
-      await this.send(chatId, '请先在 Proma 设置中选择 Agent 渠道。', contextData)
+      await this.send(chatId, '请先在 Locus 设置中选择 Agent 渠道。', contextData)
       return
     }
 
@@ -759,7 +759,7 @@ export class BridgeCommandHandler {
     // 确保不会把失效 session/workspace 传给 runAgentHeadless。
     binding = this.ensureBinding(chatId)
     if (!binding) {
-      await this.send(chatId, '当前项目已不可用，请在 Proma 中重新选择项目后再试。', contextData)
+      await this.send(chatId, '当前项目已不可用，请在 Locus 中重新选择项目后再试。', contextData)
       return
     }
 

@@ -611,7 +611,7 @@ export function stopAllAgents(): void {
 /**
  * 运行中动态切换会话的权限模式
  *
- * 同时更新 Proma 侧（canUseTool 动态读取）和 SDK 侧（query.setPermissionMode）。
+ * 同时更新 Locus 侧（canUseTool 动态读取）和 SDK 侧（query.setPermissionMode）。
  */
 export async function updateAgentPermissionMode(sessionId: string, mode: PromaPermissionMode): Promise<void> {
   await orchestrator.updateSessionPermissionMode(sessionId, mode)
@@ -752,7 +752,7 @@ const LOCAL_PROJECT_ROOT_UNAVAILABLE_CODE = 'local_project_root_unavailable'
 
 function createLocalProjectRootUnavailableError(projectRootPath: string, status?: string): Error {
   const error = new Error(
-    `本地项目根目录不可用: 本地项目根目录不存在或无法访问：${projectRootPath}。请在 Proma 中重新选择项目文件夹。`,
+    `本地项目根目录不可用: 本地项目根目录不存在或无法访问：${projectRootPath}。请在 Locus 中重新选择项目文件夹。`,
   ) as Error & { code?: string; details?: string[] }
   error.code = LOCAL_PROJECT_ROOT_UNAVAILABLE_CODE
   error.details = status ? [`目录状态: ${status}`] : undefined
@@ -782,7 +782,7 @@ function resolveSafeWorkspaceFilePath(workspaceRoot: string, filename: string): 
 /**
  * 保存文件到项目文件根目录
  *
- * 空白项目写入 Proma 托管的 workspace-files/；本地目录项目直接写入用户选择的原始目录。
+ * 空白项目写入 Locus 托管的 workspace-files/；本地目录项目直接写入用户选择的原始目录。
  */
 function isFileAlreadyExistsError(error: unknown): boolean {
   return !!error && typeof error === 'object' && 'code' in error && error.code === 'EEXIST'

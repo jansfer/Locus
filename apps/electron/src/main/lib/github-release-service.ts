@@ -14,8 +14,8 @@ const GITHUB_API_BASE = 'https://api.github.com'
 
 /** GitHub 仓库配置（从 electron-builder.yml） */
 const GITHUB_REPO = {
-  owner: 'ErlichLiu',
-  repo: 'Proma',
+  owner: 'jansfer',
+  repo: 'Locus',
 }
 
 /** Release 缓存 */
@@ -54,7 +54,7 @@ async function fetchFromGitHub<T>(endpoint: string): Promise<T> {
   const response = await fetch(url, {
     headers: {
       'Accept': 'application/vnd.github+json',
-      'User-Agent': 'Proma-Desktop-App',
+      'User-Agent': 'Locus-Desktop-App',
     },
   })
 

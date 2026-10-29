@@ -220,7 +220,7 @@ export class BrowserController {
   private readonly configurations = new Map<string, BrowserSessionConfiguration>()
   /** Electron persistent partition 生命周期长于 Agent session；同一 Session 只安装一次网络 guard。 */
   private readonly guardedSessions = new WeakSet<Session>()
-  /** 下载事件属于 Electron Session，不能随 Proma 会话重复注册或闭包捕获已关闭的会话。 */
+  /** 下载事件属于 Electron Session，不能随 Locus 会话重复注册或闭包捕获已关闭的会话。 */
   private readonly downloadGuardedSessions = new WeakSet<Session>()
   /** 自定义 partition 不继承 default session 的协议处理器，必须单独注册本地预览协议。 */
   private readonly previewProtocolSessions = new WeakSet<Session>()
@@ -478,7 +478,7 @@ export class BrowserController {
     browserSession.setPermissionRequestHandler((_contents, _permission, callback) => callback(false))
     browserSession.setCertificateVerifyProc((_request, callback) => {
       // 受管浏览器面向用户明确打开的网页；内网自签名证书和企业 CA 由用户自行负责，
-      // 仅在该浏览器 Session 内放行，不影响 Proma 主窗口或其他 Electron Session。
+      // 仅在该浏览器 Session 内放行，不影响 Locus 主窗口或其他 Electron Session。
       callback(0)
     })
     browserSession.webRequest.onBeforeRequest((details, callback) => {
@@ -495,7 +495,7 @@ export class BrowserController {
   }
 
   /**
-   * 下载事件属于 Electron Session，而 workspace profile 会被多个 Proma 会话复用。
+   * 下载事件属于 Electron Session，而 workspace profile 会被多个 Locus 会话复用。
    * 因而监听器只注册一次；每次触发时再用 WebContents 找到仍存活的来源 tab，避免
    * 关闭会话遗留的 handler 重复 pause/resume/cancel 同一个 DownloadItem。
    */
@@ -540,7 +540,7 @@ export class BrowserController {
       })
   }
 
-  /** 从共享 Electron Session 的所有当前 Proma 会话中定位下载来源，绝不保留过期会话引用。 */
+  /** 从共享 Electron Session 的所有当前 Locus 会话中定位下载来源，绝不保留过期会话引用。 */
   private findManagedDownloadOrigin(electronBrowserSession: Session, webContents: WebContents): { browserSession: BrowserSessionRecord; tab: BrowserTabRecord } | null {
     for (const browserSession of this.sessions.values()) {
       if (browserSession.browserSession !== electronBrowserSession) continue
@@ -567,7 +567,7 @@ export class BrowserController {
     const profileKey = configuration?.profileKey ?? resolveBrowserProfileKey(undefined, sessionId)
     const partition = buildPersistentBrowserPartition(profileKey)
     const browserSession = electronSession.fromPartition(partition)
-    // 默认 UA 会暴露 Electron；受管网页改为诚实的 Proma 标识，并保留 Chromium token 保证站点兼容。
+    // 默认 UA 会暴露 Electron；受管网页改为诚实的 Locus 标识，并保留 Chromium token 保证站点兼容。
     browserSession.setUserAgent(buildPromaBrowserUserAgent(browserSession.getUserAgent(), app.getVersion()))
     const record: BrowserSessionRecord = {
       sessionId,
@@ -635,7 +635,7 @@ export class BrowserController {
       let popup: BrowserTabRecord | null = null
       return {
         action: 'allow',
-        // Proma 将 window.open 呈现为同级浏览器 Tab；关闭来源页面不能级联关闭它。
+        // Locus 将 window.open 呈现为同级浏览器 Tab；关闭来源页面不能级联关闭它。
         outlivesOpener: true,
         createWindow: (options) => {
           popup = this.createTab(browserSession, false, false, {

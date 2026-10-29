@@ -27,7 +27,7 @@ import guideAutomation from '@/assets/onboarding/guide-automation.png'
 import guideMemory from '@/assets/onboarding/guide-memory.png'
 import guideSideAnswer from '@/assets/onboarding/guide-side-answer.png'
 import guideSubagent from '@/assets/onboarding/guide-subagent.png'
-import promaMarkWhite from '@/assets/onboarding/proma-mark-white.svg'
+import locusMarkWhite from '@/assets/onboarding/locus-mark-white.svg'
 import { AutomationGuideExamples } from './AutomationGuideExamples'
 import { FileGuideExamples } from './FileGuideExamples'
 import { MemoryGuideExamples } from './MemoryGuideExamples'
@@ -261,7 +261,7 @@ function GuideFeatureStep({ anchor, title, highlight, paragraphs, nextLabel, onN
         <img
           ref={imgRef}
           src={imageSrc}
-          alt="Proma 界面"
+          alt="Locus 界面"
           className="max-h-full max-w-full rounded-lg border border-[#d7ddd5] bg-[#f6f8f3] object-contain shadow-[0_14px_30px_rgba(27,63,45,0.12)]"
           style={imageRightCrop > 0 ? { clipPath: `inset(0 ${imageRightCrop}px 0 0)` } : undefined}
         />
@@ -432,7 +432,7 @@ function AgentChatGuidePage({ onNext, onBack }: { onNext: () => void; onBack: ()
         highlight: '入门篇 · 第 1 步',
         title: 'Agent 和 Chat 模式的区别',
         paragraphs: [
-          <>左边栏顶部是 Proma 的<b className="font-medium text-neutral-900">模式切换</b>：Agent 与 Chat。</>,
+          <>左边栏顶部是 Locus 的<b className="font-medium text-neutral-900">模式切换</b>：Agent 与 Chat。</>,
           <>
             <b className="font-medium text-neutral-900">Chat</b> 是一问一答的对话——快速提问、不涉及任何对电脑的操作，
             核心偏向满足好奇心和完成简单的文字工作。
@@ -734,11 +734,11 @@ export function OnboardingView({ onComplete, initialStep = 'welcome' }: Onboardi
           {/* 左上角品牌 */}
           <div className="absolute left-6 top-6 flex items-center gap-3 md:left-10 md:top-8">
             <img
-              src={promaMarkWhite}
-              alt="Proma"
+              src={locusMarkWhite}
+              alt="Locus"
               className="h-8 w-8 object-contain drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
             />
-            <span className="text-lg font-light tracking-wide text-white">Proma</span>
+            <span className="text-lg font-light tracking-wide text-white">Locus</span>
           </div>
 
           {/* 左下角标语（呼应画作气质） */}
@@ -778,7 +778,7 @@ export function OnboardingView({ onComplete, initialStep = 'welcome' }: Onboardi
             </div>
 
             <h1 className="text-3xl font-light tracking-tight text-neutral-900 md:text-4xl">
-              欢迎使用 Proma
+              欢迎使用 Locus
             </h1>
             <p className="mt-3 text-base leading-relaxed text-neutral-500 md:text-lg">
               为专业用户打造的通用 Agent
@@ -901,7 +901,7 @@ export function OnboardingView({ onComplete, initialStep = 'welcome' }: Onboardi
               title: '自动任务功能',
               paragraphs: [
                 <>
-                  打开<b className="font-medium text-neutral-900">自动任务</b>，你可以让 Proma 定时自动执行一件事。
+                  打开<b className="font-medium text-neutral-900">自动任务</b>，你可以让 Locus 定时自动执行一件事。
                   在任务描述里用自然语言写清楚「做什么、什么时候做」，再配置频率与模型，
                   <b className="font-medium text-neutral-900">无人值守</b>也能完成。
                   你也可以用自然语言直接让 Agent 帮你创建自动任务。

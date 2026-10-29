@@ -1,9 +1,9 @@
 # electron-builder 配置
 # 文档: https://www.electron.build/configuration/configuration
 
-appId: com.proma.app
-productName: Proma
-copyright: Copyright © 2024-2026 Erlich Liu
+appId: com.locus.app
+productName: Locus
+copyright: Copyright © 2024-2026 Erlich Liu; modifications © 2026 Jansfer (Locus, based on Proma)
 
 # Electron 版本（CI 环境 bun workspace 下无法自动检测，需显式指定）
 electronVersion: 43.2.0
@@ -73,13 +73,19 @@ extraResources:
     filter:
       - "**/*"
   # 默认 Skills 模板（首次启动时同步到 ~/.proma/default-skills/）
+  # docx/pdf/pptx/xlsx 四个 Skill 版权归 Anthropic（All rights reserved），
+  # 不属于本项目 AGPL-3.0 授权范围，因此不进入发布产物。
   - from: default-skills
     to: default-skills
     filter:
       - "**/*"
-  # Proma 品牌 Logo 素材（品牌素材下载功能使用）
-  - from: resources/proma-logos
-    to: proma-logos
+      - "!docx/**"
+      - "!pdf/**"
+      - "!pptx/**"
+      - "!xlsx/**"
+  # Locus 品牌 Logo 素材（品牌素材下载功能使用）
+  - from: resources/locus-logos
+    to: locus-logos
     filter:
       - "**/*"
   # 默认 Dock 图标（macOS app.dock.setIcon 使用）
@@ -113,9 +119,9 @@ mac:
   entitlements: resources/entitlements.mac.plist
   entitlementsInherit: resources/entitlements.mac.plist
   extendInfo:
-    NSMicrophoneUsageDescription: "Proma 需要访问麦克风，用于将你的语音实时转写为文本。"
-    NSCalendarsFullAccessUsageDescription: "Proma 需要访问你的日历，以显示、创建和同步你选择的日程。"
-    NSRemindersFullAccessUsageDescription: "Proma 需要访问你的提醒事项，以同步 Todo 和你选择的列表。"
+    NSMicrophoneUsageDescription: "Locus 需要访问麦克风，用于将你的语音实时转写为文本。"
+    NSCalendarsFullAccessUsageDescription: "Locus 需要访问你的日历，以显示、创建和同步你选择的日程。"
+    NSRemindersFullAccessUsageDescription: "Locus 需要访问你的提醒事项，以同步 Todo 和你选择的列表。"
   # 架构由 CLI 参数控制（CI 矩阵分别传 --arm64 / --x64），
   # 每个 runner 只构建其宿主架构对应的产物，与 bun 按 os/cpu 装好的
   # 每个 runner 只构建其宿主架构对应的产物。
@@ -158,13 +164,13 @@ nsis:
 # ============================================
 linux:
   icon: resources/icon.png
-  executableName: proma
+  executableName: locus
   desktop:
-    StartupWMClass: proma
+    StartupWMClass: locus
   category: Development
   synopsis: 本地优先的 AI 桌面 Agent
-  description: Proma 把多模型 Chat、通用 Agent、工作区、Skills、MCP 与记忆能力放进同一个开源客户端，数据和配置默认留在本地（~/.proma/）。
-  maintainer: ErlichLiu <erlichliu@gmail.com>
+  description: Locus 把多模型 Chat、通用 Agent、工作区、Skills、MCP 与记忆能力放进同一个开源客户端，数据和配置默认留在本地（~/.proma/）。
+  maintainer: Jansfer <jansfer@users.noreply.github.com>
   target:
     - target: AppImage
       arch:
@@ -181,7 +187,7 @@ appImage:
     - --no-sandbox
 
 deb:
-  packageName: proma
+  packageName: locus
   afterInstall: resources/linux/deb-after-install.sh
   # 以 Ubuntu 22.04 为首个支持目标；显式声明，避免 electron-builder 的历史默认
   # 依赖（如已废弃的 gconf2/libappindicator1）进入新包。
@@ -200,7 +206,7 @@ deb:
     - libxkbcommon0
     - libxrandr2
     - libxss1
-  artifactName: proma_${version}_${arch}.${ext}
+  artifactName: locus_${version}_${arch}.${ext}
 
 # ============================================
 # 发布配置
@@ -208,5 +214,5 @@ deb:
 # ============================================
 publish:
   provider: github
-  owner: proma-ai
-  repo: Proma
+  owner: jansfer
+  repo: Locus

@@ -21,11 +21,11 @@ export interface AgentWorkspace {
   /** URL-safe 目录名（创建后不可变） */
   slug: string
   /**
-   * 用户选择的本地项目根目录。未设置时，项目文件使用 Proma 托管的
+   * 用户选择的本地项目根目录。未设置时，项目文件使用 Locus 托管的
    * workspace-files/ 目录；设置后，项目文件直接指向该原始目录。
    */
   projectRootPath?: string
-  /** 本地项目根目录的运行时状态；Proma 托管项目不设置此字段。 */
+  /** 本地项目根目录的运行时状态；Locus 托管项目不设置此字段。 */
   projectRootStatus?: LocalProjectRootStatus
   /** 创建时间戳 */
   createdAt: number
@@ -266,7 +266,7 @@ export interface SkillActivation {
   name: string
   /** `SKILL.md` path used to load the Skill; retained as a compatibility fallback. */
   filePath?: string
-  /** Stable Proma workspace locator for a managed Skill. */
+  /** Stable Locus workspace locator for a managed Skill. */
   workspaceSlug?: string
   /** Path relative to the managed workspace Skills directory, such as `my-skill/SKILL.md`. */
   workspaceSkillPath?: string
@@ -619,9 +619,9 @@ export type AgentEvent =
   // 权限模式变更（Plan → bypassPermissions 等）
   | { type: 'permission_mode_changed'; mode: PromaPermissionMode }
 
-// ===== Proma 内部事件（SDK 不覆盖的场景） =====
+// ===== Locus 内部事件（SDK 不覆盖的场景） =====
 
-/** Proma 内部事件类型 */
+/** Locus 内部事件类型 */
 export type PromaEvent =
   | { type: 'permission_request'; request: PermissionRequest }
   | { type: 'permission_resolved'; requestId: string; behavior: 'allow' | 'deny' }
@@ -738,7 +738,7 @@ export interface AgentSessionMeta {
   sdkSessionId?: string
   /** Pi session JSONL 的精确路径；避免仅按 session ID 子串定位 artifact。 */
   piSessionFile?: string
-  /** Proma assistant UI UUID 到 Pi 树状 session entry ID 的持久映射。 */
+  /** Locus assistant UI UUID 到 Pi 树状 session entry ID 的持久映射。 */
   piEntryBindings?: Record<string, string>
   /** 已退役 Claude runtime 的只读 transcript；必须新建 Pi 会话才能继续。 */
   legacyTranscript?: {
@@ -782,7 +782,7 @@ export interface AgentSessionMeta {
   attachedDirectories?: string[]
   /** 附加的外部文件路径列表（绝对路径，发送时以父目录作为 SDK additionalDirectories） */
   attachedFiles?: string[]
-  /** 分叉来源：源会话的 Proma 工作目录（SDK session 文件在此目录的项目空间中，首次 resume 后清除） */
+  /** 分叉来源：源会话的 Locus 工作目录（SDK session 文件在此目录的项目空间中，首次 resume 后清除） */
   forkSourceDir?: string
   /** Pi `/tree` 探索分支所属的主线会话；仅探索分支设置，普通 fork 保持 undefined。 */
   explorationParentSessionId?: string
@@ -941,7 +941,7 @@ export interface AgentGenerateTitleInput {
 
 // ===== MCP 服务器配置 =====
 
-/** MCP 传输类型；Proma 将 Streamable HTTP 规范化存储为 http */
+/** MCP 传输类型；Locus 将 Streamable HTTP 规范化存储为 http */
 export type McpTransportType = 'stdio' | 'http' | 'sse'
 
 /** 外部配置中常见的 Streamable HTTP 别名 */
@@ -1009,10 +1009,10 @@ export interface McpToolSummary {
   readOnly?: boolean
 }
 
-/** Proma 内置 MCP 分类 */
+/** Locus 内置 MCP 分类 */
 export type BuiltinMcpCategory = 'system' | 'automation' | 'collaboration' | 'memory' | 'media' | 'browser'
 
-/** Proma 内置 MCP 摘要，不写入工作区 mcp.json */
+/** Locus 内置 MCP 摘要，不写入工作区 mcp.json */
 export interface BuiltinMcpServerSummary {
   id: string
   name: string
@@ -1094,7 +1094,7 @@ export interface CliIntegrationStatus {
   id: string
   /** Whether the third-party CLI reports an authenticated account. */
   connected: boolean
-  /** Whether Proma is permitted to use this CLI in the current workspace. */
+  /** Whether Locus is permitted to use this CLI in the current workspace. */
   enabled: boolean
 }
 
@@ -1113,7 +1113,7 @@ export interface SkillMeta {
   slug: string
   name: string
   description?: string
-  /** UI 分组名，用于把 Proma 内嵌 Skills 收拢到同一组 */
+  /** UI 分组名，用于把 Locus 内嵌 Skills 收拢到同一组 */
   group?: string
   icon?: string
   version?: string
@@ -1227,7 +1227,7 @@ export interface WorkspaceMemorySummary {
     legacyPath: string
     agentsPath: string
   }
-  /** 旧 `.claude/memory/` 迁移未完成时的状态；Proma 不会覆盖或删除旧内容。 */
+  /** 旧 `.claude/memory/` 迁移未完成时的状态；Locus 不会覆盖或删除旧内容。 */
   legacyAutoMemory?: {
     directory: string
     /** 与新的 memory/ 同名、因此未自动移动的顶层条目。 */
@@ -1237,7 +1237,7 @@ export interface WorkspaceMemorySummary {
     /** 检测到的旧目录内符号链接相对路径。 */
     symbolicLinkPath?: string
   }
-  /** Proma 工作区长期记忆目录。 */
+  /** Locus 工作区长期记忆目录。 */
   autoMemory: {
     /** 绝对目录路径 */
     directory: string
@@ -1406,7 +1406,7 @@ export interface MoveSessionToWorkspaceInput {
 
 /** Fork（分叉）会话输入 */
 export interface ForkSessionInput {
-  /** Proma 会话 ID */
+  /** Locus 会话 ID */
   sessionId: string
   /** SDK 消息 uuid（截断点，inclusive）。省略时复制全部历史 */
   upToMessageUuid?: string
@@ -1418,7 +1418,7 @@ export interface ForkSessionInput {
 
 /** 快照回退输入（同一会话内回退到指定点） */
 export interface RewindSessionInput {
-  /** Proma 会话 ID */
+  /** Locus 会话 ID */
   sessionId: string
   /** 回退到哪条 assistant message（inclusive，截断该消息之后的一切） */
   assistantMessageUuid: string
@@ -1707,7 +1707,7 @@ export interface ExitPlanModeResponse {
 
 // ===== 权限系统类型 =====
 
-/** 当前 Proma 支持的权限模式，值直接映射 SDK 原生 permissionMode */
+/** 当前 Locus 支持的权限模式，值直接映射 SDK 原生 permissionMode */
 export const PROMA_PERMISSION_MODES = ['bypassPermissions', 'plan'] as const
 
 export type PromaPermissionMode = typeof PROMA_PERMISSION_MODES[number]
@@ -1721,7 +1721,7 @@ export interface PromaPermissionModeConfig {
   description: string
 }
 
-/** Proma 权限模式的单一配置来源 */
+/** Locus 权限模式的单一配置来源 */
 export const PROMA_PERMISSION_MODE_CONFIG = {
   bypassPermissions: {
     sdkMode: 'bypassPermissions',
@@ -1761,7 +1761,7 @@ export interface PermissionRequest {
   toolName: string
   /** 工具输入参数 */
   toolInput: Record<string, unknown>
-  /** 操作描述（人类可读，Proma 生成） */
+  /** 操作描述（人类可读，Locus 生成） */
   description: string
   /** 具体命令（Bash 工具时有值��� */
   command?: string
@@ -1915,7 +1915,7 @@ export const AGENT_IPC_CHANNELS = {
   DELETE_MCP_CREDENTIAL: 'agent:delete-mcp-credential',
   /** 查询本机 CLI 集成是否已完成官方配置，不返回任何凭据。 */
   GET_CLI_INTEGRATION_STATUSES: 'agent:get-cli-integration-statuses',
-  /** 更新 Proma 对工作区 CLI 集成的启用状态；绝不调用第三方 CLI 登出或撤销授权。 */
+  /** 更新 Locus 对工作区 CLI 集成的启用状态；绝不调用第三方 CLI 登出或撤销授权。 */
   SET_CLI_INTEGRATION_ENABLED: 'agent:set-cli-integration-enabled',
   /** 测试 MCP 服务器连接 */
   TEST_MCP_SERVER: 'agent:test-mcp-server',

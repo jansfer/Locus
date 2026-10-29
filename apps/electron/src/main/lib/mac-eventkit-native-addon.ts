@@ -22,7 +22,7 @@ function nativeAddon(): Addon {
   return addon
 }
 
-/** EventKit 在 Electron 主进程内执行，TCC 将授权归属到带 Info.plist 的 Proma.app，而不是短命 helper。 */
+/** EventKit 在 Electron 主进程内执行，TCC 将授权归属到带 Info.plist 的 Locus.app，而不是短命 helper。 */
 export function subscribeMacEventKitNativeChanges(listener: () => void): boolean {
   if (process.platform !== 'darwin') return false
   const native = nativeAddon()
