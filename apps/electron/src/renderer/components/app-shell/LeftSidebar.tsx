@@ -1587,6 +1587,11 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
   const handleProjectDrop = React.useCallback((e: React.DragEvent, targetWorkspaceId: string): void => {
     e.preventDefault()
     const indicator = projectDropIndicator
+    if (workspaces.some((workspace) => workspace.archived && (workspace.id === targetWorkspaceId || workspace.id === dragProjectId))) {
+      setDragProjectId(null)
+      setProjectDropIndicator(null)
+      return
+    }
     if (!dragProjectId || dragProjectId === targetWorkspaceId || !indicator || indicator.id !== targetWorkspaceId) {
       setDragProjectId(null)
       setProjectDropIndicator(null)
@@ -4902,9 +4907,9 @@ const AgentProjectGroupItem = React.memo(function AgentProjectGroupItem({
 
   return (
     <section
-      onDragOver={(e) => onDragOver(e, group.workspace.id)}
-      onDragLeave={onDragLeave}
-      onDrop={(e) => onDrop(e, group.workspace.id)}
+      onDragOver={projectSortingDisabled ? undefined : (e) => onDragOver(e, group.workspace.id)}
+      onDragLeave={projectSortingDisabled ? undefined : onDragLeave}
+      onDrop={projectSortingDisabled ? undefined : (e) => onDrop(e, group.workspace.id)}
       onDragEnd={onDragEnd}
       className={cn('relative py-0.5 rounded-md transition-opacity', dragging && 'opacity-45')}
     >

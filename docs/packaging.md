@@ -6,9 +6,9 @@
 
 | 系统 | CPU | 文件名示例 |
 | --- | --- | --- |
-| Windows | amd64 / arm64 | `Locus-0.19.69-win-amd64.exe`、`Locus-0.19.69-win-arm64.exe` |
-| macOS | amd64 / arm64 | `Locus-0.19.69-macos-amd64.dmg`、`Locus-0.19.69-macos-arm64.dmg`，另提供对应 `.zip` |
-| Linux | amd64 / arm64 | `Locus-0.19.69-linux-amd64.deb`、`Locus-0.19.69-linux-arm64.deb`，另提供对应 `.AppImage` |
+| Windows | amd64 / arm64 | `Locus-0.19.70-win-amd64.exe`、`Locus-0.19.70-win-arm64.exe` |
+| macOS | amd64 / arm64 | `Locus-0.19.70-macos-amd64.dmg`、`Locus-0.19.70-macos-arm64.dmg`，另提供对应 `.zip` |
+| Linux | amd64 / arm64 | `Locus-0.19.70-linux-amd64.deb`、`Locus-0.19.70-linux-arm64.deb`，另提供对应 `.AppImage` |
 
 所有目标均在相同平台与架构的 Runner 上原生构建，Linux 使用 Ubuntu 22.04 构建环境。CLI、OfficeCLI、Electron 与原生模块必须匹配目标架构。Windows ARM64 不依赖 x64 仿真来验证架构正确性。
 
@@ -22,6 +22,8 @@ bun run scripts/smoke-package.ts
 ```
 
 每次只打包宿主架构。请勿绕过入口直接调用 electron-builder，否则缺少规范化文件名所需的环境变量。交互式 `dist:visual` 也遵循同一规则。
+
+Linux ARM64 打包前需安装原生 Ruby 与 FPM：`sudo apt-get install ruby ruby-dev build-essential`，然后运行 `sudo gem install fpm --version 1.17.0 --no-document`。入口会强制使用系统 FPM，避免 electron-builder 下载不可执行的 x86 FPM。CI 两种 Linux 架构使用同一固定版本。
 
 ## 自动更新兼容
 

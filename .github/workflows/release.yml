@@ -258,6 +258,8 @@ jobs:
 
   build-linux:
     name: build (linux, ${{ matrix.arch }})
+    env:
+      USE_SYSTEM_FPM: 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -285,7 +287,9 @@ jobs:
       - name: 安装 Linux 构建依赖
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential python3
+          sudo apt-get install -y build-essential python3 ruby ruby-dev
+          sudo gem install fpm --version 1.17.0 --no-document
+          fpm --version
 
       - name: 安装依赖
         run: bun install --frozen-lockfile

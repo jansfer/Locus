@@ -17,6 +17,10 @@ async function main() {
   await sharp({ create: { width: 1, height: 1, channels: 4, background: '#000000' } }).png().toBuffer()
   const sdk = await import(pathToFileURL(join(resources, 'app.asar/node_modules/@earendil-works/pi-coding-agent/dist/index.js')).href)
   if (typeof sdk.createAgentSession !== 'function') throw new Error('Pi SDK 入口缺失')
+  if (process.platform === 'win32') {
+    const nativePi = join(resources, `app.asar/node_modules/@earendil-works/pi-tui/native/win32/prebuilds/win32-${expectedArch}/win32-platform.node`)
+    requireApp(nativePi)
+  }
   const cli = join(resources, 'bin', process.platform === 'win32' ? 'proma.exe' : 'proma')
   assertBinaryArchitecture(cli, expectedArch)
   const cliResult = spawnSync(cli, ['--help'], { encoding: 'utf8', timeout: 60000 })

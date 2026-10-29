@@ -3,7 +3,7 @@ import { mergeUpdateManifests } from './update-manifest-policy'
 
 const sha512 = Buffer.alloc(64, 1).toString('base64')
 function manifest(os: string, arch: string, ext: string) {
-  return { version: '0.19.69', files: [{ url: `Locus-0.19.69-${os}-${arch}.${ext}`, sha512, size: 123 }] }
+  return { version: '0.19.69', files: [{ url: `Locus-0.19.69-${os}-${arch}.${ext}`, sha512: arch === 'arm64' ? Buffer.alloc(64, 2).toString('base64') : sha512, size: arch === 'arm64' ? 456 : 123 }] }
 }
 describe('双架构更新清单', () => {
   test.each([['win', 'exe'], ['macos', 'zip']] as const)('Given %s 两种架构 When 合并 Then amd64 优先且校验值保持对应', (os, ext) => {
@@ -11,6 +11,7 @@ describe('双架构更新清单', () => {
     expect(result.files.map((file) => file.url)).toEqual([`Locus-0.19.69-${os}-amd64.${ext}`, `Locus-0.19.69-${os}-arm64.${ext}`])
     expect(result.path).toBe(result.files[0]!.url)
     expect(result.sha512).toBe(sha512)
+    expect(result.files[1]).toMatchObject({ sha512: Buffer.alloc(64, 2).toString('base64'), size: 456 })
   })
   test('Given 缺少架构、错误版本、改名后失配或无效校验值 When 合并 Then 阻止发布', () => {
     const good = manifest('win', 'amd64', 'exe')
