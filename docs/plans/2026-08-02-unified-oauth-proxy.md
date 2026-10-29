@@ -2,7 +2,7 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** Route every Pi OAuth back-channel request through Proma’s request-scoped application proxy while preserving external-browser OAuth and providing Codex device-code fallback.
+**Goal:** Route every Pi OAuth back-channel request through Locus’s request-scoped application proxy while preserving external-browser OAuth and providing Codex device-code fallback.
 
 **Architecture:** Reuse the existing AsyncLocalStorage dispatcher router for a short-lived OAuth scope rather than copying provider OAuth protocols. The main process resolves the app proxy once per OAuth operation, scopes `ModelRuntime.login()` / `getAuth()` to it, and always closes the dispatcher. Browser authorization remains external; Codex device-code exposes a QR-capable fallback for browsers that cannot use the app proxy.
 
@@ -33,7 +33,7 @@
 
 **Step 1:** Wrap each provider’s `ModelRuntime.login()` and `getAuth()` operation in `runWithOAuthProxyScope()`.
 
-**Step 2:** Preserve the Pi SDK as the OAuth protocol implementation; do not copy device-code, polling, or refresh logic into Proma.
+**Step 2:** Preserve the Pi SDK as the OAuth protocol implementation; do not copy device-code, polling, or refresh logic into Locus.
 
 **Step 3:** Add a `device_code` method to Codex login selection and forward its device-code event to a caller callback; retain browser as default.
 
@@ -53,7 +53,7 @@
 
 **Step 3:** Add a secondary Codex “use device code” action, display short code/URL/QR while polling, and allow cancellation.
 
-**Step 4:** Update wording so users know system-browser connectivity is separate from Proma’s Node proxy.
+**Step 4:** Update wording so users know system-browser connectivity is separate from Locus’s Node proxy.
 
 ### Task 4: Verify and review
 

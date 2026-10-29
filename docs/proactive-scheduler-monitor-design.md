@@ -1,41 +1,41 @@
-# Proma Proactive Center 设计文档
+# Locus Proactive Center 设计文档
 
 > 版本：Draft 1  
 > 日期：2026-05-18  
-> 范围：Proma OSS Electron app 的主动协作、定时任务、Monitor、Memory 插件化与 UI 设计
+> 范围：Locus OSS Electron app 的主动协作、定时任务、Monitor、Memory 插件化与 UI 设计
 
 ## 1. 背景
 
-Proma 现在已经具备 Agent 会话、工作区 Skills/MCP、本地 JSON/JSONL 会话持久化、Quick Task、后台 Agent 执行、记忆工具、飞书通知等底座。下一步的关键不是简单加一个 Cron 配置页，而是把 Proma 从“用户发起一次对话”推进到“用户可以委托 Proma 长期关注、定期整理、持续跟进”的主动协作系统。
+Locus 现在已经具备 Agent 会话、工作区 Skills/MCP、本地 JSON/JSONL 会话持久化、Quick Task、后台 Agent 执行、记忆工具、飞书通知等底座。下一步的关键不是简单加一个 Cron 配置页，而是把 Locus 从“用户发起一次对话”推进到“用户可以委托 Locus 长期关注、定期整理、持续跟进”的主动协作系统。
 
 这份设计把三个来源合并成一个产品方向：
 
 - Claude Agent SDK / Claude Code 的内置能力：`CronCreate` / `CronList` / `CronDelete`、`Monitor`、Desktop scheduled tasks、Routines、Hooks、custom MCP tools。
-- Proma 早期 proactive 设计探索：Proactive Jobs、Silent Watchdog、Persistent Goal、Session Recall、Skill Curator、Event Hooks。
+- Locus 早期 proactive 设计探索：Proactive Jobs、Silent Watchdog、Persistent Goal、Session Recall、Skill Curator、Event Hooks。
 - 外置实验插件 [Proma_Proactive](https://github.com/SheldonLiu0412/Proma_Proactive)：`memory-init`、`memory-daily`、`memory-search`、`memory-edit`、`memory-runner.mjs`、本地 `.memory/` 数据结构。
 
 核心判断：
 
-Claude 内置 Cron/Monitor 可以兼容和展示，但不应成为 Proma 的长期调度核心。Proma 需要自己的 durable Scheduler/Monitor，并把 `Proma_Proactive` 产品化为第一个官方级 proactive plugin/routine 样板。
+Claude 内置 Cron/Monitor 可以兼容和展示，但不应成为 Locus 的长期调度核心。Locus 需要自己的 durable Scheduler/Monitor，并把 `Proma_Proactive` 产品化为第一个官方级 proactive plugin/routine 样板。
 
 ## 2. 产品目标
 
 ### 2.1 用户价值
 
-Proma 应该让用户感知到：
+Locus 应该让用户感知到：
 
-1. Proma 可以记住长期偏好和纠正。
-2. Proma 可以定期整理日常对话和工作上下文。
-3. Proma 可以在任务、发布、CI、文件变化、会话状态变化时主动跟进。
-4. Proma 会解释为什么推荐某个主动功能，并让用户确认、调整、撤销。
-5. Proma 的主动能力是可审计、可暂停、可限制权限的，不是黑盒自动化。
+1. Locus 可以记住长期偏好和纠正。
+2. Locus 可以定期整理日常对话和工作上下文。
+3. Locus 可以在任务、发布、CI、文件变化、会话状态变化时主动跟进。
+4. Locus 会解释为什么推荐某个主动功能，并让用户确认、调整、撤销。
+5. Locus 的主动能力是可审计、可暂停、可限制权限的，不是黑盒自动化。
 
 ### 2.2 工程目标
 
-1. 建立 Proma 自己的 durable scheduler，而不是依赖 Claude session-scoped Cron。
+1. 建立 Locus 自己的 durable scheduler，而不是依赖 Claude session-scoped Cron。
 2. 建立统一的 proactive run 模型：所有 schedule、monitor、manual run 都产出可追踪的 `TaskRun`。
-3. 支持 plugin/routine 声明，让 `Proma_Proactive` 这类外置能力可被 Proma 安装、配置、调度、审计。
-4. 用 in-process MCP tools 暴露 Proma 的 Scheduler/Monitor/Memory 能力给 Agent。
+3. 支持 plugin/routine 声明，让 `Proma_Proactive` 这类外置能力可被 Locus 安装、配置、调度、审计。
+4. 用 in-process MCP tools 暴露 Locus 的 Scheduler/Monitor/Memory 能力给 Agent。
 5. 将主动推荐做成产品级 UI，而不是靠 prompt 或隐藏设置。
 
 ### 2.3 非目标
@@ -60,7 +60,7 @@ Proma 应该让用户感知到：
 - “如果 CI 失败，帮我分析原因。”
 - “以后遇到我纠正你的地方，帮我整理成 correction。”
 
-Proma 把自然语言转成可确认的 schedule / monitor / routine。
+Locus 把自然语言转成可确认的 schedule / monitor / routine。
 
 ### 3.2 Visible automation
 
@@ -84,7 +84,7 @@ Proma 把自然语言转成可确认的 schedule / monitor / routine。
 
 ### 3.5 Local-first and auditable
 
-Proma 继续沿用本地 JSON/JSONL 风格。调度配置、运行记录、审批记录都应可导出、可迁移、可审计。
+Locus 继续沿用本地 JSON/JSONL 风格。调度配置、运行记录、审批记录都应可导出、可迁移、可审计。
 
 ## 4. 概念模型
 
@@ -111,7 +111,7 @@ Proma 继续沿用本地 JSON/JSONL 风格。调度配置、运行记录、审�
 
 ### 4.3 Routine
 
-可复用的工作流模板。Routine 可以由 Proma 内置，也可以由插件提供。
+可复用的工作流模板。Routine 可以由 Locus 内置，也可以由插件提供。
 
 示例：
 
@@ -139,7 +139,7 @@ Proma 继续沿用本地 JSON/JSONL 风格。调度配置、运行记录、审�
 
 ### 4.6 Recommendation
 
-Proma 根据上下文给用户的主动建议，但还不是已创建任务。
+Locus 根据上下文给用户的主动建议，但还不是已创建任务。
 
 示例：
 
@@ -171,8 +171,8 @@ flowchart TD
 
 默认打开的首页。回答三个问题：
 
-1. Proma 今天主动做了什么？
-2. Proma 建议我开启什么？
+1. Locus 今天主动做了什么？
+2. Locus 建议我开启什么？
 3. 有哪些事项需要我确认？
 
 模块：
@@ -246,7 +246,7 @@ flowchart TD
 
 ### 5.6 Memory
 
-Proma Memory 的可视化入口。第一阶段可以只展示摘要和文件入口，后续再做完整管理 UI。
+Locus Memory 的可视化入口。第一阶段可以只展示摘要和文件入口，后续再做完整管理 UI。
 
 模块：
 
@@ -265,11 +265,11 @@ Proma Memory 的可视化入口。第一阶段可以只展示摘要和文件入�
 
 ```text
 Proactive
-今天 Proma 正在关注 3 件事，另有 2 个建议等待确认
+今天 Locus 正在关注 3 件事，另有 2 个建议等待确认
 
 [Recommended]
 ┌ Daily Memory
-│ 你最近经常让 Proma 总结当天工作。建议每天晚上整理当天会话。
+│ 你最近经常让 Locus 总结当天工作。建议每天晚上整理当天会话。
 │ 权限：读取今天活跃会话；写入 Memory 工作区前需要确认
 │ [创建] [调整] [忽略]
 └
@@ -301,7 +301,7 @@ Memory Daily 2026-05-17   成功   新增 3 条记忆，1 个 SOP 候选
 建议开启：每日记忆整理
 
 为什么推荐：
-你最近 4 天里有 3 天要求 Proma 总结当天工作。
+你最近 4 天里有 3 天要求 Locus 总结当天工作。
 
 它会做什么：
 每天晚上读取当天活跃 Chat/Agent 会话，提取长期偏好、纠正、SOP 候选和工作日志。
@@ -322,7 +322,7 @@ Memory Daily 2026-05-17   成功   新增 3 条记忆，1 个 SOP 候选
 
 ### 6.3 创建确认卡
 
-当用户通过自然语言创建 schedule/monitor 时，Proma 不直接创建，而是先展示确认卡。
+当用户通过自然语言创建 schedule/monitor 时，Locus 不直接创建，而是先展示确认卡。
 
 ```text
 创建定时任务
@@ -357,14 +357,14 @@ Workspace：Memory
 例：用户说“明天继续这个 UI 修补”。
 
 ```text
-Proma 可以明天提醒你继续这个任务。
+Locus 可以明天提醒你继续这个任务。
 [创建跟进] [不用]
 ```
 
 例：用户多次查看 release。
 
 ```text
-Proma 可以监听这个 release 状态，有变化时提醒你。
+Locus 可以监听这个 release 状态，有变化时提醒你。
 [创建 Monitor] [不用]
 ```
 
@@ -396,7 +396,7 @@ Settings 只放全局策略：
 
 ## 7. 用户主动推荐机制
 
-Proma 应在明确有价值时推荐，不应频繁打扰。
+Locus 应在明确有价值时推荐，不应频繁打扰。
 
 ### 7.1 推荐信号
 
@@ -498,7 +498,7 @@ Proma 应在明确有价值时推荐，不应频繁打扰。
 - `稍后提醒`
 - `为什么看到这个`
 
-Proma 应记录用户反馈，降低重复打扰。
+Locus 应记录用户反馈，降低重复打扰。
 
 ### 7.4 智能推荐引擎运行闭环
 
@@ -602,11 +602,11 @@ interface Recommendation {
 - 主进程只接受 schema 校验通过、权限可解释、duplicateKey 合法的推荐。
 - Agent 不能直接创建 Schedule / Monitor，只能提出候选。
 
-这样 Proma 可以逐步从规则推荐进化到真正的工作模式发现，但控制权仍在本地主进程和用户确认流里。
+这样 Locus 可以逐步从规则推荐进化到真正的工作模式发现，但控制权仍在本地主进程和用户确认流里。
 
 #### Daily Memory 摄取契约
 
-Daily Memory 不能只依赖 Agent 在 SDK project 目录里写 Markdown 文件。Proma 主应用需要同时支持两条路径：
+Daily Memory 不能只依赖 Agent 在 SDK project 目录里写 Markdown 文件。Locus 主应用需要同时支持两条路径：
 
 1. Agent 最终回答里的结构化 `proma-memory-items` fenced JSON block。
 2. Claude Agent SDK project memory 目录里的 Markdown 文件：`~/.proma[-dev]/sdk-config/projects/*/memory/*.md`。
@@ -642,26 +642,26 @@ Markdown 文件是兼容导入路径。Proactive Memory Service 在读取 snapsh
 
 `Proma_Proactive` 已经验证：
 
-- 可以从 Proma 本地 `agent-sessions.json`、`conversations.json` 和 JSONL 中收集会话。
+- 可以从 Locus 本地 `agent-sessions.json`、`conversations.json` 和 JSONL 中收集会话。
 - 可以把记忆整理拆成 Skill workflow。
 - 可以维护 `.memory/profile.md`、corrections、SOP candidates、memory_log、diary。
-- 可以通过 runner 创建 Proma session 并使用 Claude Agent SDK 跑 `memory-daily`。
+- 可以通过 runner 创建 Locus session 并使用 Claude Agent SDK 跑 `memory-daily`。
 
 ### 8.2 需要调整的边界
 
 当前 `memory-runner.mjs` 直接做了几件主应用应该做的事：
 
-- 注册 Proma session。
-- 写入 Proma JSONL。
+- 注册 Locus session。
+- 写入 Locus JSONL。
 - 调用 Claude Agent SDK。
 - 使用 `bypassPermissions`。
 - 自己实现 retry/resume。
 
-产品化后这些应迁移到 Proma 主进程：
+产品化后这些应迁移到 Locus 主进程：
 
-- Session 创建和 JSONL 写入由 Proma `RunService` 负责。
+- Session 创建和 JSONL 写入由 Locus `RunService` 负责。
 - SDK 调用由现有 `runAgentHeadless()` / orchestrator 负责。
-- 权限由 Proma permission profile 负责。
+- 权限由 Locus permission profile 负责。
 - retry/resume 由 `SchedulerService` / `RunService` 负责。
 
 插件只保留：
@@ -677,9 +677,9 @@ Markdown 文件是兼容导入路径。Proactive Memory Service 在读取 snapsh
 ```json
 {
   "id": "proma-memory",
-  "name": "Proma Memory",
+  "name": "Locus Memory",
   "version": "0.1.0",
-  "description": "Long-term memory and proactive reflection routines for Proma.",
+  "description": "Long-term memory and proactive reflection routines for Locus.",
   "skills": [
     {
       "slug": "memory-daily",
@@ -736,7 +736,7 @@ sequenceDiagram
   participant S as SchedulerService
   participant R as RunService
   participant A as Agent Orchestrator
-  participant P as Proma Memory Plugin
+  participant P as Locus Memory Plugin
   participant U as User
 
   S->>R: enqueue routine proma-memory:memory-daily
@@ -779,7 +779,7 @@ sequenceDiagram
 - 创建 Agent session。
 - 调用 `runAgentHeadless()`。
 - 捕获完成、错误、cost、turns。
-- 链接 `TaskRun` 和 Proma session。
+- 链接 `TaskRun` 和 Locus session。
 
 #### PluginRuntime
 
@@ -938,14 +938,14 @@ interface Recommendation {
 
 Claude 内置 `CronCreate` / `CronList` / `CronDelete` 应支持 UI 展示和结果渲染，但仅作为 SDK runtime 能力兼容。
 
-Proma 不应把它作为 durable scheduler 的主实现，因为它是 session-scoped。
+Locus 不应把它作为 durable scheduler 的主实现，因为它是 session-scoped。
 
 策略：
 
 - UI 识别并展示 Cron 工具调用。
 - `CronList` 可视为低风险只读。
 - `CronCreate` / `CronDelete` 需要用户确认。
-- 在 Proma UI 中提示它是 session-scoped，不等价于 Proma durable schedule。
+- 在 Locus UI 中提示它是 session-scoped，不等价于 Locus durable schedule。
 
 ### 10.2 内置 Monitor
 
@@ -956,11 +956,11 @@ Claude 内置 `Monitor` 可用于短期命令观察。
 - UI 增加 `Monitor` 图标、显示名和输入摘要。
 - 默认需要用户确认。
 - 如果全局设置禁用了 nonessential traffic 或相关环境导致不可用，UI 显示原因。
-- 长期 monitor 仍使用 Proma `MonitorService`。
+- 长期 monitor 仍使用 Locus `MonitorService`。
 
-### 10.3 Proma MCP Tools
+### 10.3 Locus MCP Tools
 
-Proma 应通过 `createSdkMcpServer` 暴露自身能力。
+Locus 应通过 `createSdkMcpServer` 暴露自身能力。
 
 建议工具：
 
@@ -1047,11 +1047,11 @@ interface PermissionProfile {
 
 ### 12.1 开启每日记忆整理
 
-1. 用户多次让 Proma 总结当天工作。
+1. 用户多次让 Locus 总结当天工作。
 2. RecommendationService 生成 `Daily Memory` 推荐。
 3. Proactive Today 和 Agent inline card 展示推荐。
 4. 用户点击创建。
-5. Proma 展示确认卡：时间、读取范围、写入范围、审批策略。
+5. Locus 展示确认卡：时间、读取范围、写入范围、审批策略。
 6. 用户确认。
 7. SchedulerService 创建 schedule。
 8. 到点运行 `proma-memory:memory-daily`。
@@ -1061,7 +1061,7 @@ interface PermissionProfile {
 ### 12.2 创建 Release Monitor
 
 1. 用户多次查询 release tag / GitHub Actions。
-2. Proma 推荐创建 monitor。
+2. Locus 推荐创建 monitor。
 3. 用户确认监听对象和通知策略。
 4. MonitorService 定期检查或接收 webhook。
 5. 状态变化时创建 TaskRun。
@@ -1071,14 +1071,14 @@ interface PermissionProfile {
 ### 12.3 跟进 WIP 会话
 
 1. 用户在 Agent 会话里说“明天继续”。
-2. Proma inline 推荐创建 follow-up。
+2. Locus inline 推荐创建 follow-up。
 3. 用户确认时间。
-4. 到点后 Proma 在 Today 显示提醒，也可以新建/恢复 Agent session。
+4. 到点后 Locus 在 Today 显示提醒，也可以新建/恢复 Agent session。
 
 ### 12.4 Correction 写入长期记忆
 
 1. 用户纠正 Agent：“以后不要把 release 和商业仓库混淆。”
-2. Proma 推荐 `Remember this correction`。
+2. Locus 推荐 `Remember this correction`。
 3. 用户确认。
 4. ApprovalService 写入 memory correction。
 5. 之后相关上下文可由 memory-search 或自动 memory load 使用。
@@ -1091,16 +1091,16 @@ interface PermissionProfile {
 Feature: Proactive recommendations
 
 Scenario: Recommend daily memory after repeated summaries
-  Given the user asked Proma to summarize daily work on three recent days
+  Given the user asked Locus to summarize daily work on three recent days
   When the user opens Proactive Today
-  Then Proma shows a Daily Memory recommendation
+  Then Locus shows a Daily Memory recommendation
   And the card explains why it was recommended
   And the card shows read/write permission scope
 
 Scenario: Dismiss a recommendation
   Given a Daily Memory recommendation is visible
   When the user clicks "不再建议"
-  Then Proma hides the recommendation
+  Then Locus hides the recommendation
   And future similar recommendations are suppressed
 ```
 
@@ -1111,13 +1111,13 @@ Feature: Schedule creation
 
 Scenario: Create a schedule from natural language
   Given the user says "每天晚上帮我整理当天对话"
-  When Proma parses the request
-  Then Proma shows a schedule confirmation card
+  When Locus parses the request
+  Then Locus shows a schedule confirmation card
   And no schedule is created before confirmation
 
 Scenario: Persist schedule across app restart
   Given the user created a Daily Memory schedule
-  When Proma restarts
+  When Locus restarts
   Then SchedulerService restores the schedule
   And nextRunAt is recalculated in the user's timezone
 ```
@@ -1131,15 +1131,15 @@ Scenario: Import SDK memory markdown into the Memory board
   Given Daily Memory wrote "agent-model-preference.md" under an SDK project memory directory
   And the SDK memory directory also contains "MEMORY.md"
   When the user opens the Proactive Memory board
-  Then Proma imports "agent-model-preference.md" as an active memory
-  And Proma marks the memory source as "SDK Memory"
-  And Proma does not import "MEMORY.md" as a memory item
+  Then Locus imports "agent-model-preference.md" as an active memory
+  And Locus marks the memory source as "SDK Memory"
+  And Locus does not import "MEMORY.md" as a memory item
 
 Scenario: Require structured memory items from Daily Memory output
   Given a proactive Daily Memory run found long-term memory candidates
   When the Agent returns the final answer
   Then the answer includes a "proma-memory-items" fenced JSON block
-  And Proma parses the block into editable candidate memories
+  And Locus parses the block into editable candidate memories
 ```
 
 ### 13.3 Monitor 创建
@@ -1149,8 +1149,8 @@ Feature: Monitor creation
 
 Scenario: Recommend a release monitor
   Given the user checked the same release status multiple times
-  When Proma detects repeated external status tracking
-  Then Proma recommends creating a monitor
+  When Locus detects repeated external status tracking
+  Then Locus recommends creating a monitor
 
 Scenario: Trigger a monitor run
   Given a release monitor is enabled
@@ -1168,14 +1168,14 @@ Scenario: Run daily memory schedule
   Given Daily Memory is scheduled for 23:30
   And there are active Chat and Agent sessions today
   When the schedule becomes due
-  Then Proma starts a headless Agent run
+  Then Locus starts a headless Agent run
   And the run uses the proma-memory:memory-daily routine
   And the run creates a visible TaskRun record
 
 Scenario: Require approval for memory write
   Given memory-daily produced new correction candidates
   When the run completes
-  Then Proma creates ApprovalRequest records
+  Then Locus creates ApprovalRequest records
   And memory changes are not committed before approval
 ```
 
@@ -1187,7 +1187,7 @@ Feature: Proactive permissions
 Scenario: Block command monitor without permission
   Given Bash-based monitors are disabled
   When an Agent tries to create a command monitor
-  Then Proma refuses the creation
+  Then Locus refuses the creation
   And explains which setting blocks it
 
 Scenario: Stop a runaway proactive run
@@ -1216,7 +1216,7 @@ Scenario: Stop a runaway proactive run
 - App 重启后 schedule 仍存在。
 - 到点能创建 run 记录。
 
-### Phase 2: Proma Memory plugin MVP
+### Phase 2: Locus Memory plugin MVP
 
 范围：
 
@@ -1317,9 +1317,9 @@ Scenario: Stop a runaway proactive run
 
 第一条真正可感知的用户价值应是：
 
-“Proma 每天帮我整理当天会话，提取需要确认的长期记忆、行为纠正、SOP 候选，并在 Proactive Today 里让我审查。”
+“Locus 每天帮我整理当天会话，提取需要确认的长期记忆、行为纠正、SOP 候选，并在 Proactive Today 里让我审查。”
 
-这比先做通用 Cron 编辑器更能体现 Proma 的主动协作能力。
+这比先做通用 Cron 编辑器更能体现 Locus 的主动协作能力。
 
 ## 18. 参考资料
 

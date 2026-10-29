@@ -6,13 +6,13 @@
 
 ## 方案
 
-在 `@earendil-works/pi-coding-agent@0.82.1` 维护版本锁定 Bun patch。原有 `maxRetries` 继续表示单次连续失败段的上限；新增本次 `_runAgentPrompt()` 范围的 `maxTotalRetries` 与 `maxTotalDelayMs`。Proma 配置为：单段最多 8 次、整轮最多 8 次、累计退避等待最多 5 分钟。每次退避使用指数增长加 ±20% jitter，并在总等待预算内截断。Provider-level retry 继续保持 0，避免隐藏的嵌套请求重试。
+在 `@earendil-works/pi-coding-agent@0.82.1` 维护版本锁定 Bun patch。原有 `maxRetries` 继续表示单次连续失败段的上限；新增本次 `_runAgentPrompt()` 范围的 `maxTotalRetries` 与 `maxTotalDelayMs`。Locus 配置为：单段最多 8 次、整轮最多 8 次、累计退避等待最多 5 分钟。每次退避使用指数增长加 ±20% jitter，并在总等待预算内截断。Provider-level retry 继续保持 0，避免隐藏的嵌套请求重试。
 
-Pi patch 保留兼容的 `auto_retry_start`，其语义明确为“已安排、正在等待”；在 sleep 完成且紧邻 `agent.continue()` 前新增 `auto_retry_attempt_start`。所有 native retry 事件带上单段与整轮的计数。`agent_end.willRetry` 与实际调度使用同一预算判断，保证耗尽预算时 Proma 不会吞掉真正的终态错误。
+Pi patch 保留兼容的 `auto_retry_start`，其语义明确为“已安排、正在等待”；在 sleep 完成且紧邻 `agent.continue()` 前新增 `auto_retry_attempt_start`。所有 native retry 事件带上单段与整轮的计数。`agent_end.willRetry` 与实际调度使用同一预算判断，保证耗尽预算时 Locus 不会吞掉真正的终态错误。
 
 ## 状态与展示
 
-Proma 为 Pi retry event 绑定本轮 `startedAt`，拒绝迟到旧事件污染新流。Renderer 把已有 wire status 映射为 `scheduled`、`running`、`succeeded`、`exhausted`、`cancelled`；历史按 retry number upsert，终态不再追加重复的第 8 项。默认文案明确写“第 N/M 次继续当前回答”，在倒计时中说明尚未发起。动态数字使用 tabular numbers，成功状态在后续输出/完成事件到达后自然收起。
+Locus 为 Pi retry event 绑定本轮 `startedAt`，拒绝迟到旧事件污染新流。Renderer 把已有 wire status 映射为 `scheduled`、`running`、`succeeded`、`exhausted`、`cancelled`；历史按 retry number upsert，终态不再追加重复的第 8 项。默认文案明确写“第 N/M 次继续当前回答”，在倒计时中说明尚未发起。动态数字使用 tabular numbers，成功状态在后续输出/完成事件到达后自然收起。
 
 ## 验收
 
