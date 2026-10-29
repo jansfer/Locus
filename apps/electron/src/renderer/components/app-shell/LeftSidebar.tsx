@@ -14,6 +14,10 @@ import { toast } from 'sonner'
 import { Pin, PinOff, Star, Settings, Plus, CirclePlus, Trash2, Pencil, PanelLeft, PanelRight, ArrowRightLeft, Search, Archive, ArchiveRestore, ArrowLeft, Bot, MessageSquare, MoreHorizontal, FolderOpen, FolderInput, FolderPlus, Clock, CalendarDays, ChevronRight, ChevronDown, ChevronUp, ChevronsDownUp, Blocks, Brain, ListTodo, GitBranch, Download, Loader2, RotateCw, Info } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { getProjectSections } from '@/lib/project-list'
+import {
+  CLOSED_PROJECT_SEARCH_PANEL,
+  reduceProjectSearchPanelState,
+} from '@/lib/project-search-panel'
 import { Input } from '@/components/ui/input'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { ModeSwitcher } from './ModeSwitcher'
@@ -698,7 +702,19 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
   const setSessionPathMap = useSetAtom(agentSessionPathMapAtom)
   const [currentWorkspaceId, setCurrentWorkspaceId] = useAtom(currentAgentWorkspaceIdAtom)
   const [workspaces, setWorkspaces] = useAtom(agentWorkspacesAtom)
-  const [projectQuery, setProjectQuery] = React.useState('')
+  const [projectSearch, dispatchProjectSearch] = React.useReducer(
+    reduceProjectSearchPanelState,
+    CLOSED_PROJECT_SEARCH_PANEL,
+  )
+  const projectQuery = projectSearch.query
+  const projectSearchInputRef = React.useRef<HTMLInputElement>(null)
+  const projectSearchButtonRef = React.useRef<HTMLButtonElement>(null)
+  // 搜索输入行只在展开后挂载，展开时需要显式聚焦；收起时不动焦点。
+  React.useEffect(() => {
+    if (!projectSearch.open) return
+    const frame = requestAnimationFrame(() => projectSearchInputRef.current?.focus())
+    return () => cancelAnimationFrame(frame)
+  }, [projectSearch.open])
   const [showArchivedProjects, setShowArchivedProjects] = React.useState(false)
   const hasArchivedProjects = workspaces.some((workspace) => workspace.archived)
   React.useEffect(() => {
@@ -1684,7 +1700,7 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
       )
       setWorkspaces((prev) => [workspace, ...prev])
       setShowArchivedProjects(false)
-      setProjectQuery('')
+      dispatchProjectSearch({ type: 'close' })
       setAgentSessions((prev) => [session, ...prev])
       setCurrentWorkspaceId(workspace.id)
       openSession('agent', session.id, session.title)
@@ -1723,7 +1739,7 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
       )
       setWorkspaces((prev) => [workspace, ...prev])
       setShowArchivedProjects(false)
-      setProjectQuery('')
+      dispatchProjectSearch({ type: 'close' })
       setAgentSessions((prev) => [session, ...prev])
       setCurrentWorkspaceId(workspace.id)
       openSession('agent', session.id, session.title)
@@ -2945,6 +2961,17 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
         <div className="px-2 pt-2 pb-1 flex items-center justify-between">
           <span className="px-2 text-[15px] font-medium leading-5 text-foreground/45 select-none">项目</span>
           <div className="flex items-center gap-0.5">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button type="button" ref={projectSearchButtonRef} aria-label={projectSearch.open ? '收起项目搜索' : '搜索项目'}
+                  aria-expanded={projectSearch.open} aria-controls="agent-project-search-input"
+                  onClick={() => dispatchProjectSearch({ type: 'toggle' })}
+                  className={cn('size-7 flex items-center justify-center rounded-md text-foreground/35 hover:text-foreground/65 hover:bg-foreground/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring titlebar-no-drag', projectSearch.open && 'bg-foreground/[0.06] text-foreground/65')}>
+                  <Search size={14} />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="top">{projectSearch.open ? '收起项目搜索' : '搜索项目'}</TooltipContent>
+            </Tooltip>
             {hasArchivedProjects && (
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -3033,13 +3060,20 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
       })
     }
 
-    rows.push({
+    if (projectSearch.open) rows.push({
       id: 'agent-project-search', estimateSize: 44,
       content: (
         <div className="flex items-center gap-1 px-3 pb-2 titlebar-no-drag">
-          <Input type="search" aria-label="搜索项目" placeholder="搜索项目名称或路径…" value={projectQuery}
-            onChange={(event) => setProjectQuery(event.target.value)}
-            onKeyDown={(event) => { if (event.key === 'Escape') setProjectQuery('') }}
+          <Input id="agent-project-search-input" ref={projectSearchInputRef} type="search" aria-label="搜索项目"
+            placeholder="搜索项目名称或路径…" value={projectQuery}
+            onChange={(event) => dispatchProjectSearch({ type: 'change', query: event.target.value })}
+            onKeyDown={(event) => {
+              if (event.key !== 'Escape') return
+              event.preventDefault()
+              dispatchProjectSearch({ type: 'close' })
+              // 输入框随面板卸载，焦点回到触发按钮，键盘用户不会丢失位置。
+              projectSearchButtonRef.current?.focus()
+            }}
             className="h-8 min-w-0 flex-1 text-xs" />
         </div>
       ),
@@ -3217,6 +3251,7 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
     handleWorkspaceArchive,
     archivingWorkspaceId,
     projectQuery,
+    projectSearch.open,
     showArchivedProjects,
     hasArchivedProjects,
     workspaces,
