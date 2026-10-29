@@ -11,7 +11,7 @@
  * - 强制 bypassPermissions，否则无人值守时写操作会因权限弹窗永久阻塞
  * - 来源会话/目标会话忙时跳过本轮，不排队堆积
  * - 连续失败达上限自动暂停
- * - 启动时恢复：已过期的 nextRunAt 顺延到下一个完整间隔，避免重启雪崩触发
+ * - 启动时恢复：退出期间过期的任务串行补跑一次（interval 仅限执行窗口内），再把 nextRunAt 推进到未来，避免重启雪崩触发
  */
 
 import { BrowserWindow } from 'electron'
@@ -35,12 +35,19 @@ import { createAgentSession, updateAgentSessionMeta, getAgentSessionMeta } from 
 import { getSessionContextUsageRatio } from './agent-session-usage'
 import { runAgentHeadless, isAgentSessionActive } from './agent-service'
 import { notifyAutomationRunFinished } from './automation-notification-service'
+import { planStartupCatchUps } from './automation-catch-up'
 
 /** tick 周期：每 30s 检查一次到期任务（短轮询，抗休眠漂移） */
 const TICK_INTERVAL_MS = 30_000
 
 /** 单次任务执行的超时上限：2 小时。超时后强制标记为 error 并释放 runningAutomations 槽位 */
 const RUN_TIMEOUT_MS = 2 * 60 * 60 * 1000
+
+/** 启动补跑：首个任务延迟启动，给窗口与 Bridge 初始化让路 */
+const CATCH_UP_FIRST_DELAY_MS = 5_000
+
+/** 启动补跑：上一个任务结束后，再等这么久才启动下一个（保持单并发） */
+const CATCH_UP_BETWEEN_RUNS_MS = 3_000
 
 /**
  * daily 模式下的上下文占用率切换阈值。
@@ -98,6 +105,13 @@ let tickTimer: NodeJS.Timeout | undefined
 /** 正在执行中的 automation id 集合，防止同一任务重入 */
 const runningAutomations = new Set<string>()
 
+/** 补跑队列代号；停止调度器时递增，让仍在等待的队列失效 */
+let catchUpQueueToken = 0
+let catchUpWaitTimer: NodeJS.Timeout | undefined
+let catchUpWaitResolve: ((alive: boolean) => void) | undefined
+/** 已排队但尚未开始补跑的任务：tick 不得提前捡起来，保证补跑严格串行 */
+const pendingCatchUpIds = new Set<string>()
+
 /** 向所有渲染窗口广播任务列表变更，触发前端刷新 */
 export function broadcastChanged(): void {
   for (const win of BrowserWindow.getAllWindows()) {
@@ -112,8 +126,14 @@ export function broadcastChanged(): void {
  *
  * @param automation 任务定义
  * @param manual 是否手动「立即运行」（手动运行也走同一路径，但不影响调度计时由 appendRun 统一推进）
+ * @param options.catchUp 是否为应用启动时对错过任务的补跑；仅用于运行记录标记
  */
-export async function runAutomation(automation: Automation, manual = false): Promise<void> {
+export async function runAutomation(
+  automation: Automation,
+  manual = false,
+  options: { catchUp?: boolean } = {},
+): Promise<void> {
+  const catchUp = options.catchUp === true
   if (runningAutomations.has(automation.id)) {
     console.log(`[定时任务] ${automation.name} 上一轮尚未结束，跳过本轮`)
     appendRun(automation.id, {
@@ -121,6 +141,7 @@ export async function runAutomation(automation: Automation, manual = false): Pro
       sessionId: '',
       status: 'skipped',
       skipReason: '上一轮尚未结束',
+      catchUp: catchUp || undefined,
     })
     broadcastChanged()
     return
@@ -186,6 +207,7 @@ export async function runAutomation(automation: Automation, manual = false): Pro
           status,
           durationMs: Date.now() - runAt,
           error,
+          catchUp: catchUp || undefined,
         }
         appendRun(automation.id, run)
         broadcastChanged()
@@ -242,6 +264,7 @@ export async function runAutomation(automation: Automation, manual = false): Pro
       status: 'error',
       durationMs: Date.now() - runAt,
       error: err instanceof Error ? err.message : '未知错误',
+      catchUp: catchUp || undefined,
     }
     appendRun(automation.id, run)
     broadcastChanged()
@@ -273,6 +296,8 @@ function tick(): void {
     if (!automation.channelId || !automation.workspaceId) continue
     if (now < automation.nextRunAt) continue
     if (runningAutomations.has(automation.id)) continue
+    // 已在补跑队列里等待的任务由队列串行执行，tick 不能插队并行触发
+    if (pendingCatchUpIds.has(automation.id)) continue
     // 来源会话忙时跳过（极端情况下的额外保险，主要靠新建子会话规避）
     if (automation.sourceSessionId && isAgentSessionActive(automation.sourceSessionId)) {
       continue
@@ -285,23 +310,85 @@ function tick(): void {
 /**
  * 启动调度器
  *
- * 恢复策略：把已过期的 nextRunAt 顺延到「现在 + 一个完整间隔」，
- * 避免应用重启后一堆历史任务在同一 tick 内雪崩触发。
+ * 恢复策略：
+ * - 误过期的任务先补跑一轮，按队列串行执行（同一时刻只跑一个，避免启动即拉起多路 Agent）
+ * - 除 once 外，先把 nextRunAt 推进到未来，避免 tick 与补跑重复触发
+ * - interval 只在「每日执行窗口 + 运行日」内补跑，窗口外只顺延
  */
 export function startScheduler(): void {
   if (tickTimer) return
   const now = Date.now()
-  for (const automation of listAutomations()) {
-    if (automation.active && automation.nextRunAt <= now) {
-      setNextRunAt(automation.id, computeNextRunAt(automation, now))
+  const plan = planStartupCatchUps(listAutomations(), now, computeNextRunAt)
+
+  for (const item of plan.reschedules) {
+    setNextRunAt(item.automation.id, item.nextRunAt)
+  }
+
+  tickTimer = setInterval(tick, TICK_INTERVAL_MS)
+  if (plan.catchUps.length > 0) {
+    for (const item of plan.catchUps) pendingCatchUpIds.add(item.automation.id)
+    console.log(`[定时任务] 检测到 ${plan.catchUps.length} 个错过任务，将串行补跑`)
+    void runCatchUpQueue(plan.catchUps)
+  }
+  console.log(`[定时任务] 调度器已启动，tick 周期 ${TICK_INTERVAL_MS / 1000}s`)
+}
+
+/** 等待补跑间隔；返回 false 表示调度器已停止，队列应终止 */
+function waitForCatchUp(ms: number, token: number): Promise<boolean> {
+  return new Promise<boolean>((resolve) => {
+    catchUpWaitResolve = resolve
+    catchUpWaitTimer = setTimeout(() => {
+      catchUpWaitTimer = undefined
+      catchUpWaitResolve = undefined
+      resolve(token === catchUpQueueToken)
+    }, ms)
+  })
+}
+
+/**
+ * 串行补跑队列：上一个任务真正结束后再等待固定间隔，然后执行下一个。
+ * 每个任务执行前重新读取最新状态，已删除 / 已暂停 / 配置不完整的任务直接跳过。
+ */
+async function runCatchUpQueue(
+  items: Array<{ automation: Automation; missedAt: number }>,
+): Promise<void> {
+  const token = catchUpQueueToken
+  for (let index = 0; index < items.length; index++) {
+    if (token !== catchUpQueueToken) return
+    const item = items[index]!
+    const waitMs = index === 0 ? CATCH_UP_FIRST_DELAY_MS : CATCH_UP_BETWEEN_RUNS_MS
+    const alive = await waitForCatchUp(waitMs, token)
+    if (!alive) return
+
+    const latest = getAutomation(item.automation.id)
+    if (!latest || !latest.active || !latest.channelId || !latest.workspaceId) {
+      pendingCatchUpIds.delete(item.automation.id)
+      console.log(`[定时任务] ${item.automation.name} 启动补跑前状态已变化，跳过`)
+      continue
+    }
+
+    pendingCatchUpIds.delete(item.automation.id)
+    console.log(
+      `[定时任务] ${latest.name} 启动补跑（原定 ${new Date(item.missedAt).toLocaleString('zh-CN')}）`,
+    )
+    try {
+      await runAutomation(latest, false, { catchUp: true })
+    } catch (error) {
+      // 单个任务异常不能中断后续补跑
+      console.error(`[定时任务] ${latest.name} 启动补跑异常:`, error)
     }
   }
-  tickTimer = setInterval(tick, TICK_INTERVAL_MS)
-  console.log(`[定时任务] 调度器已启动，tick 周期 ${TICK_INTERVAL_MS / 1000}s`)
+  pendingCatchUpIds.clear()
 }
 
 /** 停止调度器（before-quit 调用） */
 export function stopScheduler(): void {
+  catchUpQueueToken += 1
+  pendingCatchUpIds.clear()
+  if (catchUpWaitTimer) clearTimeout(catchUpWaitTimer)
+  catchUpWaitTimer = undefined
+  catchUpWaitResolve?.(false)
+  catchUpWaitResolve = undefined
   if (tickTimer) {
     clearInterval(tickTimer)
     tickTimer = undefined

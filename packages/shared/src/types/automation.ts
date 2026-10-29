@@ -19,6 +19,8 @@ export interface AutomationRun {
   error?: string
   /** 跳过原因（status === 'skipped' 时，如来源会话忙） */
   skipReason?: string
+  /** 是否为应用启动时对退出期间错过任务的补跑（区别于正常调度触发） */
+  catchUp?: boolean
 }
 
 /** 调度模式 */

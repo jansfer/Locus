@@ -1199,6 +1199,9 @@ export function AutomationFormView({ embedded = false }: { embedded?: boolean } 
                             className="flex items-center gap-2 px-1.5 py-1 -mx-1.5 rounded-md text-[11px] text-foreground/60 text-left transition-colors enabled:hover:bg-foreground/[0.04] enabled:hover:text-foreground/80 disabled:cursor-not-allowed disabled:opacity-50"
                           >
                             <span className="tabular-nums">{formatTime(run.runAt)}</span>
+                            {run.catchUp && (
+                              <span className="shrink-0 rounded-sm bg-primary/10 px-1 py-px text-[10px] leading-4 text-primary">补跑</span>
+                            )}
                             <span className="shrink-0 text-foreground/45">{formatRunStatus(run.status)}</span>
                             <span className="text-foreground/35 truncate">
                               {run.status === 'success' && run.durationMs ? `${(run.durationMs / 1000).toFixed(1)}s` : ''}

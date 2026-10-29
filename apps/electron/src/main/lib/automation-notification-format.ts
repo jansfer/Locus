@@ -64,6 +64,7 @@ export function buildAutomationFeishuCard(payload: AutomationNotificationCardPay
   const lines = [
     `**任务**: ${automation.name}`,
     `**状态**: ${statusLine}`,
+    run.catchUp ? '**触发**: 启动补跑（应用未运行期间错过的任务）' : '',
     `**耗时**: ${formatDuration(run.durationMs)}`,
     run.sessionId ? `**会话 ID**: ${run.sessionId}` : '',
     '',
