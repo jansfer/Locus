@@ -10,7 +10,7 @@
  * - 支持只构建 DMG 或 ZIP（--dmg / --zip）
  *
  * 使用：
- * bun run scripts/dist.ts                          # 完整打包（双架构 + DMG + ZIP）
+ * bun run scripts/dist.ts                          # 完整打包（宿主架构 + DMG + ZIP）
  * bun run scripts/dist.ts --current-arch            # 只构建当前架构（快速）
  * bun run scripts/dist.ts --current-arch --verbose   # 当前架构 + 详细日志
  * bun run scripts/dist.ts --current-arch --dmg       # 当前架构 + 只构建 DMG
@@ -170,7 +170,7 @@ function main(): void {
   // 打印配置信息
   console.log(`\n${color.bgBlue}${color.bold} Proma 打包工具 ${color.reset}\n`)
   console.log(`  ${color.bold}平台${color.reset}:     ${opts.platform}`)
-  console.log(`  ${color.bold}架构${color.reset}:     ${opts.currentArch ? arch + ' (仅当前)' : 'arm64 + x64'}`)
+  console.log(`  ${color.bold}架构${color.reset}:     ${arch + ' (原生构建)'}`)
   console.log(`  ${color.bold}格式${color.reset}:     ${opts.targetFormat}`)
   console.log(`  ${color.bold}签名${color.reset}:     ${opts.noSign ? '跳过' : '启用'}`)
   console.log(`  ${color.bold}详细日志${color.reset}: ${opts.verbose ? '开启' : '关闭'}`)
@@ -245,7 +245,7 @@ function main(): void {
   step++
   printStepStart(step, totalSteps, 'Electron Builder 打包')
 
-  const builderArgs = ['electron-builder', `--${opts.platform}`]
+  const builderArgs = ['run', 'package:app', `--${opts.platform}`]
 
   // 只构建当前架构
   if (opts.currentArch) {
@@ -271,7 +271,7 @@ function main(): void {
   }
 
   results.push(
-    runStep('Electron Builder', 'bunx', builderArgs, {
+    runStep('Electron Builder', 'bun', builderArgs, {
       verbose: true, // 打包步骤始终显示输出
       env: builderEnv,
     })

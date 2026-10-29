@@ -1,5 +1,12 @@
 import type { AgentWorkspace } from '@proma/shared'
 
+export function getProjectSections(workspaces: readonly AgentWorkspace[], query: string, expanded: boolean) {
+  return {
+    active: filterProjectWorkspaces(workspaces, query),
+    archived: expanded ? filterProjectWorkspaces(workspaces, query, true) : [],
+  }
+}
+
 /** 只过滤展示副本，不影响项目顺序、会话归属与后台任务。 */
 export function filterProjectWorkspaces(
   workspaces: readonly AgentWorkspace[], query: string, archived = false,

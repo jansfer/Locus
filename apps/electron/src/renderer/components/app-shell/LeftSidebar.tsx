@@ -13,7 +13,7 @@ import { useAtom, useSetAtom, useAtomValue, useStore } from 'jotai'
 import { toast } from 'sonner'
 import { Pin, PinOff, Star, Settings, Plus, CirclePlus, Trash2, Pencil, PanelLeft, PanelRight, ArrowRightLeft, Search, Archive, ArchiveRestore, ArrowLeft, Bot, MessageSquare, MoreHorizontal, FolderOpen, FolderInput, FolderPlus, Clock, CalendarDays, ChevronRight, ChevronDown, ChevronUp, ChevronsDownUp, Blocks, Brain, ListTodo, GitBranch, Download, Loader2, RotateCw, Info } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { filterProjectWorkspaces } from '@/lib/project-list'
+import { getProjectSections } from '@/lib/project-list'
 import { Input } from '@/components/ui/input'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { ModeSwitcher } from './ModeSwitcher'
@@ -700,6 +700,10 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
   const [workspaces, setWorkspaces] = useAtom(agentWorkspacesAtom)
   const [projectQuery, setProjectQuery] = React.useState('')
   const [showArchivedProjects, setShowArchivedProjects] = React.useState(false)
+  const hasArchivedProjects = workspaces.some((workspace) => workspace.archived)
+  React.useEffect(() => {
+    if (!hasArchivedProjects) setShowArchivedProjects(false)
+  }, [hasArchivedProjects])
   const [archivingWorkspaceId, setArchivingWorkspaceId] = React.useState<string | null>(null)
   const setMode = useSetAtom(appModeAtom)
 
@@ -2283,13 +2287,15 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
    */
   const displayProjectGroups = React.useMemo<AgentProjectGroup[]>(
     () => {
-      const visibleIds = new Set(filterProjectWorkspaces(workspaces, projectQuery, showArchivedProjects).map((workspace) => workspace.id))
+      const sections = getProjectSections(workspaces, projectQuery, showArchivedProjects)
+      const visibleIds = new Set(sections.active.map((workspace) => workspace.id))
       const combined = agentProjectGroups.filter((group) => visibleIds.has(group.workspace.id))
-      if (!showArchivedProjects && automationGroup && (!projectQuery.trim() || automationGroup.workspace.name.includes(projectQuery.trim()))) {
+      if (automationGroup && (!projectQuery.trim() || automationGroup.workspace.name.includes(projectQuery.trim()))) {
         const idx = Math.min(Math.max(automationGroupOrder, 0), combined.length)
         combined.splice(idx, 0, automationGroup)
       }
-      return combined
+      const archivedIds = new Set(sections.archived.map((workspace) => workspace.id))
+      return [...combined, ...agentProjectGroups.filter((group) => archivedIds.has(group.workspace.id))]
     },
     [agentProjectGroups, automationGroup, automationGroupOrder, workspaces, projectQuery, showArchivedProjects],
   )
@@ -2932,8 +2938,20 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
       estimateSize: 40,
       content: (
         <div className="px-2 pt-2 pb-1 flex items-center justify-between">
-          <span className="px-2 text-[15px] font-medium leading-5 text-foreground/45 select-none">{showArchivedProjects ? '已归档项目' : '项目'}</span>
+          <span className="px-2 text-[15px] font-medium leading-5 text-foreground/45 select-none">项目</span>
           <div className="flex items-center gap-0.5">
+            {hasArchivedProjects && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button type="button" aria-label="展开或收起已归档项目" aria-expanded={showArchivedProjects}
+                    aria-controls="archived-projects-heading" onClick={() => setShowArchivedProjects((previous) => !previous)}
+                    className={cn('size-7 flex items-center justify-center rounded-md text-foreground/35 hover:text-foreground/65 hover:bg-foreground/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring titlebar-no-drag', showArchivedProjects && 'bg-foreground/[0.06] text-foreground/65')}>
+                    <Archive size={14} />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="top">{showArchivedProjects ? '收起已归档项目' : '展开已归档项目'}</TooltipContent>
+              </Tooltip>
+            )}
             <Tooltip>
               <TooltipTrigger asChild>
                 <button
@@ -3018,20 +3036,21 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
             onChange={(event) => setProjectQuery(event.target.value)}
             onKeyDown={(event) => { if (event.key === 'Escape') setProjectQuery('') }}
             className="h-8 min-w-0 flex-1 text-xs" />
-          <button type="button" aria-pressed={showArchivedProjects}
-            onClick={() => setShowArchivedProjects((previous) => !previous)}
-            className="shrink-0 rounded-md px-2 py-1.5 text-xs text-muted-foreground hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-            {showArchivedProjects ? '常用项目' : `已归档项目${workspaces.some((workspace) => workspace.archived) ? ` (${workspaces.filter((workspace) => workspace.archived).length})` : ''}`}
-          </button>
         </div>
       ),
     })
     if (displayProjectGroups.length === 0) rows.push({
       id: 'agent-project-no-results', estimateSize: 36,
-      content: <div role="status" className="px-5 py-2 text-xs text-muted-foreground">{projectQuery.trim() ? '未找到匹配的项目' : showArchivedProjects ? '暂无已归档项目' : '暂无项目'}</div>,
+      content: <div role="status" className="px-5 py-2 text-xs text-muted-foreground">{projectQuery.trim() ? '未找到匹配的项目' : '暂无项目'}</div>,
     })
 
+    let archivedHeadingAdded = false
     for (const group of displayProjectGroups) {
+      if (group.workspace.archived && !archivedHeadingAdded) {
+        archivedHeadingAdded = true
+        rows.push({ id: 'archived-projects-heading', estimateSize: 32,
+          content: <div id="archived-projects-heading" className="px-4 pt-3 pb-1 text-xs text-muted-foreground">已归档项目</div> })
+      }
       const isAuto = group.workspace.id === AUTOMATION_GROUP_ID
       const collapsed = Boolean(group.workspace.archived) || collapsedWorkspaceIds.has(group.workspace.id)
       const extraCount = expandedExtraCountMap.get(group.workspace.id) ?? 0
@@ -3077,7 +3096,7 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
               onRenameWorkspace={isAuto ? noopAsync : handleWorkspaceRename}
               onToggleWorkspaceArchive={handleWorkspaceArchive}
               workspaceArchivePending={archivingWorkspaceId !== null}
-              projectSortingDisabled={Boolean(projectQuery.trim()) || showArchivedProjects}
+              projectSortingDisabled={Boolean(projectQuery.trim()) || Boolean(group.workspace.archived)}
               onRelinkProjectRoot={isAuto ? noopAsync : handleRelinkProjectRoot}
               onRequestRestoreProjectRoot={isAuto ? noopVoid : setPendingRestoreProjectRootId}
               onRequestDeleteWorkspace={isAuto ? noopVoid : handleRequestDeleteWorkspace}
@@ -3149,6 +3168,11 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
       }
     }
 
+    if (showArchivedProjects && !archivedHeadingAdded) rows.push({
+      id: 'archived-projects-heading', estimateSize: 48,
+      content: <div id="archived-projects-heading" role="status" className="px-4 pt-3 pb-2 text-xs text-muted-foreground">已归档项目：未找到匹配的项目</div>,
+    })
+
     return rows
   }, [
     activeDelegationSessionId,
@@ -3189,6 +3213,7 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
     archivingWorkspaceId,
     projectQuery,
     showArchivedProjects,
+    hasArchivedProjects,
     workspaces,
     newProjectName,
     pinnedAgentSessionTrees,

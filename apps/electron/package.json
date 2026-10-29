@@ -1,6 +1,6 @@
 {
   "name": "@proma/electron",
-  "version": "0.19.68",
+  "version": "0.19.69",
   "description": "Locus，为专业用户设计的 Agent（基于 Proma 的 AGPL-3.0 修改版）",
   "main": "dist/main.cjs",
   "author": {
@@ -44,11 +44,12 @@
     "start": "bun run build && bunx electron .",
     "typecheck": "tsc --noEmit",
     "generate:icons": "cd resources && ./generate-icons.sh",
-    "pack": "bun run build && bun run sync:runtime-deps && bun run rebuild:node-pty && electron-builder --dir",
-    "dist": "bun run build && bun run sync:runtime-deps && bun run rebuild:node-pty && electron-builder",
-    "dist:mac": "bun run build && bun run sync:runtime-deps && bun run rebuild:node-pty && electron-builder --mac",
-    "dist:win": "bun run build && bun run sync:runtime-deps && bun run rebuild:node-pty && electron-builder --win",
-    "dist:linux": "bun run build && bun run sync:runtime-deps && bun run rebuild:node-pty && electron-builder --linux",
+    "package:app": "bun run scripts/package-app.ts",
+    "pack": "bun run build && bun run sync:runtime-deps && bun run rebuild:node-pty && bun run package:app --dir",
+    "dist": "bun run build && bun run sync:runtime-deps && bun run rebuild:node-pty && bun run package:app",
+    "dist:mac": "bun run build && bun run sync:runtime-deps && bun run rebuild:node-pty && bun run package:app --mac",
+    "dist:win": "bun run build && bun run sync:runtime-deps && bun run rebuild:node-pty && bun run package:app --win",
+    "dist:linux": "bun run build && bun run sync:runtime-deps && bun run rebuild:node-pty && bun run package:app --linux",
     "dist:visual": "bun run scripts/dist.ts",
     "dist:fast": "bun run scripts/dist.ts --current-arch --dmg",
     "dist:debug": "bun run scripts/dist.ts --current-arch --verbose"

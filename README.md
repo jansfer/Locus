@@ -88,6 +88,8 @@ bun run dist:win     # Windows
 bun run dist:linux   # Linux
 ```
 
+支持 Windows、macOS 和 Linux 的 amd64 / arm64 原生打包，文件名统一包含版本、系统和 CPU。构建命令、下载选择和自动更新兼容说明见 [打包说明](docs/packaging.md)。
+
 ## 与上游 Proma 的差异
 
 本 fork 的改动集中在品牌与分发边界，运行时能力与上游保持一致：

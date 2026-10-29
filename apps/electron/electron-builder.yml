@@ -3,6 +3,8 @@
 
 appId: com.locus.app
 productName: Locus
+# package:app 在生成安装包与更新清单之前提供规范化系统和架构。
+artifactName: Locus-${version}-${env.LOCUS_ARTIFACT_OS}-${env.LOCUS_ARTIFACT_ARCH}.${ext}
 copyright: Copyright © 2024-2026 Erlich Liu; modifications © 2026 Jansfer (Locus, based on Proma)
 
 # Electron 版本（CI 环境 bun workspace 下无法自动检测，需显式指定）
@@ -149,8 +151,6 @@ win:
   icon: resources/icon.ico
   target:
     - target: nsis
-      arch:
-        - x64
 
 # NSIS 安装程序配置
 nsis:
@@ -173,11 +173,7 @@ linux:
   maintainer: Jansfer <jansfer@users.noreply.github.com>
   target:
     - target: AppImage
-      arch:
-        - x64
     - target: deb
-      arch:
-        - x64
 
 # electron-builder 25 对 AppImage 默认使用 --no-sandbox，这是 AppImage
 # 挂载文件系统无法可靠提供 SUID sandbox 的已知限制。deb 不继承该参数，
@@ -206,7 +202,6 @@ deb:
     - libxkbcommon0
     - libxrandr2
     - libxss1
-  artifactName: locus_${version}_${arch}.${ext}
 
 # ============================================
 # 发布配置

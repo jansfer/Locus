@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { filterProjectWorkspaces } from './project-list'
+import { filterProjectWorkspaces, getProjectSections } from './project-list'
 
 const projects = [
   { id: 'active', name: 'Locus App', slug: 'locus', createdAt: 1, updatedAt: 1, projectRootPath: 'D:/Work/Locus' },
@@ -7,6 +7,12 @@ const projects = [
 ]
 
 describe('项目列表过滤', () => {
+  test('Given 归档区域未展开 When 浏览或搜索 Then 常用项目保留且归档内容始终隐藏', () => {
+    expect(getProjectSections(projects, '', false)).toEqual({ active: [projects[0]!], archived: [] })
+    expect(getProjectSections(projects, '旧', false).archived).toEqual([])
+    expect(getProjectSections(projects, '', true)).toEqual({ active: [projects[0]!], archived: [projects[1]!] })
+    expect(getProjectSections([projects[0]!], '', true).archived).toEqual([])
+  })
   test('Given 活跃和归档项目 When 切换列表 Then 分别展示且保留原始顺序', () => {
     expect(filterProjectWorkspaces(projects, '', false).map((item) => item.id)).toEqual(['active'])
     expect(filterProjectWorkspaces(projects, '', true).map((item) => item.id)).toEqual(['archived'])

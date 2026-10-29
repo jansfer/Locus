@@ -107,7 +107,7 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
           for i in 1 2 3; do
-            if npx electron-builder --mac --arm64 --publish "$PUBLISH_MODE"; then
+            if bun run package:app --mac --arm64 --publish "$PUBLISH_MODE"; then
               exit 0
             fi
 
@@ -122,6 +122,10 @@ jobs:
         working-directory: apps/electron
 
       # 手动触发时把产物上传为 Actions artifact（tag 推送由 electron-builder 直接发布）
+      - name: 验证包内原生模块、终端与 CLI
+        run: bun run scripts/smoke-package.ts
+        working-directory: apps/electron
+
       - name: 上传产物（仅手动触发）
         if: github.event_name == 'workflow_dispatch'
         uses: actions/upload-artifact@v7
@@ -133,6 +137,14 @@ jobs:
             apps/electron/out/*.blockmap
             apps/electron/out/latest-mac.yml
           if-no-files-found: warn
+
+
+      - name: 保存架构更新清单
+        uses: actions/upload-artifact@v7
+        with:
+          name: mac-arm64-manifest
+          path: apps/electron/out/latest-mac.yml
+          if-no-files-found: error
 
   build-mac-x64:
     name: build (macos-15-intel, mac, x64, --x64)
@@ -206,7 +218,7 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
           for i in 1 2 3; do
-            if npx electron-builder --mac --x64 --publish "$PUBLISH_MODE"; then
+            if bun run package:app --mac --x64 --publish "$PUBLISH_MODE"; then
               exit 0
             fi
 
@@ -218,6 +230,10 @@ jobs:
 
           echo "macOS x64 packaging failed after 3 attempts"
           exit 1
+        working-directory: apps/electron
+
+      - name: 验证包内原生模块、终端与 CLI
+        run: bun run scripts/smoke-package.ts
         working-directory: apps/electron
 
       - name: 上传产物（仅手动触发）
@@ -232,147 +248,25 @@ jobs:
             apps/electron/out/latest-mac.yml
           if-no-files-found: warn
 
-  merge-mac-yml:
-    name: Merge latest-mac.yml (arm64 + x64)
-    runs-on: ubuntu-latest
-    needs: [build-mac-arm64, build-mac-x64]
-    # 合并逻辑依赖 Release 上已上传的 zip 工件，手动触发没有 Release，故跳过
-    if: github.event_name == 'push'
 
-    steps:
-      - name: 合并两个架构的 latest-mac.yml
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set -euo pipefail
-          TAG="${GITHUB_REF_NAME}"
-          REPO="${GITHUB_REPOSITORY}"
-          VERSION="${TAG#v}"
+      - name: 保存架构更新清单
+        uses: actions/upload-artifact@v7
+        with:
+          name: mac-x64-manifest
+          path: apps/electron/out/latest-mac.yml
+          if-no-files-found: error
 
-          echo "=== Fetching release info for ${TAG} ==="
-
-          # 获取 release 信息（draft release 无法通过 /releases/tags/ 获取，需遍历列表）
-          RELEASE_JSON=$(curl -s -H "Authorization: token ${GH_TOKEN}" \
-            "https://api.github.com/repos/${REPO}/releases" \
-            | python3 -c "
-          import json, sys
-          releases = json.load(sys.stdin)
-          for r in releases:
-              if r.get('tag_name') == '${TAG}' or r.get('name') == '${TAG}':
-                  print(json.dumps(r)); break
-          else:
-              sys.exit('ERROR: release not found for tag ${TAG}')
-          ")
-          RELEASE_ID=$(echo "$RELEASE_JSON" | python3 -c "import json,sys; print(json.load(sys.stdin)['id'])")
-          echo "Release ID: ${RELEASE_ID}"
-
-          # 找到 arm64 和 x64 zip 文件名
-          ARM64_ZIP=$(echo "$RELEASE_JSON" | python3 -c "
-          import json, sys
-          for a in json.load(sys.stdin)['assets']:
-              if 'arm64-mac.zip' in a['name'] and not a['name'].endswith('.blockmap'):
-                  print(a['name']); break
-          ")
-          X64_ZIP=$(echo "$RELEASE_JSON" | python3 -c "
-          import json, sys
-          for a in json.load(sys.stdin)['assets']:
-              n = a['name']
-              if n.endswith('-mac.zip') and 'arm64' not in n and not n.endswith('.blockmap'):
-                  print(n); break
-          ")
-
-          echo "ARM64 ZIP: ${ARM64_ZIP}"
-          echo "X64 ZIP: ${X64_ZIP}"
-
-          if [ -z "$ARM64_ZIP" ] || [ -z "$X64_ZIP" ]; then
-            echo "ERROR: missing mac zip assets"
-            exit 1
-          fi
-
-          # 通过 API 获取下载 URL（支持 draft release）
-          ARM64_URL=$(echo "$RELEASE_JSON" | python3 -c "
-          import json, sys
-          for a in json.load(sys.stdin)['assets']:
-              if 'arm64-mac.zip' in a['name'] and not a['name'].endswith('.blockmap'):
-                  print(a['url']); break
-          ")
-          X64_URL=$(echo "$RELEASE_JSON" | python3 -c "
-          import json, sys
-          for a in json.load(sys.stdin)['assets']:
-              n = a['name']
-              if n.endswith('-mac.zip') and 'arm64' not in n and not n.endswith('.blockmap'):
-                  print(a['url']); break
-          ")
-
-          # 下载两个 zip（通过 API URL + Accept header，支持 draft release）
-          echo "Downloading arm64 zip..."
-          curl -sL -H "Authorization: token ${GH_TOKEN}" -H "Accept: application/octet-stream" \
-            "${ARM64_URL}" -o arm64.zip
-          echo "Downloading x64 zip..."
-          curl -sL -H "Authorization: token ${GH_TOKEN}" -H "Accept: application/octet-stream" \
-            "${X64_URL}" -o x64.zip
-
-          ARM64_SHA=$(openssl dgst -sha512 -binary arm64.zip | base64 -w0)
-          ARM64_SIZE=$(stat --format=%s arm64.zip)
-          X64_SHA=$(openssl dgst -sha512 -binary x64.zip | base64 -w0)
-          X64_SIZE=$(stat --format=%s x64.zip)
-
-          echo "ARM64: size=${ARM64_SIZE}, sha512=${ARM64_SHA:0:20}..."
-          echo "X64: size=${X64_SIZE}, sha512=${X64_SHA:0:20}..."
-
-          rm -f arm64.zip x64.zip
-
-          RELEASE_DATE=$(date -u +"%Y-%m-%dT%H:%M:%S.000Z")
-
-          # 生成合并后的 latest-mac.yml（无缩进 heredoc）
-          cat > latest-mac.yml <<EOF
-          version: ${VERSION}
-          files:
-            - url: ${ARM64_ZIP}
-              sha512: ${ARM64_SHA}
-              size: ${ARM64_SIZE}
-            - url: ${X64_ZIP}
-              sha512: ${X64_SHA}
-              size: ${X64_SIZE}
-          path: ${ARM64_ZIP}
-          sha512: ${ARM64_SHA}
-          releaseDate: '${RELEASE_DATE}'
-          EOF
-          sed -i 's/^          //' latest-mac.yml
-
-          echo "=== Merged latest-mac.yml ==="
-          cat latest-mac.yml
-
-          # 删除旧的 latest-mac.yml asset
-          ASSET_ID=$(curl -s -H "Authorization: token ${GH_TOKEN}" \
-            "https://api.github.com/repos/${REPO}/releases/${RELEASE_ID}/assets" \
-            | python3 -c "
-          import json, sys
-          for a in json.load(sys.stdin):
-              if a['name'] == 'latest-mac.yml':
-                  print(a['id']); break
-          " || true)
-
-          if [ -n "$ASSET_ID" ]; then
-            echo "Deleting old latest-mac.yml (asset ${ASSET_ID})..."
-            curl -s -X DELETE -H "Authorization: token ${GH_TOKEN}" \
-              "https://api.github.com/repos/${REPO}/releases/assets/${ASSET_ID}"
-          fi
-
-          # 上传合并后的 latest-mac.yml
-          echo "Uploading merged latest-mac.yml..."
-          UPLOAD_RESULT=$(curl -s -X POST \
-            -H "Authorization: token ${GH_TOKEN}" \
-            -H "Content-Type: text/yaml" \
-            --data-binary @latest-mac.yml \
-            "https://uploads.github.com/repos/${REPO}/releases/${RELEASE_ID}/assets?name=latest-mac.yml")
-
-          echo "$UPLOAD_RESULT" | python3 -c "import json,sys; d=json.load(sys.stdin); print(f'Uploaded: {d.get(\"name\")} ({d.get(\"size\")} bytes)')"
-          echo "✅ latest-mac.yml merged and uploaded"
-
-  build-linux-x64:
-    name: build (ubuntu-22.04, linux, x64)
-    runs-on: ubuntu-22.04
+  build-linux:
+    name: build (linux, ${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x64
+            runner: ubuntu-22.04
+          - arch: arm64
+            runner: ubuntu-22.04-arm
+    runs-on: ${{ matrix.runner }}
 
     steps:
       - name: 检出代码
@@ -411,24 +305,36 @@ jobs:
       - name: 打包并发布 (Linux x64)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npx electron-builder --linux --x64 --publish "$PUBLISH_MODE"
+        run: bun run package:app --linux --${{ matrix.arch }} --publish "$PUBLISH_MODE"
+        working-directory: apps/electron
+
+      - name: 验证包内原生模块、终端与 CLI
+        run: bun run scripts/smoke-package.ts
         working-directory: apps/electron
 
       - name: 上传产物（仅手动触发）
         if: github.event_name == 'workflow_dispatch'
         uses: actions/upload-artifact@v7
         with:
-          name: linux-x64
+          name: linux-${{ matrix.arch }}
           path: |
             apps/electron/out/*.deb
             apps/electron/out/*.AppImage
             apps/electron/out/*.blockmap
-            apps/electron/out/latest-linux.yml
+            apps/electron/out/latest-linux*.yml
           if-no-files-found: warn
 
-  build-windows-x64:
-    name: build (windows-latest, win, x64, --x64)
-    runs-on: windows-latest
+  build-windows:
+    name: build (win, ${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x64
+            runner: windows-latest
+          - arch: arm64
+            runner: windows-11-arm
+    runs-on: ${{ matrix.runner }}
 
     steps:
       - name: 检出代码
@@ -446,6 +352,10 @@ jobs:
 
       - name: 安装依赖
         run: bun install --frozen-lockfile
+
+      - name: 编译 Windows ARM64 Pi 原生模块
+        if: matrix.arch == 'arm64'
+        run: bun run node_modules/@earendil-works/pi-tui/native/win32/build.mjs
 
       # 准备当前 runner 架构的 OfficeCLI 资源
       - name: 准备 OfficeCLI（Windows x64）
@@ -466,19 +376,59 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         # windows-latest 默认 shell 是 pwsh，显式用 bash 才能读取 $PUBLISH_MODE
         shell: bash
-        run: npx electron-builder --win --x64 --publish "$PUBLISH_MODE"
+        run: bun run package:app --win --${{ matrix.arch }} --publish "$PUBLISH_MODE"
+        working-directory: apps/electron
+
+      - name: 验证包内原生模块、终端与 CLI
+        run: bun run scripts/smoke-package.ts
         working-directory: apps/electron
 
       - name: 上传产物（仅手动触发）
         if: github.event_name == 'workflow_dispatch'
         uses: actions/upload-artifact@v7
         with:
-          name: windows-x64
+          name: windows-${{ matrix.arch }}
           path: |
             apps/electron/out/*.exe
             apps/electron/out/*.blockmap
             apps/electron/out/latest.yml
           if-no-files-found: warn
+
+
+      - name: 保存架构更新清单
+        uses: actions/upload-artifact@v7
+        with:
+          name: windows-${{ matrix.arch }}-manifest
+          path: apps/electron/out/latest.yml
+          if-no-files-found: error
+
+  merge-update-manifests:
+    name: 合并并校验双架构更新清单
+    runs-on: ubuntu-latest
+    needs: [build-mac-arm64, build-mac-x64, build-windows]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: '*-manifest'
+          path: manifests
+      - name: 合并更新清单
+        run: |
+          VERSION=$(bun -e 'process.stdout.write(JSON.parse(await Bun.file("apps/electron/package.json").text()).version)')
+          bun run apps/electron/scripts/merge-update-manifests.ts manifests merged "$VERSION"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: merged-update-manifests
+          path: merged/*.yml
+          if-no-files-found: error
+      - name: 更新草稿 Release 的清单
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "$GITHUB_REF_NAME" merged/latest.yml merged/latest-mac.yml --clobber --repo "$GITHUB_REPOSITORY"
 
   publish-release:
     name: Publish GitHub Release
@@ -486,14 +436,24 @@ jobs:
     needs:
       - build-mac-arm64
       - build-mac-x64
-      - build-linux-x64
-      - build-windows-x64
-      - merge-mac-yml
+      - build-linux
+      - build-windows
+      - merge-update-manifests
     # 只有 tag 发布流程的所有平台构建与 mac 更新清单合并均成功后才公开 Release。
     # 手动触发没有 Release，且应只上传 Actions artifacts。
     if: github.event_name == 'push'
 
     steps:
+      - uses: actions/checkout@v7
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: 校验所有架构安装包与更新清单
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --json assets | bun run apps/electron/scripts/verify-release-assets.ts "${GITHUB_REF_NAME#v}"
+
       - name: 生成说明并发布 Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
