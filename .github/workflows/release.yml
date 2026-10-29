@@ -41,7 +41,7 @@ jobs:
 
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: 安装 Bun
         uses: oven-sh/setup-bun@v2
@@ -49,7 +49,7 @@ jobs:
           bun-version: latest
 
       - name: 安装 Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 22
 
@@ -124,7 +124,7 @@ jobs:
       # 手动触发时把产物上传为 Actions artifact（tag 推送由 electron-builder 直接发布）
       - name: 上传产物（仅手动触发）
         if: github.event_name == 'workflow_dispatch'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: mac-arm64
           path: |
@@ -140,7 +140,7 @@ jobs:
 
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: 安装 Bun
         uses: oven-sh/setup-bun@v2
@@ -148,7 +148,7 @@ jobs:
           bun-version: latest
 
       - name: 安装 Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 22
 
@@ -222,7 +222,7 @@ jobs:
 
       - name: 上传产物（仅手动触发）
         if: github.event_name == 'workflow_dispatch'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: mac-x64
           path: |
@@ -376,7 +376,7 @@ jobs:
 
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: 安装 Bun
         uses: oven-sh/setup-bun@v2
@@ -384,7 +384,7 @@ jobs:
           bun-version: latest
 
       - name: 安装 Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 22
 
@@ -416,7 +416,7 @@ jobs:
 
       - name: 上传产物（仅手动触发）
         if: github.event_name == 'workflow_dispatch'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: linux-x64
           path: |
@@ -432,7 +432,7 @@ jobs:
 
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: 安装 Bun
         uses: oven-sh/setup-bun@v2
@@ -440,7 +440,7 @@ jobs:
           bun-version: latest
 
       - name: 安装 Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 22
 
@@ -471,7 +471,7 @@ jobs:
 
       - name: 上传产物（仅手动触发）
         if: github.event_name == 'workflow_dispatch'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: windows-x64
           path: |
