@@ -11,6 +11,23 @@ function failedAssistant(errorMessage: string): AssistantMessage {
 }
 
 describe('Pi native retry classifier', () => {
+  test.each([
+    'stream_read_error',
+    'upstream_stream_read_error',
+    'Unable to forward upstream stream',
+    'stream disconnected before completion: stream closed before response.completed',
+  ])('Given 瞬时上游错误 %s When Pi 分类 Then 允许原生重试', (errorMessage) => {
+    expect(isRetryableAssistantError(failedAssistant(errorMessage))).toBe(true)
+  })
+
+  test.each([
+    'Invalid request id abc503def',
+    'Invalid payload with 150000 bytes',
+    'subscription_sharing_workplace_individual_usage_limit_exceeded',
+  ])('Given 非瞬时错误 %s When Pi 分类 Then 不重试', (errorMessage) => {
+    expect(isRetryableAssistantError(failedAssistant(errorMessage))).toBe(false)
+  })
+
   test('classifies an OpenAI Responses terminal-event stream interruption as retryable', () => {
     expect(isRetryableAssistantError(
       failedAssistant('OpenAI Responses stream ended before a terminal response event'),
