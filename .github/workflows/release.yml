@@ -494,15 +494,29 @@ jobs:
     if: github.event_name == 'push'
 
     steps:
-      - name: 发布已完成的 Draft Release
+      - name: 生成说明并发布 Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          gh release edit "$GITHUB_REF_NAME" --draft=false --repo "$GITHUB_REPOSITORY"
-          IS_DRAFT=$(gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --json isDraft --jq '.isDraft')
-          if [ "$IS_DRAFT" != "false" ]; then
-            echo "ERROR: Release is still a draft"
+          TAG="$GITHUB_REF_NAME"
+          echo "Generating release notes for ${TAG}"
+          RELEASE_NOTES=$(gh api \
+            --method POST \
+            "repos/${GITHUB_REPOSITORY}/releases/generate-notes" \
+            -f tag_name="$TAG" \
+            -f target_commitish="$GITHUB_SHA" \
+            --jq '.body')
+          if [ -z "$RELEASE_NOTES" ] || [ "$RELEASE_NOTES" = "null" ]; then
+            echo "ERROR: GitHub generated empty release notes"
             exit 1
           fi
-          echo "Published $GITHUB_REF_NAME"
+
+          gh release edit "$TAG" --notes "$RELEASE_NOTES" --draft=false --repo "$GITHUB_REPOSITORY"
+          IS_DRAFT=$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json isDraft --jq '.isDraft')
+          RELEASE_BODY=$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json body --jq '.body')
+          if [ "$IS_DRAFT" != "false" ] || [ -z "$RELEASE_BODY" ]; then
+            echo "ERROR: Release was not published with release notes"
+            exit 1
+          fi
+          echo "Published $TAG with generated release notes"
