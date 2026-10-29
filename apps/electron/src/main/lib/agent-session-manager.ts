@@ -1220,7 +1220,7 @@ export function updateSDKUserMessageSkillActivations(
 /**
  * 自动归档超过指定天数未更新的 Agent 会话
  *
- * 置顶会话不会被归档。
+ * 置顶和星标会话不会被自动归档。
  *
  * @param daysThreshold 天数阈值
  * @returns 本次归档的会话数量
@@ -1232,7 +1232,7 @@ export function autoArchiveAgentSessions(daysThreshold: number): number {
 
   for (const session of index.sessions) {
     // 草稿没有侧栏入口；自动归档后无法由 Welcome 恢复，会变成不可达记录。
-    if (!session.isDraft && !session.pinned && !session.archived && session.updatedAt < threshold) {
+    if (!session.isDraft && !session.pinned && !session.starred && !session.archived && session.updatedAt < threshold) {
       session.archived = true
       count++
     }

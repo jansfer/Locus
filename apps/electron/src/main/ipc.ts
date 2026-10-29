@@ -2713,7 +2713,7 @@ export function registerIpcHandlers(): void {
       const attachedFiles = getAgentSessionMeta(id)?.attachedFiles
       // Tombstone first so a headless run still in async preflight cannot start
       // or recreate its transcript after this handler removes session files.
-      await stopAgentAndDrain(id)
+      await Promise.all([stopAgentAndDrain(id), browserController.deleteSession(id)])
       // 清理权限服务中该会话的白名单
       permissionService.clearSessionWhitelist(id)
       permissionService.clearSessionPending(id)
@@ -2722,7 +2722,6 @@ export function registerIpcHandlers(): void {
       // 清理 ExitPlanMode 服务中的待处理请求
       exitPlanService.clearSessionPending(id)
       clearAgentQueuedMessages(id)
-      await browserController.close(id)
       closeTerminalsForSession(id)
       deleteAgentSession(id)
       releaseAttachedFileWatchers(attachedFiles)
@@ -2991,9 +2990,8 @@ export function registerIpcHandlers(): void {
       for (const sessionId of affectedSessionIds) {
         // Use the same tombstone-and-drain boundary as single-session deletion.
         // A headless/delegated run can be in preflight before it appears active.
-        await stopAgentAndDrain(sessionId)
+        await Promise.all([stopAgentAndDrain(sessionId), browserController.deleteSession(sessionId)])
         closeTerminalsForSession(sessionId)
-        await browserController.close(sessionId)
         deleteAgentSession(sessionId)
       }
       for (const automationId of affectedAutomationIds) {

@@ -31,7 +31,7 @@ interface UpdateStatus {
 
 /** 更新 API */
 interface UpdaterAPI {
-  checkForUpdates: () => Promise<void>
+  checkForUpdates: (automatic?: boolean) => Promise<void>
   getStatus: () => Promise<UpdateStatus>
   onStatusChanged: (callback: (status: UpdateStatus) => void) => () => void
   /** 在所有运行中的 Agent 结束后重启并安装更新 */

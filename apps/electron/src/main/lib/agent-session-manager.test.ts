@@ -84,6 +84,10 @@ function writeAgentSessionsIndex(sessions: Array<{
   sdkSessionId?: string
   piSessionFile?: string
   piEntryBindings?: Record<string, string>
+  starred?: boolean
+  pinned?: boolean
+  archived?: boolean
+  isDraft?: boolean
   forkSourceSdkSessionId?: string
   resumeAtMessageUuid?: string
 }>): void {
@@ -590,6 +594,32 @@ describe('Agent 会话引用 prompt', () => {
         writable: true,
       })
     }
+  })
+})
+
+describe('Agent 会话自动归档', () => {
+  test('Given 超期的星标、置顶、草稿和普通会话 When 自动归档 Then 只归档普通会话并持久化', () => {
+    const old = { workspaceId: 'workspace-a', createdAt: 1, updatedAt: 1 }
+    writeAgentSessionsIndex([
+      { ...old, id: 'starred', title: '星标', starred: true },
+      { ...old, id: 'pinned', title: '置顶', pinned: true },
+      { ...old, id: 'draft', title: '草稿', isDraft: true },
+      { ...old, id: 'ordinary', title: '普通' },
+      { ...old, id: 'recent', title: '近期', updatedAt: Date.now() },
+      { ...old, id: 'archived', title: '已归档', archived: true },
+    ])
+    expect(manager.autoArchiveAgentSessions(30)).toBe(1)
+    expect(manager.getAgentSessionMeta('starred')?.archived).not.toBe(true)
+    expect(manager.getAgentSessionMeta('ordinary')?.archived).toBe(true)
+    expect(manager.autoArchiveAgentSessions(30)).toBe(0)
+  })
+
+  test('Given 星标会话 When 手动归档或取消星标后自动归档 Then 仍可归档', () => {
+    writeAgentSessionsIndex([{ id: 'unstar', title: '星标', workspaceId: 'workspace-a', createdAt: 1, updatedAt: 1, starred: true }])
+    expect(manager.updateAgentSessionMeta('unstar', { archived: true }).archived).toBe(true)
+    writeAgentSessionsIndex([{ id: 'unstar', title: '星标', workspaceId: 'workspace-a', createdAt: 1, updatedAt: 1, starred: true }])
+    manager.updateAgentSessionMeta('unstar', { starred: false })
+    expect(manager.autoArchiveAgentSessions(30)).toBe(1)
   })
 })
 

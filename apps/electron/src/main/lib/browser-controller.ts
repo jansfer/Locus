@@ -218,6 +218,8 @@ export class BrowserController {
   private owner: BrowserWindow | null = null
   private readonly sessions = new Map<string, BrowserSessionRecord>()
   private readonly configurations = new Map<string, BrowserSessionConfiguration>()
+  /** 会话 ID 不复用；阻止删除过程中的晚到 IPC/工具请求重新创建浏览器。 */
+  private readonly deletedSessionIds = new Set<string>()
   /** Electron persistent partition 生命周期长于 Agent session；同一 Session 只安装一次网络 guard。 */
   private readonly guardedSessions = new WeakSet<Session>()
   /** 下载事件属于 Electron Session，不能随 Locus 会话重复注册或闭包捕获已关闭的会话。 */
@@ -232,6 +234,7 @@ export class BrowserController {
   private latestForegroundPresentationRevision = 0
 
   configureSession(sessionId: string, input: ConfigureBrowserSessionInput): void {
+    if (this.deletedSessionIds.has(sessionId)) throw new Error('会话已删除，不能重新打开受管浏览器。')
     const previous = this.configurations.get(sessionId)
     const allowedRoots = input.allowedRoots ?? previous?.allowedRoots ?? []
     const executionSource = input.executionSource ?? previous?.executionSource ?? 'user'
@@ -728,6 +731,7 @@ export class BrowserController {
   }
 
   private getOrCreateSession(sessionId: string, allowedRoots: string[] = [], createAgentTab = true): BrowserSessionRecord {
+    if (this.deletedSessionIds.has(sessionId)) throw new Error('会话已删除，不能重新打开受管浏览器。')
     const browserSession = this.sessions.get(sessionId) ?? this.createSession(sessionId, allowedRoots)
     if (allowedRoots.length > 0) this.setAllowedRoots(sessionId, allowedRoots)
     if (browserSession.tabs.size === 0) this.createTab(browserSession, false, createAgentTab)
@@ -1783,6 +1787,12 @@ export class BrowserController {
     })
   }
 
+  async deleteSession(sessionId: string): Promise<void> {
+    this.deletedSessionIds.add(sessionId)
+    this.configurations.delete(sessionId)
+    await this.close(sessionId)
+  }
+
   async close(sessionId: string): Promise<void> {
     const browserSession = this.sessions.get(sessionId)
     if (!browserSession) {
@@ -1790,16 +1800,35 @@ export class BrowserController {
       return
     }
     this.sessions.delete(sessionId)
+    // 删除/关闭是终态：取消正在等待和已入队的 Agent 浏览器操作。
+    browserSession.agentAbortController.abort()
     this.clearPresentationsForSession(sessionId)
     if (this.foregroundPresentationSessionId === sessionId) this.foregroundPresentationSessionId = null
-    for (const tab of browserSession.tabs.values()) {
+    const closingTabs = [...browserSession.tabs.values()].map(async (tab) => {
+      this.invalidateTabDocument(tab)
       this.clearAgentTargetHighlight(tab)
       try { if (tab.view.webContents.debugger.isAttached()) tab.view.webContents.debugger.detach() } catch { /* 已销毁 */ }
       this.detachTabView(tab)
-      if (!tab.view.webContents.isDestroyed()) tab.view.webContents.close()
-    }
+      const contents = tab.view.webContents
+      if (contents.isDestroyed()) return
+      // close() 仅请求关闭；等待原生页面销毁后再允许调用方清理会话目录。
+      await new Promise<void>((resolve, reject) => {
+        const onDestroyed = (): void => resolve()
+        contents.once('destroyed', onDestroyed)
+        try {
+          contents.close({ waitForBeforeUnload: false })
+        } catch (error) {
+          contents.removeListener('destroyed', onDestroyed)
+          reject(error)
+        }
+      })
+    })
     browserSession.tabs.clear()
+    browserSession.lastLayoutRevisionByTab.clear()
     this.emitClosed(sessionId)
+    const results = await Promise.allSettled(closingTabs)
+    const failures = results.filter((result): result is PromiseRejectedResult => result.status === 'rejected')
+    if (failures.length > 0) throw new AggregateError(failures.map((result) => result.reason), '受管浏览器关闭失败')
   }
 
   dispose(): void {

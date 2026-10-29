@@ -62,7 +62,14 @@ export function initializeUpdater(
 
   // 订阅状态变化
   const cleanup = updater.onStatusChanged(setStatus)
-  return cleanup
+  const onOnline = (): void => {
+    void updater.checkForUpdates(true).catch(() => undefined)
+  }
+  window.addEventListener('online', onOnline)
+  return () => {
+    window.removeEventListener('online', onOnline)
+    cleanup()
+  }
 }
 
 /** 手动检查更新 */

@@ -20,8 +20,8 @@ export function registerUpdaterIpc(): void {
 
   ipcMain.handle(
     UPDATER_IPC_CHANNELS.CHECK_FOR_UPDATES,
-    async (): Promise<void> => {
-      await checkForUpdates()
+    async (_event, automatic?: boolean): Promise<void> => {
+      await checkForUpdates(automatic === true)
     }
   )
 
