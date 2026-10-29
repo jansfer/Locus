@@ -238,7 +238,7 @@ async function startCallbackServer(state: string): Promise<{ redirectUri: string
 
     response.writeHead(stateMatches && code ? 200 : 400, { 'Content-Type': 'text/html; charset=utf-8' })
     response.end(stateMatches && code
-      ? '<!doctype html><title>Locus</title><p>授权完成，可以关闭此页面并返回 Proma。</p>'
+      ? '<!doctype html><title>Locus</title><p>授权完成，可以关闭此页面并返回 Locus。</p>'
       : '<!doctype html><title>Locus</title><p>授权未完成，请返回 Locus 重试。</p>')
 
     closeServer(server)

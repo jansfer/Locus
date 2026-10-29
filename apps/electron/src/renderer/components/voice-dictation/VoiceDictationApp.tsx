@@ -547,7 +547,7 @@ export function VoiceDictationApp({ embedded = false }: { embedded?: boolean }):
 
   React.useEffect(() => {
     const cleanupShown = window.electronAPI.onVoiceDictationShown((event) => {
-      // 主进程已冻结本次输出是否路由到 Proma；点击按钮的来源仍应保留给 UI，
+      // 主进程已冻结本次输出是否路由到 Locus；点击按钮的来源仍应保留给 UI，
       // 即使用户选择复制到剪贴板。快捷键仅在需要写入 Locus 时回退到最后聚焦输入框。
       const { sourceInputId, targetInputId } = resolveVoiceDictationSessionInputIds(
         event.routeToPromaInput,

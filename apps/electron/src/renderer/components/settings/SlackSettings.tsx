@@ -81,7 +81,7 @@ export function SlackSettings(): React.ReactElement {
       </div>}
     </SettingsSection>
 
-    <SettingsSection title="按顺序连接 Slack" description="完整指南见 docs/slack-bridge.md；Token 只应粘贴到本机 Proma，不要发送到聊天或提交到 Git。">
+    <SettingsSection title="按顺序连接 Slack" description="完整指南见 docs/slack-bridge.md；Token 只应粘贴到本机 Locus，不要发送到聊天或提交到 Git。">
       <SettingsCard divided={false}>
         <ol className="space-y-4 px-4 py-5 text-sm text-muted-foreground">
           <li className="flex gap-3"><Step n="1" /><span>先点击<strong className="font-medium text-foreground">添加 Bot</strong>，展开卡片后复制 Manifest。App 名称默认 <code className="rounded bg-muted px-1 py-0.5">Locus</code>，不能包含中文。</span></li>
@@ -191,7 +191,7 @@ function SlackBotCard({ bot, state, onChanged }: { bot: SlackBotSettingsConfig; 
       </Button>}
     </div>
     {expanded && <div id={detailsId} className="space-y-4 border-t border-border/60 px-4 pb-5 pt-4">
-      <SettingsInput label="App 名称" description="默认 Proma，用于生成 Slack App Manifest；不能包含中文。" value={name} onChange={setName} placeholder="Locus" />
+      <SettingsInput label="App 名称" description="默认 Locus，用于生成 Slack App Manifest；不能包含中文。" value={name} onChange={setName} placeholder="Locus" />
       <div className="rounded-lg bg-primary/5 px-3 py-3">
         <p className="text-sm font-medium text-foreground">先创建 Slack App</p>
         <p className="mt-0.5 text-xs text-muted-foreground">复制 Manifest，粘贴到 Slack 的「Create New App → From an app manifest」后，再返回填写 Token。</p>

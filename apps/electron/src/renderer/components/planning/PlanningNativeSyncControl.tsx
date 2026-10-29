@@ -150,7 +150,7 @@ export function PlanningNativeSyncControl({ entity }: { entity: PlanningNativeSy
       <div className="min-w-0">
         <p className="text-sm font-medium">{COPY[entity].label}同步</p>
         <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">设置 Locus 受管的{COPY[entity].label}；仅同步到你明确选择的一个目标。Calendar 会双向回流，Reminder 保持单向发布。</p>
-        <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">建议先在系统中创建一个名为「Proma」的{entity === 'calendar' ? '日历' : '提醒事项列表'}，再将它设为同步目标，避免与个人项目混杂。</p>
+        <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">建议先在系统中创建一个名为「Locus」的{entity === 'calendar' ? '日历' : '提醒事项列表'}，再将它设为同步目标，避免与个人项目混杂。</p>
       </div>
       {loading || !permission ? <div className="flex items-center gap-2 py-2 text-xs text-muted-foreground"><Loader2 className="size-3.5 animate-spin" />正在检查授权…</div>
         : permission.status === 'full-access' ? <div className="space-y-2"><Select value={profile?.targetId ?? ''} onValueChange={(id) => void saveTarget(id)} disabled={saving || targets.length === 0}><SelectTrigger className="h-9 text-xs"><SelectValue placeholder={targets.length ? `选择一个 ${COPY[entity].targetLabel}` : '未找到可写目标'} /></SelectTrigger><SelectContent>{targets.map((target) => <SelectItem key={target.id} value={target.id}>{target.sourceTitle ? `${target.sourceTitle} · ` : ''}{target.title}{target.sourceType === 'local' ? ' · 仅此 Mac' : target.isCloudBacked ? ' · 云端账户' : ''}</SelectItem>)}</SelectContent></Select>{profile && <p className="text-[11px] leading-relaxed text-muted-foreground">当前受管目标：{profile.sourceTitle ? `${profile.sourceTitle} · ` : ''}{profile.targetTitle}。</p>}{!profile && <p className="text-[11px] leading-relaxed text-muted-foreground">选择后会开始发布现有 Locus 项目。</p>}

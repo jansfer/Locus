@@ -186,7 +186,7 @@ export function DingTalkSettings(): React.ReactElement {
               </div>
               <p className="pl-7 text-muted-foreground">
                 在「应用能力」中启用机器人功能。
-                然后回到 Proma，<span className="text-foreground font-medium">先点击「保存配置」</span>，
+                然后回到 Locus，<span className="text-foreground font-medium">先点击「保存配置」</span>，
                 确认状态变为「已连接」后，再去钉钉后台配置事件订阅（选择 Stream 模式）。
               </p>
             </div>

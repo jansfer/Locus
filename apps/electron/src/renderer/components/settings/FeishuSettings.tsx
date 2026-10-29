@@ -1168,7 +1168,7 @@ function SessionMirrorSection({ bots }: { bots: FeishuBotConfig[] }): React.Reac
               <div className="flex flex-col gap-1 pl-1">
                 <div>
                   <code className="rounded bg-amber-500/15 px-1 py-0.5 text-[11px] text-amber-900 dark:text-amber-100">im:message.group_msg</code>
-                  {' '}— 接收群聊中所有用户消息（否则飞书不会把非 @ 的群消息推送给 Proma）
+                  {' '}— 接收群聊中所有用户消息（否则飞书不会把非 @ 的群消息推送给 Locus）
                 </div>
                 <div>
                   <code className="rounded bg-amber-500/15 px-1 py-0.5 text-[11px] text-amber-900 dark:text-amber-100">im:chat</code>
@@ -1185,7 +1185,7 @@ function SessionMirrorSection({ bots }: { bots: FeishuBotConfig[] }): React.Reac
             <div className="flex items-start gap-2 rounded-lg bg-amber-500/10 px-3 py-3 text-xs text-amber-800 dark:text-amber-300">
               <AlertTriangle size={15} className="mt-0.5 flex-shrink-0" />
               <div className="leading-relaxed">
-                当前同步 Bot 还没有历史聊天绑定。通过 Proma「扫码创建」的 Bot 已保存扫码账号的当前组织身份，可直接为新 Session 建群；手动填写 App ID/Secret 添加的 Bot，请先在飞书里向「{selectedBot?.name ?? '该 Bot'}」发送一条消息，让 Locus 记录当前组织的 open_id。
+                当前同步 Bot 还没有历史聊天绑定。通过 Locus「扫码创建」的 Bot 已保存扫码账号的当前组织身份，可直接为新 Session 建群；手动填写 App ID/Secret 添加的 Bot，请先在飞书里向「{selectedBot?.name ?? '该 Bot'}」发送一条消息，让 Locus 记录当前组织的 open_id。
               </div>
             </div>
           )}

@@ -233,7 +233,7 @@ export function WeChatSettings(): React.ReactElement {
               </div>
               <p className="pl-7 text-muted-foreground">
                 点击上方「扫码登录」，用微信扫描二维码。
-                这会将你的微信账号作为 Bot 接入 Proma。
+                这会将你的微信账号作为 Bot 接入 Locus。
               </p>
             </div>
 

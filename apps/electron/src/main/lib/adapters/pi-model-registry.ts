@@ -869,7 +869,7 @@ export async function getCodexCatalogModels(): Promise<PiCatalogModel[]> {
  * `openai-codex-responses` 协议全部内置，无需（也不能）手工构造 models 或 baseUrl。
  * Pi 0.80.10 将它声明为 OAuth-only provider；runtime API key 不会参与其认证解析。
  * 因此将 Locus 已刷新过的完整凭据放入一次性内存 OAuth credential store，
- * 按真实 expires 刷新并回写 Proma，避免读写全局 ~/.pi 认证文件。
+ * 按真实 expires 刷新并回写 Locus，避免读写全局 ~/.pi 认证文件。
  */
 export async function buildCodexModel(sdk: PiSdk, input: CodexModelInput) {
   if (!input.codexOAuthCredentials) {

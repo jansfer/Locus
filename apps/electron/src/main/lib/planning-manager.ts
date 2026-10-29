@@ -156,7 +156,7 @@ export function planningNativeCalendarHash(item: Pick<PlanningNativeExternalItem
 function migrateDatabase(db: SqliteDatabase): void {
   const versionRow = db.prepare('PRAGMA user_version').get() as { user_version?: number } | undefined
   let version = versionRow?.user_version ?? 0
-  if (version > PLANNING_SCHEMA_VERSION) throw new Error('任务/日程数据版本高于当前 Proma，无法安全打开')
+  if (version > PLANNING_SCHEMA_VERSION) throw new Error('任务/日程数据版本高于当前 Locus，无法安全打开')
 
   db.exec('BEGIN IMMEDIATE')
   try {
@@ -738,7 +738,7 @@ function resolveManagedCalendarProfileConflict(input: ResolvePlanningNativeSyncC
         }
         enqueuePlanningSync('calendar_event', conflict.proma_entity_id, 'upsert')
       } else {
-        // locator 已失效；用户已选择保留 Proma，重置 locator 并确保下一轮有明确的出站操作。
+        // locator 已失效；用户已选择保留 Locus，重置 locator 并确保下一轮有明确的出站操作。
         getDatabase().prepare('UPDATE planning_sync_bindings SET calendar_item_identifier=NULL,last_synced_hash=NULL WHERE profile_id=:profileId AND proma_entity_id=:promaEntityId').run({ profileId: profile.id, promaEntityId: conflict.proma_entity_id })
         enqueuePlanningSync('calendar_event', conflict.proma_entity_id, 'upsert')
       }
