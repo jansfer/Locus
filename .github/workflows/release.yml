@@ -464,23 +464,35 @@ jobs:
         run: |
           set -euo pipefail
           TAG="$GITHUB_REF_NAME"
-          echo "Generating release notes for ${TAG}"
-          RELEASE_NOTES=$(gh api \
-            --method POST \
-            "repos/${GITHUB_REPOSITORY}/releases/generate-notes" \
-            -f tag_name="$TAG" \
-            -f target_commitish="$GITHUB_SHA" \
-            --jq '.body')
-          if [ -z "$RELEASE_NOTES" ] || [ "$RELEASE_NOTES" = "null" ]; then
-            echo "ERROR: GitHub generated empty release notes"
-            exit 1
+          # 仓库内手写说明优先。git 提交没有 PR 元数据时，GitHub 自动生成只能给出
+          # 一行 compare 链接，因此有 release-notes/v<版本>.md 就以其正文为准。
+          NOTES_FILE="release-notes/${TAG}.md"
+          if [ -f "$NOTES_FILE" ]; then
+            if [ ! -s "$NOTES_FILE" ]; then
+              echo "ERROR: ${NOTES_FILE} 存在但内容为空"
+              exit 1
+            fi
+            echo "使用仓库内发布说明 ${NOTES_FILE}"
+            gh release edit "$TAG" --notes-file "$NOTES_FILE" --draft=false --repo "$GITHUB_REPOSITORY"
+          else
+            echo "未找到 ${NOTES_FILE}，回退到 GitHub 自动生成说明"
+            RELEASE_NOTES=$(gh api \
+              --method POST \
+              "repos/${GITHUB_REPOSITORY}/releases/generate-notes" \
+              -f tag_name="$TAG" \
+              -f target_commitish="$GITHUB_SHA" \
+              --jq '.body')
+            if [ -z "$RELEASE_NOTES" ] || [ "$RELEASE_NOTES" = "null" ]; then
+              echo "ERROR: GitHub generated empty release notes"
+              exit 1
+            fi
+            gh release edit "$TAG" --notes "$RELEASE_NOTES" --draft=false --repo "$GITHUB_REPOSITORY"
           fi
 
-          gh release edit "$TAG" --notes "$RELEASE_NOTES" --draft=false --repo "$GITHUB_REPOSITORY"
           IS_DRAFT=$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json isDraft --jq '.isDraft')
           RELEASE_BODY=$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json body --jq '.body')
           if [ "$IS_DRAFT" != "false" ] || [ -z "$RELEASE_BODY" ]; then
             echo "ERROR: Release was not published with release notes"
             exit 1
           fi
-          echo "Published $TAG with generated release notes"
+          echo "Published $TAG with release notes"
