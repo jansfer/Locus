@@ -32,6 +32,7 @@ import { findAllGitRoots, normalizeGitRoot } from './git-diff-service'
 import { listBuiltinMcpServers } from './builtin-mcp/catalog'
 import { RESERVED_BUILTIN_KEYS } from './builtin-mcp/baseline'
 import { inferMcpTransportType, normalizeMcpTransportType } from '@proma/shared'
+import type { UpdateAgentWorkspaceInput } from '@proma/shared'
 import type { AgentWorkspace, CreateAgentWorkspaceInput, WorkspaceMcpConfig, SkillMeta, SkillImportSource, OtherWorkspaceSkillsGroup, WorkspaceCapabilities, SkillFileNode, SkillFileContent, WorkspaceMemorySummary, BulkImportSkillItemResult, BulkImportSkillsResult, BulkImportWorkspaceSelection } from '@proma/shared'
 
 interface AgentWorkspacesIndex {
@@ -331,10 +332,10 @@ export async function createAgentWorkspace(input: string | CreateAgentWorkspaceI
   return normalizedProjectRootPath ? { ...workspace, projectRootStatus: 'available' } : workspace
 }
 
-/** 更新工作区名称（slug 和目录不变） */
+/** 更新项目名称与归档状态，保持目录和会话不变。 */
 export async function updateAgentWorkspace(
   id: string,
-  updates: { name: string },
+  updates: UpdateAgentWorkspaceInput,
 ): Promise<AgentWorkspace> {
   const index = readIndex()
   const idx = index.workspaces.findIndex((w) => w.id === id)
@@ -344,15 +345,19 @@ export async function updateAgentWorkspace(
   }
 
   const existing = index.workspaces[idx]!
-
-  const duplicate = index.workspaces.find((w) => w.id !== id && w.name === updates.name)
+  if (updates.archived !== undefined && typeof updates.archived !== 'boolean') throw new Error('项目归档状态无效')
+  if (updates.archived && existing.slug === 'default') throw new Error('默认项目不能归档')
+  const name = updates.name === undefined ? existing.name : updates.name.trim()
+  if (!name) throw new Error('项目名称不能为空')
+  const duplicate = index.workspaces.find((w) => w.id !== id && w.name === name)
   if (duplicate) {
-    throw new Error(`项目名称「${updates.name}」已存在`)
+    throw new Error(`项目名称「${name}」已存在`)
   }
 
   const updated: AgentWorkspace = {
     ...existing,
-    name: updates.name,
+    name,
+    ...(updates.archived !== undefined ? { archived: updates.archived } : {}),
     updatedAt: Date.now(),
   }
 

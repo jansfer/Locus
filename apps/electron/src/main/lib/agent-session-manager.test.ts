@@ -100,6 +100,8 @@ function writeAgentWorkspacesIndex(workspaces: Array<{
   id: string
   name: string
   slug: string
+  archived?: boolean
+  projectRootPath?: string
   createdAt: number
   updatedAt: number
 }>): void {
@@ -594,6 +596,36 @@ describe('Agent 会话引用 prompt', () => {
         writable: true,
       })
     }
+  })
+})
+
+describe('项目归档与恢复', () => {
+  test('Given 已有项目 When 归档再恢复 Then 持久化状态且保留名称、标识和顺序', async () => {
+    const workspaces = await import('./agent-workspace-manager')
+    const projectRootPath = join(tempHome, 'archivable-source')
+    mkdirSync(projectRootPath, { recursive: true })
+    writeFileSync(join(projectRootPath, 'source.txt'), '用户项目文件', 'utf-8')
+    writeAgentWorkspacesIndex([
+      { id: 'default', name: '默认', slug: 'default', createdAt: 1, updatedAt: 1 },
+      { id: 'project', name: '项目', slug: 'project', createdAt: 1, updatedAt: 1, projectRootPath },
+    ])
+    writeAgentSessionsIndex([{ id: 'preserved-session', title: '保留的会话', workspaceId: 'project', createdAt: 1, updatedAt: 1 }])
+    await workspaces.updateAgentWorkspace('project', { archived: true })
+    expect(workspaces.getAgentWorkspace('project')).toMatchObject({ id: 'project', name: '项目', slug: 'project', archived: true, projectRootPath })
+    expect(manager.getAgentSessionMeta('preserved-session')?.workspaceId).toBe('project')
+    expect(existsSync(join(projectRootPath, 'source.txt'))).toBe(true)
+    await workspaces.updateAgentWorkspace('project', { name: '重命名项目' })
+    expect(workspaces.getAgentWorkspace('project')).toMatchObject({ name: '重命名项目', archived: true })
+    await workspaces.updateAgentWorkspace('project', { archived: false })
+    expect(workspaces.getAgentWorkspace('project')?.archived).toBe(false)
+    expect(workspaces.listAgentWorkspaces().map((item) => item.id)).toEqual(['default', 'project'])
+  })
+  test('Given 默认项目或不存在的项目 When 请求归档 Then 拒绝且不修改索引', async () => {
+    const workspaces = await import('./agent-workspace-manager')
+    writeAgentWorkspacesIndex([{ id: 'default', name: '默认', slug: 'default', createdAt: 1, updatedAt: 1 }])
+    await expect(workspaces.updateAgentWorkspace('default', { archived: true })).rejects.toThrow('默认项目不能归档')
+    await expect(workspaces.updateAgentWorkspace('missing', { archived: true })).rejects.toThrow('项目不存在')
+    expect(workspaces.getAgentWorkspace('default')?.archived).not.toBe(true)
   })
 })
 

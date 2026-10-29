@@ -27,10 +27,18 @@ export interface AgentWorkspace {
   projectRootPath?: string
   /** 本地项目根目录的运行时状态；Locus 托管项目不设置此字段。 */
   projectRootStatus?: LocalProjectRootStatus
+  /** 归档只影响项目列表展示，不删除文件或会话。 */
+  archived?: boolean
   /** 创建时间戳 */
   createdAt: number
   /** 更新时间戳 */
   updatedAt: number
+}
+
+/** 修改项目的可编辑元数据；未提供的字段保持原值。 */
+export interface UpdateAgentWorkspaceInput {
+  name?: string
+  archived?: boolean
 }
 
 /** 新建项目的输入。 */

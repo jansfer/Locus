@@ -48,6 +48,7 @@ import type {
   AgentStreamCompletePayload,
   AgentStreamErrorPayload,
   AgentWorkspace,
+  UpdateAgentWorkspaceInput,
   CreateAgentWorkspaceInput,
   CreateAgentProjectResult,
   AgentGenerateTitleInput,
@@ -678,7 +679,7 @@ export interface ElectronAPI {
   createAgentProject: (input: CreateAgentWorkspaceInput, channelId?: string, modelId?: string) => Promise<CreateAgentProjectResult>
 
   /** 更新 Agent 工作区 */
-  updateAgentWorkspace: (id: string, updates: { name: string }) => Promise<AgentWorkspace>
+  updateAgentWorkspace: (id: string, updates: UpdateAgentWorkspaceInput) => Promise<AgentWorkspace>
 
   /** 将本地项目关联到一个已存在的目录，保留项目和会话。 */
   relinkAgentWorkspaceProjectRoot: (id: string, projectRootPath: string) => Promise<AgentWorkspace>
@@ -2021,7 +2022,7 @@ const electronAPI: ElectronAPI = {
     return ipcRenderer.invoke(AGENT_IPC_CHANNELS.CREATE_PROJECT, input, channelId, modelId)
   },
 
-  updateAgentWorkspace: (id: string, updates: { name: string }) => {
+  updateAgentWorkspace: (id: string, updates: UpdateAgentWorkspaceInput) => {
     return ipcRenderer.invoke(AGENT_IPC_CHANNELS.UPDATE_WORKSPACE, id, updates)
   },
 

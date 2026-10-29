@@ -13,6 +13,8 @@ import { useAtom, useSetAtom, useAtomValue, useStore } from 'jotai'
 import { toast } from 'sonner'
 import { Pin, PinOff, Star, Settings, Plus, CirclePlus, Trash2, Pencil, PanelLeft, PanelRight, ArrowRightLeft, Search, Archive, ArchiveRestore, ArrowLeft, Bot, MessageSquare, MoreHorizontal, FolderOpen, FolderInput, FolderPlus, Clock, CalendarDays, ChevronRight, ChevronDown, ChevronUp, ChevronsDownUp, Blocks, Brain, ListTodo, GitBranch, Download, Loader2, RotateCw, Info } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { filterProjectWorkspaces } from '@/lib/project-list'
+import { Input } from '@/components/ui/input'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { ModeSwitcher } from './ModeSwitcher'
 import { SearchDialog } from './SearchDialog'
@@ -696,6 +698,9 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
   const setSessionPathMap = useSetAtom(agentSessionPathMapAtom)
   const [currentWorkspaceId, setCurrentWorkspaceId] = useAtom(currentAgentWorkspaceIdAtom)
   const [workspaces, setWorkspaces] = useAtom(agentWorkspacesAtom)
+  const [projectQuery, setProjectQuery] = React.useState('')
+  const [showArchivedProjects, setShowArchivedProjects] = React.useState(false)
+  const [archivingWorkspaceId, setArchivingWorkspaceId] = React.useState<string | null>(null)
   const setMode = useSetAtom(appModeAtom)
 
   // 当前项目能力（MCP + Skill 计数）
@@ -1316,6 +1321,7 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
 
   /** 切换当前项目；点击当前已选中工作区标题时则折叠/展开其会话列表 */
   const handleSelectProject = React.useCallback((workspaceId: string): void => {
+    if (workspaces.find((workspace) => workspace.id === workspaceId)?.archived) return
     if (workspaceId === currentWorkspaceId) {
       // 点击当前工作区 → 折叠/展开会话列表
       setCollapsedWorkspaceIds((prev) => toggleSetEntry(prev, workspaceId))
@@ -1326,7 +1332,7 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
     // 切换到新工作区时，自动展开该工作区
     setCollapsedWorkspaceIds((prev) => deleteSetEntry(prev, workspaceId))
     window.electronAPI.updateSettings({ agentWorkspaceId: workspaceId }).catch(console.error)
-  }, [currentWorkspaceId, setCurrentWorkspaceId, setActiveView])
+  }, [currentWorkspaceId, setCurrentWorkspaceId, setActiveView, workspaces])
 
   /** 合成「自动任务」组头部点击：仅折叠/展开，绝不切换当前项目（它不是真实工作区） */
   const handleToggleGroupCollapse = React.useCallback((groupId: string): void => {
@@ -1668,6 +1674,8 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
         agentModelId || undefined,
       )
       setWorkspaces((prev) => [workspace, ...prev])
+      setShowArchivedProjects(false)
+      setProjectQuery('')
       setAgentSessions((prev) => [session, ...prev])
       setCurrentWorkspaceId(workspace.id)
       openSession('agent', session.id, session.title)
@@ -1705,6 +1713,8 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
         agentModelId || undefined,
       )
       setWorkspaces((prev) => [workspace, ...prev])
+      setShowArchivedProjects(false)
+      setProjectQuery('')
       setAgentSessions((prev) => [session, ...prev])
       setCurrentWorkspaceId(workspace.id)
       openSession('agent', session.id, session.title)
@@ -1969,6 +1979,29 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
     handleSelectConversation,
     refreshQuickSwitchTargets,
   ])
+
+  /** 归档只调整项目入口，不终止会话或删除项目数据。 */
+  const handleWorkspaceArchive = React.useCallback(async (workspaceId: string): Promise<void> => {
+    if (archivingWorkspaceId) return
+    const workspace = workspaces.find((item) => item.id === workspaceId)
+    if (!workspace) return
+    setArchivingWorkspaceId(workspaceId)
+    try {
+      const updated = await window.electronAPI.updateAgentWorkspace(workspaceId, { archived: !workspace.archived })
+      setWorkspaces((previous) => previous.map((item) => item.id === workspaceId ? updated : item))
+      if (updated.archived && currentWorkspaceId === workspaceId) {
+        const fallback = workspaces.find((item) => item.slug === 'default' && !item.archived)
+          ?? workspaces.find((item) => item.id !== workspaceId && !item.archived)
+        setCurrentWorkspaceId(fallback?.id ?? null)
+        if (fallback) void window.electronAPI.updateSettings({ agentWorkspaceId: fallback.id }).catch(console.error)
+      }
+      toast.success(updated.archived ? '项目已归档' : '项目已恢复')
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : '项目归档操作失败')
+    } finally {
+      setArchivingWorkspaceId(null)
+    }
+  }, [archivingWorkspaceId, workspaces, setWorkspaces, currentWorkspaceId, setCurrentWorkspaceId])
 
   /** 重命名工作区（项目）名称 */
   const handleWorkspaceRename = React.useCallback(async (workspaceId: string, newName: string): Promise<void> => {
@@ -2250,13 +2283,15 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
    */
   const displayProjectGroups = React.useMemo<AgentProjectGroup[]>(
     () => {
-      if (!automationGroup) return agentProjectGroups
-      const idx = Math.min(Math.max(automationGroupOrder, 0), agentProjectGroups.length)
-      const combined = [...agentProjectGroups]
-      combined.splice(idx, 0, automationGroup)
+      const visibleIds = new Set(filterProjectWorkspaces(workspaces, projectQuery, showArchivedProjects).map((workspace) => workspace.id))
+      const combined = agentProjectGroups.filter((group) => visibleIds.has(group.workspace.id))
+      if (!showArchivedProjects && automationGroup && (!projectQuery.trim() || automationGroup.workspace.name.includes(projectQuery.trim()))) {
+        const idx = Math.min(Math.max(automationGroupOrder, 0), combined.length)
+        combined.splice(idx, 0, automationGroup)
+      }
       return combined
     },
-    [agentProjectGroups, automationGroup, automationGroupOrder],
+    [agentProjectGroups, automationGroup, automationGroupOrder, workspaces, projectQuery, showArchivedProjects],
   )
 
   /** Agent 归档会话按项目分组；归档列表仍只在进入该视图后按需加载。 */
@@ -2897,7 +2932,7 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
       estimateSize: 40,
       content: (
         <div className="px-2 pt-2 pb-1 flex items-center justify-between">
-          <span className="px-2 text-[15px] font-medium leading-5 text-foreground/45 select-none">项目</span>
+          <span className="px-2 text-[15px] font-medium leading-5 text-foreground/45 select-none">{showArchivedProjects ? '已归档项目' : '项目'}</span>
           <div className="flex items-center gap-0.5">
             <Tooltip>
               <TooltipTrigger asChild>
@@ -2975,9 +3010,30 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
       })
     }
 
+    rows.push({
+      id: 'agent-project-search', estimateSize: 44,
+      content: (
+        <div className="flex items-center gap-1 px-3 pb-2 titlebar-no-drag">
+          <Input type="search" aria-label="搜索项目" placeholder="搜索项目名称或路径…" value={projectQuery}
+            onChange={(event) => setProjectQuery(event.target.value)}
+            onKeyDown={(event) => { if (event.key === 'Escape') setProjectQuery('') }}
+            className="h-8 min-w-0 flex-1 text-xs" />
+          <button type="button" aria-pressed={showArchivedProjects}
+            onClick={() => setShowArchivedProjects((previous) => !previous)}
+            className="shrink-0 rounded-md px-2 py-1.5 text-xs text-muted-foreground hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+            {showArchivedProjects ? '常用项目' : `已归档项目${workspaces.some((workspace) => workspace.archived) ? ` (${workspaces.filter((workspace) => workspace.archived).length})` : ''}`}
+          </button>
+        </div>
+      ),
+    })
+    if (displayProjectGroups.length === 0) rows.push({
+      id: 'agent-project-no-results', estimateSize: 36,
+      content: <div role="status" className="px-5 py-2 text-xs text-muted-foreground">{projectQuery.trim() ? '未找到匹配的项目' : showArchivedProjects ? '暂无已归档项目' : '暂无项目'}</div>,
+    })
+
     for (const group of displayProjectGroups) {
       const isAuto = group.workspace.id === AUTOMATION_GROUP_ID
-      const collapsed = collapsedWorkspaceIds.has(group.workspace.id)
+      const collapsed = Boolean(group.workspace.archived) || collapsedWorkspaceIds.has(group.workspace.id)
       const extraCount = expandedExtraCountMap.get(group.workspace.id) ?? 0
       const visible = getVisibleAgentProjectSessions({
         group,
@@ -3019,6 +3075,9 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
               onDragEnd={handleProjectDragEnd}
               onConfigureProject={isAuto ? noopVoid : handleConfigureProject}
               onRenameWorkspace={isAuto ? noopAsync : handleWorkspaceRename}
+              onToggleWorkspaceArchive={handleWorkspaceArchive}
+              workspaceArchivePending={archivingWorkspaceId !== null}
+              projectSortingDisabled={Boolean(projectQuery.trim()) || showArchivedProjects}
               onRelinkProjectRoot={isAuto ? noopAsync : handleRelinkProjectRoot}
               onRequestRestoreProjectRoot={isAuto ? noopVoid : setPendingRestoreProjectRootId}
               onRequestDeleteWorkspace={isAuto ? noopVoid : handleRequestDeleteWorkspace}
@@ -3126,6 +3185,11 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
     handleTogglePinAgent,
     handleToggleStarAgent,
     handleWorkspaceRename,
+    handleWorkspaceArchive,
+    archivingWorkspaceId,
+    projectQuery,
+    showArchivedProjects,
+    workspaces,
     newProjectName,
     pinnedAgentSessionTrees,
     projectDropIndicator,
@@ -4693,6 +4757,9 @@ interface AgentProjectGroupItemProps {
   onDragEnd: () => void
   onConfigureProject: (workspaceId: string) => void
   onRenameWorkspace: (workspaceId: string, newName: string) => Promise<void>
+  onToggleWorkspaceArchive: (workspaceId: string) => Promise<void>
+  workspaceArchivePending: boolean
+  projectSortingDisabled: boolean
   onRelinkProjectRoot: (workspaceId: string) => Promise<void>
   onRequestRestoreProjectRoot: (workspaceId: string) => void
   onRequestDeleteWorkspace: (workspaceId: string) => void
@@ -4736,6 +4803,9 @@ const AgentProjectGroupItem = React.memo(function AgentProjectGroupItem({
   onDragEnd,
   onConfigureProject,
   onRenameWorkspace,
+  onToggleWorkspaceArchive,
+  workspaceArchivePending,
+  projectSortingDisabled,
   onRelinkProjectRoot,
   onRequestRestoreProjectRoot,
   onRequestDeleteWorkspace,
@@ -4841,7 +4911,7 @@ const AgentProjectGroupItem = React.memo(function AgentProjectGroupItem({
             type="button"
             aria-expanded={!collapsed}
             aria-controls={hideSessions ? undefined : `project-sessions-${group.workspace.id}`}
-            draggable={!renamingWorkspace}
+            draggable={!renamingWorkspace && !projectSortingDisabled}
             onDragStart={(e) => onDragStart(e, group.workspace.id)}
             onClick={(e) => {
               e.stopPropagation()
@@ -4884,7 +4954,14 @@ const AgentProjectGroupItem = React.memo(function AgentProjectGroupItem({
         )}
 
 
-        {!isAutomationGroup && (
+        {!isAutomationGroup && group.workspace.archived && (
+          <button type="button" aria-label={`恢复项目 ${group.workspace.name}`} title="恢复项目"
+            disabled={workspaceArchivePending} onClick={() => void onToggleWorkspaceArchive(group.workspace.id)}
+            className="absolute right-0 top-1/2 flex size-5 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50">
+            <ArchiveRestore size={13} />
+          </button>
+        )}
+        {!isAutomationGroup && !group.workspace.archived && (
         <Tooltip>
           <TooltipTrigger asChild>
             <button
@@ -4914,7 +4991,7 @@ const AgentProjectGroupItem = React.memo(function AgentProjectGroupItem({
             <button
               type="button"
               aria-label="项目菜单"
-              className="absolute right-5 top-1/2 flex size-5 -translate-y-1/2 items-center justify-center rounded-md text-foreground/30 opacity-0 transition-colors hover:bg-foreground/[0.055] hover:text-foreground/60 group-hover/project:opacity-100 data-[state=open]:opacity-100 titlebar-no-drag"
+              className="absolute right-5 top-1/2 flex size-5 -translate-y-1/2 items-center justify-center rounded-md text-foreground/30 opacity-0 transition-colors hover:bg-foreground/[0.055] hover:text-foreground/60 group-hover/project:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100 titlebar-no-drag"
             >
               <MoreHorizontal size={13} />
             </button>
@@ -4922,6 +4999,7 @@ const AgentProjectGroupItem = React.memo(function AgentProjectGroupItem({
           <DropdownMenuContent align="start" className="w-44 z-[9999] min-w-0 p-0.5">
             <DropdownMenuItem
               className="text-xs py-1 [&>svg]:size-3.5"
+              disabled={Boolean(group.workspace.archived)}
               onSelect={() => onSelectProject(group.workspace.id)}
             >
               <FolderOpen size={14} />
@@ -4940,6 +5018,14 @@ const AgentProjectGroupItem = React.memo(function AgentProjectGroupItem({
             >
               <Settings size={14} />
               配置 MCP 与 Skills
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              disabled={group.workspace.slug === 'default' || workspaceArchivePending}
+              className="text-xs py-1 [&>svg]:size-3.5"
+              onSelect={() => void onToggleWorkspaceArchive(group.workspace.id)}
+            >
+              {group.workspace.archived ? <ArchiveRestore size={14} /> : <Archive size={14} />}
+              {group.workspace.archived ? '恢复项目' : '归档项目'}
             </DropdownMenuItem>
             {hasUnavailableProjectRoot && (
               <>

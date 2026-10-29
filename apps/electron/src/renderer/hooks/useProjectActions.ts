@@ -42,12 +42,13 @@ export function useProjectActions(): UseProjectActionsResult {
 
   const selectProject = React.useCallback(
     (workspaceId: string, opts?: { resetView?: boolean }): void => {
+      if (workspaces.find((workspace) => workspace.id === workspaceId)?.archived) return
       if (workspaceId === currentWorkspaceId) return
       setCurrentWorkspaceId(workspaceId)
       if (opts?.resetView !== false) setActiveView('conversations')
       window.electronAPI.updateSettings({ agentWorkspaceId: workspaceId }).catch(console.error)
     },
-    [currentWorkspaceId, setCurrentWorkspaceId, setActiveView],
+    [currentWorkspaceId, setCurrentWorkspaceId, setActiveView, workspaces],
   )
 
   const createProject = React.useCallback(

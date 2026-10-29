@@ -13,6 +13,8 @@
 import * as React from 'react'
 import { FolderOpen, FolderInput, Plus } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { filterProjectWorkspaces } from '@/lib/project-list'
+import { Input } from '@/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { useProjectActions } from '@/hooks/useProjectActions'
 import { LocalProjectBadge } from './LocalProjectBadge'
@@ -28,6 +30,7 @@ export function CollapsedWorkspacePopover({
   children,
 }: CollapsedWorkspacePopoverProps): React.ReactElement {
   const { workspaces, currentWorkspaceId, selectProject, createProject, createProjectFromFolder } = useProjectActions()
+  const [projectQuery, setProjectQuery] = React.useState('')
 
   const [open, setOpen] = React.useState(false)
   const closeTimerRef = React.useRef<number | null>(null)
@@ -151,7 +154,11 @@ export function CollapsedWorkspacePopover({
 
         {/* 项目列表 */}
         <div className="flex flex-col p-1 max-h-[320px] overflow-y-auto scrollbar-thin">
-          {workspaces.map((ws) => (
+          <Input type="search" aria-label="搜索项目" placeholder="搜索项目名称或路径…" value={projectQuery}
+            onChange={(event) => setProjectQuery(event.target.value)}
+            onKeyDown={(event) => { if (event.key === 'Escape') setProjectQuery('') }} className="mb-1 h-8 text-xs" />
+          {filterProjectWorkspaces(workspaces, projectQuery).length === 0 && <div role="status" className="px-2 py-2 text-xs text-muted-foreground">未找到匹配的项目</div>}
+          {filterProjectWorkspaces(workspaces, projectQuery).map((ws) => (
             <button
               key={ws.id}
               type="button"

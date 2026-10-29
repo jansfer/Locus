@@ -10,6 +10,8 @@ import { useAtom } from 'jotai'
 import { FolderOpen, FolderInput, Plus, Pencil, Trash2, GripVertical } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import { filterProjectWorkspaces } from '@/lib/project-list'
+import { Input } from '@/components/ui/input'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,6 +33,8 @@ export function WorkspaceSelector(): React.ReactElement {
   const [, setWorkspaces] = useAtom(agentWorkspacesAtom)
   const [, setAgentSessions] = useAtom(agentSessionsAtom)
   const [listHeight, setListHeight] = useAtom(projectListHeightAtom)
+  const [projectQuery, setProjectQuery] = React.useState('')
+  const visibleWorkspaces = filterProjectWorkspaces(workspaces, projectQuery)
 
   // 高度拖拽调整
   const listRef = React.useRef<HTMLDivElement>(null)
@@ -293,13 +297,19 @@ export function WorkspaceSelector(): React.ReactElement {
           </div>
         </div>
 
+        <div className="px-2 pt-2">
+          <Input type="search" aria-label="搜索项目" placeholder="搜索项目名称或路径…" value={projectQuery}
+            onChange={(event) => setProjectQuery(event.target.value)}
+            onKeyDown={(event) => { if (event.key === 'Escape') setProjectQuery('') }} className="h-8 text-xs" />
+        </div>
         {/* 项目列表 */}
         <div
           ref={listRef}
           className="overflow-y-auto scrollbar-thin flex flex-col p-1"
           style={{ maxHeight: listHeight }}
         >
-          {workspaces.map((ws) => (
+          {visibleWorkspaces.length === 0 && <div role="status" className="px-2 py-3 text-xs text-muted-foreground">未找到匹配的项目</div>}
+          {visibleWorkspaces.map((ws) => (
             <div key={ws.id} className="relative">
               {/* 上方插入指示线 */}
               {dropIndicator?.id === ws.id && dropIndicator.position === 'before' && (
@@ -307,7 +317,7 @@ export function WorkspaceSelector(): React.ReactElement {
               )}
 
               <div
-                draggable={editingId !== ws.id}
+                draggable={editingId !== ws.id && !projectQuery.trim()}
                 onDragStart={(e) => handleDragStart(e, ws.id)}
                 onDragOver={(e) => handleDragOver(e, ws.id)}
                 onDragLeave={handleDragLeave}
