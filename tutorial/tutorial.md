@@ -25,11 +25,11 @@
 | 平台 | 文件 |
 | --- | --- |
 | macOS Apple Silicon / Intel | `.dmg` |
-| Windows x64 | `.exe` |
-| Ubuntu / Debian x86_64 | `.deb` |
-| Linux x86_64 | `.AppImage` |
+| Windows amd64 / arm64 | `.exe` |
+| Ubuntu / Debian amd64 / arm64 | `.deb` |
+| Linux amd64 / arm64 | `.AppImage` |
 
-macOS 首次打开若提示来源不明，在「系统设置 → 隐私与安全性」里允许一次即可。Linux 的细节见 [Linux 说明](../docs/linux.md)。
+macOS 首次打开若提示来源不明，在「系统设置 → 隐私与安全性」里允许一次即可（当前安装包未做代码签名）。Linux 的细节见 [Linux 说明](../docs/linux.md)。
 
 ### 从源码运行
 

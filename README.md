@@ -59,11 +59,11 @@ Locus 是一个面向专业用户的通用桌面 Agent。它不是一个"聊天�
 从 [GitHub Releases](https://github.com/jansfer/Locus/releases) 获取安装包：
 
 - macOS（Apple Silicon / Intel）：`.dmg`
-- Windows（x64）：`.exe` 安装程序
-- Ubuntu / Debian（x86_64）：`.deb`
-- Linux（x86_64）：`.AppImage`
+- Windows（amd64 / arm64）：`.exe` 安装程序
+- Ubuntu / Debian（amd64 / arm64）：`.deb`
+- Linux（amd64 / arm64）：`.AppImage`
 
-Linux 的安装步骤、安全边界与支持范围见 [Linux 说明](./docs/linux.md)。
+Linux 的安装步骤、安全边界与支持范围见 [Linux 说明](./docs/linux.md)。当前 macOS 安装包未做代码签名，首次打开需在「系统设置 → 隐私与安全性」中手动放行。
 
 > 本项目目前不提供商业版或官方模型渠道。你需要自行准备 AI 供应商的 API Key，在「设置 → 渠道」中配置。
 
