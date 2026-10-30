@@ -45,7 +45,7 @@ import { AgentBrowserLinkProvider } from '@/components/browser/AgentBrowserLinkP
 import { AgentHistorySelectionLayer } from './AgentHistorySelectionLayer'
 import { TaskProgressOverlay, type ContextCompactionProgress } from './TaskProgressOverlay'
 import { createMessageGroupRenderCache, groupMessagesForRendering } from './message-group-rendering'
-import type { AgentEventUsage, RetryAttempt, SDKAssistantMessage, SDKMessage, SDKSystemMessage, SDKTextBlock, SDKThinkingBlock } from '@proma/shared'
+import type { AgentEventUsage, ModelSwitchTarget, RetryAttempt, SDKAssistantMessage, SDKMessage, SDKSystemMessage, SDKTextBlock, SDKThinkingBlock } from '@proma/shared'
 import { getSDKCompactStatus } from '@proma/shared'
 import { agentLiveMessagesAtomFamily, agentSessionStreamingStateAtomFamily, type AgentStreamState } from '@/atoms/agent-atoms'
 import type { QuotedSelection } from '@/atoms/preview-atoms'
@@ -227,6 +227,8 @@ interface AgentMessagesProps {
   stoppedByUser?: boolean
   onRetry?: () => void
   onRetryInNewSession?: () => void
+  /** 模型下线时切换到推荐模型并重试 */
+  onSwitchModel?: (target: ModelSwitchTarget, errorUuid?: string) => void
   onRelinkProjectRoot?: () => void
   onRestoreProjectRoot?: () => void
   onFork?: (upToMessageUuid: string) => void
@@ -611,6 +613,8 @@ interface AgentTranscriptHistoryProps {
   onCreateTodo?: (text: string) => void
   onRetry?: () => void
   onRetryInNewSession?: () => void
+  /** 模型下线时切换到推荐模型并重试 */
+  onSwitchModel?: (target: ModelSwitchTarget, errorUuid?: string) => void
   onRelinkProjectRoot?: () => void
   onRestoreProjectRoot?: () => void
   onCompact?: () => void
@@ -656,6 +660,7 @@ function areTranscriptRowsEqual(
     || previous.onCreateTodo !== next.onCreateTodo
     || previous.onRetry !== next.onRetry
     || previous.onRetryInNewSession !== next.onRetryInNewSession
+    || previous.onSwitchModel !== next.onSwitchModel
     || previous.onRelinkProjectRoot !== next.onRelinkProjectRoot
     || previous.onRestoreProjectRoot !== next.onRestoreProjectRoot
     || previous.onCompact !== next.onCompact
@@ -681,6 +686,7 @@ const AgentTranscriptRows = React.memo(function AgentTranscriptRows({
   onCreateTodo,
   onRetry,
   onRetryInNewSession,
+  onSwitchModel,
   onRelinkProjectRoot,
   onRestoreProjectRoot,
   onCompact,
@@ -715,6 +721,7 @@ const AgentTranscriptRows = React.memo(function AgentTranscriptRows({
               onCreateTodo={shouldDisableActions ? undefined : onCreateTodo}
               onRetry={shouldDisableActions ? undefined : onRetry}
               onRetryInNewSession={shouldDisableActions ? undefined : onRetryInNewSession}
+              onSwitchModel={shouldDisableActions ? undefined : onSwitchModel}
               onRelinkProjectRoot={shouldDisableActions ? undefined : onRelinkProjectRoot}
               onRestoreProjectRoot={shouldDisableActions ? undefined : onRestoreProjectRoot}
               onCompact={shouldDisableActions ? undefined : onCompact}
@@ -750,6 +757,7 @@ const AgentTranscriptHistory = React.forwardRef<AgentTranscriptHistoryHandle, Ag
   onCreateTodo,
   onRetry,
   onRetryInNewSession,
+  onSwitchModel,
   onRelinkProjectRoot,
   onRestoreProjectRoot,
   onCompact,
@@ -839,6 +847,7 @@ const AgentTranscriptHistory = React.forwardRef<AgentTranscriptHistoryHandle, Ag
         onCreateTodo={onCreateTodo}
         onRetry={onRetry}
         onRetryInNewSession={onRetryInNewSession}
+        onSwitchModel={onSwitchModel}
         onRelinkProjectRoot={onRelinkProjectRoot}
         onRestoreProjectRoot={onRestoreProjectRoot}
         onCompact={onCompact}
@@ -860,6 +869,7 @@ const AgentTranscriptHistory = React.forwardRef<AgentTranscriptHistoryHandle, Ag
           onCreateTodo={onCreateTodo}
           onRetry={onRetry}
           onRetryInNewSession={onRetryInNewSession}
+          onSwitchModel={onSwitchModel}
           onRelinkProjectRoot={onRelinkProjectRoot}
           onRestoreProjectRoot={onRestoreProjectRoot}
           onCompact={onCompact}
@@ -879,6 +889,7 @@ export const AgentMessages = React.memo(function AgentMessages({
   stoppedByUser,
   onRetry,
   onRetryInNewSession,
+  onSwitchModel,
   onRelinkProjectRoot,
   onRestoreProjectRoot,
   onFork,
@@ -1219,6 +1230,7 @@ export const AgentMessages = React.memo(function AgentMessages({
                 onCreateTodo={onCreateTodo}
                 onRetry={onRetry}
                 onRetryInNewSession={onRetryInNewSession}
+                onSwitchModel={onSwitchModel}
                 onRelinkProjectRoot={onRelinkProjectRoot}
                 onRestoreProjectRoot={onRestoreProjectRoot}
                 onCompact={onCompact}

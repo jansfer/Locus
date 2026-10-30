@@ -1,6 +1,6 @@
 {
   "name": "@proma/electron",
-  "version": "0.19.73",
+  "version": "0.19.74",
   "description": "Locus，为专业用户设计的 Agent（基于 Proma 的 AGPL-3.0 修改版）",
   "main": "dist/main.cjs",
   "author": {

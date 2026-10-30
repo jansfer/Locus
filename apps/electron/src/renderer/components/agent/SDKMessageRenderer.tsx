@@ -12,7 +12,7 @@
  */
 
 import * as React from 'react'
-import { Bot, Loader2, AlertTriangle, FileText, FileImage, Download, Split, Undo2, RotateCw, Plus, Minimize2, Wrench, Settings, Cpu, ExternalLink, Quote, Clock, FolderInput, FolderPlus, ListTodo } from 'lucide-react'
+import { Bot, Loader2, AlertTriangle, FileText, FileImage, Download, Split, Undo2, RotateCw, Plus, Minimize2, Wrench, Settings, Cpu, ExternalLink, Quote, Clock, FolderInput, FolderPlus, ListTodo, ArrowRightLeft } from 'lucide-react'
 import { useAtomValue, useSetAtom } from 'jotai'
 import { cn } from '@/lib/utils'
 import { ImageLightbox, type LightboxImage } from '@/components/ui/image-lightbox'
@@ -78,7 +78,7 @@ import type {
   SDKToolResultBlock,
   RecoveryAction,
 } from '@proma/shared'
-import type { AgentPendingFile } from '@proma/shared'
+import type { AgentPendingFile, ModelSwitchTarget } from '@proma/shared'
 import {
   getSDKCompactStatus,
   inferContextWindow,
@@ -380,6 +380,8 @@ export interface AssistantTurnRendererProps {
   onRetry?: (errorUuid?: string) => void
   /** 在新会话中重试回调（仅当 turn 含错误消息时使用） */
   onRetryInNewSession?: () => void
+  /** 模型下线时切换到推荐模型并重试 */
+  onSwitchModel?: (target: ModelSwitchTarget, errorUuid?: string) => void
   /** 压缩上下文回调（仅 prompt_too_long 错误使用） */
   onCompact?: () => void
   onRelinkProjectRoot?: () => void
@@ -392,7 +394,7 @@ export interface AssistantTurnRendererProps {
   sessionModelId?: string
 }
 
-export function AssistantTurnRenderer({ turn, allMessages, basePath, onFork, onRewind, onCreateTodo, onRetry, onRetryInNewSession, onCompact, onRelinkProjectRoot, onRestoreProjectRoot, isStreaming, stoppedByUser, sessionModelId }: AssistantTurnRendererProps): React.ReactElement | null {
+export function AssistantTurnRenderer({ turn, allMessages, basePath, onFork, onRewind, onCreateTodo, onRetry, onRetryInNewSession, onSwitchModel, onCompact, onRelinkProjectRoot, onRestoreProjectRoot, isStreaming, stoppedByUser, sessionModelId }: AssistantTurnRendererProps): React.ReactElement | null {
   const channels = useAtomValue(channelsAtom)
   // 收集所有 assistant 消息的内容块，保留 parent_tool_use_id 关联
   interface EnrichedBlock {
@@ -482,6 +484,7 @@ export function AssistantTurnRenderer({ turn, allMessages, basePath, onFork, onR
         message={errorContent}
         onRetry={onRetry}
         onRetryInNewSession={onRetryInNewSession}
+        onSwitchModel={onSwitchModel}
         onCompact={onCompact}
         onRelinkProjectRoot={onRelinkProjectRoot}
         onRestoreProjectRoot={onRestoreProjectRoot}
@@ -562,6 +565,7 @@ export function AssistantTurnRenderer({ turn, allMessages, basePath, onFork, onR
             message={errorContent}
             onRetry={onRetry}
             onRetryInNewSession={onRetryInNewSession}
+            onSwitchModel={onSwitchModel}
             onCompact={onCompact}
             onRelinkProjectRoot={onRelinkProjectRoot}
             onRestoreProjectRoot={onRestoreProjectRoot}
@@ -1081,6 +1085,8 @@ interface ErrorMessageProps {
   onRetry?: (errorUuid?: string) => void
   /** 在新会话中重试回调（创建新会话并引用当前会话继续） */
   onRetryInNewSession?: () => void
+  /** 模型下线时切换到推荐模型并重试 */
+  onSwitchModel?: (target: ModelSwitchTarget, errorUuid?: string) => void
   /** 压缩上下文回调（仅 prompt_too_long 错误使用） */
   onCompact?: () => void
   onRelinkProjectRoot?: () => void
@@ -1093,6 +1099,8 @@ interface AssistantErrorTailProps {
   onRetry?: (errorUuid?: string) => void
   /** 在新会话中重试回调（创建新会话并引用当前会话继续） */
   onRetryInNewSession?: () => void
+  /** 模型下线时切换到推荐模型并重试 */
+  onSwitchModel?: (target: ModelSwitchTarget, errorUuid?: string) => void
   /** 压缩上下文回调（仅 prompt_too_long 错误使用） */
   onCompact?: () => void
   onRelinkProjectRoot?: () => void
@@ -1119,6 +1127,7 @@ export function AssistantErrorTail({
   message,
   onRetry,
   onRetryInNewSession,
+  onSwitchModel,
   onCompact,
   onRelinkProjectRoot,
   onRestoreProjectRoot,
@@ -1161,6 +1170,7 @@ export function AssistantErrorTail({
     if (action.action === 'retry' && !onRetry) return false
     if (action.action === 'compact' && !onCompact) return false
     if (action.action === 'retry_in_new_session' && !onRetryInNewSession) return false
+    if (action.action === 'switch_model' && !onSwitchModel) return false
     return true
   })
 
@@ -1178,6 +1188,11 @@ export function AssistantErrorTail({
         break
       case 'select_model':
         setModelSelectorOpen(true)
+        break
+      case 'switch_model':
+        if (action.switchModel) {
+          onSwitchModel?.(action.switchModel, typeof message.uuid === 'string' ? message.uuid : undefined)
+        }
         break
       case 'open_external':
         if (action.payload) {
@@ -1207,6 +1222,8 @@ export function AssistantErrorTail({
         return <Settings className="size-3.5 mr-1.5" />
       case 'select_model':
         return <Cpu className="size-3.5 mr-1.5" />
+      case 'switch_model':
+        return <ArrowRightLeft className="size-3.5 mr-1.5" />
       case 'open_external':
         return <ExternalLink className="size-3.5 mr-1.5" />
       case 'retry':
@@ -1338,7 +1355,7 @@ export function AssistantErrorTail({
   )
 }
 
-function ErrorMessage({ message, onRetry, onRetryInNewSession, onCompact, onRelinkProjectRoot, onRestoreProjectRoot }: ErrorMessageProps): React.ReactElement {
+function ErrorMessage({ message, onRetry, onRetryInNewSession, onSwitchModel, onCompact, onRelinkProjectRoot, onRestoreProjectRoot }: ErrorMessageProps): React.ReactElement {
   const meta = extractMeta(message as unknown as SDKMessage)
 
   // Do not copy assistant content carried by an error record.
@@ -1360,6 +1377,7 @@ function ErrorMessage({ message, onRetry, onRetryInNewSession, onCompact, onReli
           message={message}
           onRetry={onRetry}
           onRetryInNewSession={onRetryInNewSession}
+          onSwitchModel={onSwitchModel}
           onCompact={onCompact}
           onRelinkProjectRoot={onRelinkProjectRoot}
           onRestoreProjectRoot={onRestoreProjectRoot}
@@ -1391,6 +1409,8 @@ export interface MessageGroupRendererProps {
   onRetry?: (errorUuid?: string) => void
   /** 在新会话中重试回调（仅当 turn 含错误消息时使用） */
   onRetryInNewSession?: () => void
+  /** 模型下线时切换到推荐模型并重试 */
+  onSwitchModel?: (target: ModelSwitchTarget, errorUuid?: string) => void
   /** 压缩上下文回调（仅 prompt_too_long 错误使用） */
   onCompact?: () => void
   onRelinkProjectRoot?: () => void
@@ -1451,7 +1471,7 @@ export function getGroupId(group: MessageGroup): string {
 
 // getGroupPreview 已迁移至 @proma/session-core（本文件从该包 import 并 re-export）
 
-export const MessageGroupRenderer = React.memo(function MessageGroupRenderer({ group, allMessages, basePath, onFork, onRewind, onAgentHistoryQuoteClick, onCreateTodo, onRetry, onRetryInNewSession, onCompact, onRelinkProjectRoot, onRestoreProjectRoot, historyTurn, isStreaming, stoppedByUser, sessionModelId }: MessageGroupRendererProps): React.ReactElement | null {
+export const MessageGroupRenderer = React.memo(function MessageGroupRenderer({ group, allMessages, basePath, onFork, onRewind, onAgentHistoryQuoteClick, onCreateTodo, onRetry, onRetryInNewSession, onSwitchModel, onCompact, onRelinkProjectRoot, onRestoreProjectRoot, historyTurn, isStreaming, stoppedByUser, sessionModelId }: MessageGroupRendererProps): React.ReactElement | null {
   const groupId = getGroupId(group)
 
   if (group.type === 'user') {
@@ -1492,6 +1512,7 @@ export const MessageGroupRenderer = React.memo(function MessageGroupRenderer({ g
         onCreateTodo={onCreateTodo}
         onRetry={onRetry}
         onRetryInNewSession={onRetryInNewSession}
+        onSwitchModel={onSwitchModel}
         onCompact={onCompact}
         onRelinkProjectRoot={onRelinkProjectRoot}
         onRestoreProjectRoot={onRestoreProjectRoot}
@@ -1510,6 +1531,7 @@ export const MessageGroupRenderer = React.memo(function MessageGroupRenderer({ g
   && previous.onCreateTodo === next.onCreateTodo
   && previous.onRetry === next.onRetry
   && previous.onRetryInNewSession === next.onRetryInNewSession
+  && previous.onSwitchModel === next.onSwitchModel
   && previous.onCompact === next.onCompact
   && previous.onRelinkProjectRoot === next.onRelinkProjectRoot
   && previous.onRestoreProjectRoot === next.onRestoreProjectRoot

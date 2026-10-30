@@ -449,6 +449,14 @@ export type ErrorCode =
   | 'session_busy'
   | 'unknown_error'
 
+/** 切换模型动作的目标（用于「模型已下线」引导） */
+export interface ModelSwitchTarget {
+  channelId: string
+  modelId: string
+  modelName: string
+  channelName: string
+}
+
 /** 恢复操作 */
 export interface RecoveryAction {
   /** 操作键（用于快捷键） */
@@ -464,10 +472,13 @@ export interface RecoveryAction {
     | 'open_environment_check'
     | 'open_channel_settings'
     | 'select_model'
+    | 'switch_model'
     | 'open_external'
     | (string & {})
   /** 操作附带的载荷，例如 open_external 的 URL */
   payload?: string
+  /** switch_model 的目标模型；其余动作不填 */
+  switchModel?: ModelSwitchTarget
 }
 
 /** 类型化错误 */

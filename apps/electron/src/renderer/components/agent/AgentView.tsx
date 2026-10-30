@@ -125,7 +125,7 @@ import { useOpenSession } from '@/hooks/useOpenSession'
 import { draftSessionIdsAtom } from '@/atoms/draft-session-atoms'
 import { sendWithCmdEnterAtom } from '@/atoms/shortcut-atoms'
 import { useOpenPreview } from '@/components/diff/preview-opener'
-import type { AgentDeferredQueueMessageInput, AgentSendInput, AgentPendingFile, AgentThinkingLevel, FileDialogLargeFile, FileDialogResult, ModelOption, ReasoningCapability, SDKMessage, SDKUserMessage } from '@proma/shared'
+import type { AgentDeferredQueueMessageInput, AgentSendInput, AgentPendingFile, AgentThinkingLevel, FileDialogLargeFile, FileDialogResult, ModelOption, ModelSwitchTarget, ReasoningCapability, SDKMessage, SDKUserMessage } from '@proma/shared'
 import { inferContextWindow, inferReasoningTransport, isCodexFastModeSupportedModel, MAX_ATTACHMENT_SIZE, normalizeReasoningCapabilityLevel, normalizeReasoningLevel, resolveReasoningCapability, resolveReasoningProfile } from '@proma/shared'
 import { fileToBase64, formatFileNames, getFileParentPath } from '@/lib/file-utils'
 import { getFilePanelDragData, INSERT_FILE_MENTION_EVENT, type FilePanelDragItem } from '@/lib/file-panel-drag'
@@ -1902,11 +1902,8 @@ export function AgentView({ sessionId, embedded = false }: AgentViewProps): Reac
     }
   }, [sessionId, addFilesAsAttachments, addPanelDirectory, setAttachedDirsMap, workspaces, currentWorkspaceId, isComposerDisabled])
 
-  /** ModelSelector 选择回调 */
-  const handleModelSelect = React.useCallback((option: ModelOption): void => {
-    // 运行中的 Agent query 会继续使用启动时的模型；这里只更新会话配置，供本轮结束后的下一轮使用。
-    const modelSwitchDeferred = streaming || backgroundWaiting
-
+  /** 应用模型选择：per-session 配置、全局默认与持久化。 */
+  const applyModelSelection = React.useCallback((option: ModelOption, deferred = false): void => {
     // 更新当前会话的 per-session 配置
     setSessionChannelMap((prev) => {
       const map = new Map(prev)
@@ -1926,7 +1923,7 @@ export function AgentView({ sessionId, embedded = false }: AgentViewProps): Reac
 
     // 空闲切换时清除旧的 contextWindow，让下一轮 result 重新提供真实值。
     // 运行中不能清除：当前轮仍在使用旧模型，旧模型的用量显示应保持稳定。
-    if (!modelSwitchDeferred) {
+    if (!deferred) {
       setStreamingStates((prev) => {
         const state = prev.get(sessionId)
         if (!state) return prev
@@ -1953,11 +1950,18 @@ export function AgentView({ sessionId, embedded = false }: AgentViewProps): Reac
         )))
       })
       .catch(console.error)
+  }, [sessionId, setSessionChannelMap, setSessionModelMap, setDefaultChannelId, setDefaultModelId, setAgentSessions])
+
+  /** ModelSelector 选择回调 */
+  const handleModelSelect = React.useCallback((option: ModelOption): void => {
+    // 运行中的 Agent query 会继续使用启动时的模型；这里只更新会话配置，供本轮结束后的下一轮使用。
+    const modelSwitchDeferred = streaming || backgroundWaiting
+    applyModelSelection(option, modelSwitchDeferred)
 
     if (modelSwitchDeferred) {
       toast.info('模型已切换，本轮结束后生效')
     }
-  }, [sessionId, streaming, backgroundWaiting, setSessionChannelMap, setSessionModelMap, setDefaultChannelId, setDefaultModelId, setAgentSessions])
+  }, [streaming, backgroundWaiting, applyModelSelection])
 
   const handleCodexFastModeChange = React.useCallback(async (): Promise<void> => {
     if (!isCodexFastModeAvailable || streaming || backgroundWaiting || !sessionMeta) return
@@ -2424,9 +2428,11 @@ export function AgentView({ sessionId, embedded = false }: AgentViewProps): Reac
     }
   }, [currentWorkspaceId, setWorkspaces])
 
-  /** 重试：在当前会话中重新发送最后一条用户消息 */
-  const handleRetry = React.useCallback((retryOfErrorUuid?: string): void => {
-    if (!agentChannelId || streaming) return
+  /** 重试：在当前会话中重新发送最后一条用户消息；可指定切换后的模型 */
+  const handleRetry = React.useCallback((retryOfErrorUuid?: string, modelOverride?: { channelId: string; modelId: string }): void => {
+    const effectiveChannelId = modelOverride?.channelId ?? agentChannelId
+    const effectiveModelId = modelOverride?.modelId ?? agentModelId
+    if (!effectiveChannelId || streaming) return
 
     // 找到最后一条用户消息
     const lastUserRawMessage = [...persistedSDKMessages]
@@ -2462,10 +2468,10 @@ export function AgentView({ sessionId, embedded = false }: AgentViewProps): Reac
       const existing = prev.get(sessionId)
       map.set(sessionId, {
         running: true,
-        model: agentModelId || undefined,
+        model: effectiveModelId || undefined,
         startedAt: streamStartedAt,
         inputTokens: existing?.inputTokens,
-        contextWindow: resolveRunContextWindow(agentModelId || undefined, existing?.contextWindow),
+        contextWindow: resolveRunContextWindow(effectiveModelId || undefined, existing?.contextWindow),
       })
       return map
     })
@@ -2475,14 +2481,40 @@ export function AgentView({ sessionId, embedded = false }: AgentViewProps): Reac
       // Agent 侧使用解码后的文本（@file 真实路径）；持久化/展示保留编码原文，避免新历史记录被 \S+ 截断
       userMessage: lastUserMessage,
       rawUserMessage: lastUserRawMessage,
-      channelId: agentChannelId,
-      modelId: agentModelId || undefined,
+      channelId: effectiveChannelId,
+      modelId: effectiveModelId || undefined,
       workspaceId: currentWorkspaceId || undefined,
       startedAt: streamStartedAt,
       permissionModeOverride: permissionMode,
       ...(retryOfErrorUuid && { retryOfErrorUuid }),
     }).catch(console.error)
   }, [persistedSDKMessages, sessionId, agentChannelId, agentModelId, agentChannelProvider, currentWorkspaceId, streaming, setAgentStreamErrors, setStreamingStates, setMessagesCache, permissionMode])
+
+  /** 模型下线引导：切换到推荐模型，并用显式新模型重发失败消息。 */
+  const handleSwitchModel = React.useCallback((target: ModelSwitchTarget, errorUuid?: string): void => {
+    const channel = globalChannels.find((candidate) => candidate.id === target.channelId && candidate.enabled)
+    const model = channel?.models.find((candidate) => candidate.id === target.modelId && candidate.enabled)
+    if (!channel || !model) {
+      toast.error('推荐模型已不可用，请重新选择模型')
+      setModelSelectorOpen(true)
+      return
+    }
+
+    if (streaming || backgroundWaiting) {
+      toast.info('当前回复尚未结束，请稍后再切换模型')
+      return
+    }
+
+    applyModelSelection({
+      channelId: channel.id,
+      channelName: channel.name,
+      modelId: model.id,
+      modelName: model.name,
+      provider: channel.provider,
+    })
+    toast.success(`已切换到 ${model.name}，正在重试`)
+    handleRetry(errorUuid, { channelId: channel.id, modelId: model.id })
+  }, [globalChannels, streaming, backgroundWaiting, applyModelSelection, handleRetry, setModelSelectorOpen])
 
   /** 在新对话继续：创建新会话 + 切换 tab + 使用 &session 引用旧会话 */
   const handleRetryInNewSession = React.useCallback(async (): Promise<void> => {
@@ -2996,6 +3028,7 @@ export function AgentView({ sessionId, embedded = false }: AgentViewProps): Reac
           stoppedByUser={stoppedByUser}
           onRetry={handleRetry}
           onRetryInNewSession={handleRetryInNewSession}
+          onSwitchModel={handleSwitchModel}
           onRelinkProjectRoot={handleRelinkProjectRoot}
           onRestoreProjectRoot={handleOpenRestoreProjectRootDialog}
           onFork={embedded || isLegacyTranscript ? undefined : handleFork}

@@ -30,6 +30,7 @@ import { getFetchFn } from './proxy-fetch'
 import { getEffectiveProxyUrl } from './proxy-settings-service'
 import { getEnabledTools } from './chat-tool-registry'
 import { executeToolCalls } from './chat-tool-executor'
+import { getModelUnavailableGuidance } from './model-retirement'
 import { createFallbackTitle, sanitizeGeneratedTitle, SHORT_MESSAGE_THRESHOLD, TITLE_PROMPT } from './title-generation'
 
 /** 活跃的 AbortController 映射（conversationId → controller） */
@@ -492,7 +493,22 @@ export async function sendMessage(
       return true
     }
 
-    const errorMessage = error instanceof Error ? error.message : '未知错误'
+    const rawErrorMessage = error instanceof Error ? error.message : '未知错误'
+    let errorMessage = rawErrorMessage
+    try {
+      const guidance = getModelUnavailableGuidance({
+        detailedMessage: rawErrorMessage,
+        originalError: rawErrorMessage,
+        channels: listChannels(),
+        channelId,
+        modelId,
+      })
+      if (guidance) {
+        errorMessage = `${guidance.message} 请在输入框的模型选择器中切换后重新发送。`
+      }
+    } catch (guidanceError) {
+      console.error('[聊天服务] 模型下线引导生成失败:', guidanceError)
+    }
     console.error(`[聊天服务] 流式请求失败:`, error)
 
     // 保存已累积的部分助手消息（与 abort 逻辑一致，防止内容丢失）

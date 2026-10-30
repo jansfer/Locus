@@ -41,6 +41,7 @@ import type { PiAgentQueryOptions } from './adapters/pi-agent-adapter'
 import { getMainRepoRoot } from './git-diff-service'
 import { getPiAssistantErrorDetails, hasPiAssistantTextContent, stripPiAssistantError } from './adapters/pi-message-adapter'
 import { friendlyErrorMessage, isPromptTooLongError, isThinkingSignatureError, mapAgentErrorToTypedError } from './agent-error-utils'
+import { applyModelUnavailableGuidance, detectModelUnavailable } from './model-retirement'
 import { getActiveRunRejectionMessage, shouldPersistInitialUserMessage } from './agent-send-message-policy'
 import { isSessionNotFoundError } from './error-patterns'
 import { AgentEventBus } from './agent-event-bus'
@@ -636,6 +637,30 @@ export class AgentOrchestrator {
     if (!byMessage) return
     byMessage.delete(userMessageUuid)
     if (byMessage.size === 0) this.pendingUserSkillActivations.delete(sessionId)
+  }
+
+  /**
+   * 模型被上游下线时，把普通 provider_error 换成带替代模型推荐的结构化错误。
+   * 只在明确命中模型不可用文案时读取渠道列表，避免影响普通错误路径。
+   */
+  private applyModelGuidance(
+    typedError: TypedError,
+    details: { errorCode?: string; detailedMessage?: string; originalError?: string },
+    channelId: string,
+    modelId: string | undefined,
+  ): TypedError {
+    if (!modelId || !detectModelUnavailable(details)) return typedError
+    try {
+      return applyModelUnavailableGuidance(typedError, {
+        ...details,
+        channels: listChannels(),
+        channelId,
+        modelId,
+      })
+    } catch (error) {
+      console.warn('[Agent 编排] 模型下线引导生成失败:', error)
+      return typedError
+    }
   }
 
   private persistEmptyResponseError(
@@ -1906,6 +1931,12 @@ export class AgentOrchestrator {
                 }
 
                 // 不可重试 → 终止
+                // 模型被上游下线时，把普通 provider_error 换成带替代模型推荐的结构化错误。
+                const guidedTypedError = this.applyModelGuidance(typedError, {
+                  errorCode,
+                  detailedMessage,
+                  originalError,
+                }, channelId, modelId)
                 const hasPiPartialOutput = hasPiAssistantTextContent(assistantMsg)
                 if (hasPiPartialOutput) {
                   const partialOutput = stripPiAssistantError(assistantMsg)
@@ -1925,9 +1956,9 @@ export class AgentOrchestrator {
                   try { updateAgentSessionMeta(sessionId, { sdkSessionId: undefined }) } catch { /* 忽略 */ }
                 }
 
-                const errorContent = typedError.title
-                    ? `${typedError.title}: ${typedError.message}`
-                    : typedError.message
+                const errorContent = guidedTypedError.title
+                    ? `${guidedTypedError.title}: ${guidedTypedError.message}`
+                    : guidedTypedError.message
                 const errorSDKMsg: SDKMessage = {
                   type: 'assistant',
                   message: {
@@ -1937,16 +1968,16 @@ export class AgentOrchestrator {
                   uuid: randomUUID(),
                   _channelModelId: modelId,
                   _channelProvider: channel.provider,
-                  error: { message: typedError.message, errorType: typedError.code },
+                  error: { message: guidedTypedError.message, errorType: guidedTypedError.code },
                   _createdAt: Date.now(),
-                  _errorCode: typedError.code,
-                  _errorTitle: typedError.title,
-                  _errorDetails: typedError.details,
-                  _errorCanRetry: typedError.canRetry,
-                  _errorActions: typedError.actions,
+                  _errorCode: guidedTypedError.code,
+                  _errorTitle: guidedTypedError.title,
+                  _errorDetails: guidedTypedError.details,
+                  _errorCanRetry: guidedTypedError.canRetry,
+                  _errorActions: guidedTypedError.actions,
                 } as unknown as SDKMessage
                 appendSDKMessages(sessionId, [errorSDKMsg])
-                console.log(`[Agent 编排] 已保存 TypedError 消息: ${typedError.code} - ${typedError.title}`)
+                console.log(`[Agent 编排] 已保存 TypedError 消息: ${guidedTypedError.code} - ${guidedTypedError.title}`)
 
                 // 透传归一化后的错误消息到前端，避免 SDK 原始 API Error 直接暴露给用户。
                 emitLiveSdkMessage(errorSDKMsg)
@@ -2215,7 +2246,30 @@ export class AgentOrchestrator {
                   { key: 'r', label: '重试', action: 'retry' },
                 ]
               : undefined
-            userFacingError = errorContent
+            const guidedTypedError = this.applyModelGuidance(
+              {
+                code: errorCode,
+                title: errorTitle,
+                message: errorContent,
+                actions: errorActions ?? [],
+                canRetry: false,
+                originalError: rawErrorMessage,
+              },
+              {
+                errorCode,
+                detailedMessage: userFacingError,
+                originalError: [rawErrorMessage, errorStack]
+                  .filter((text): text is string => typeof text === 'string' && text.length > 0)
+                  .join('\n'),
+              },
+              channelId,
+              modelId,
+            )
+            const finalErrorCode = guidedTypedError.code
+            const finalErrorTitle = guidedTypedError.title
+            const finalErrorContent = guidedTypedError.message
+            const finalErrorActions = guidedTypedError.actions
+            userFacingError = finalErrorContent
             if (isPromptTooLong) {
               try { updateAgentSessionMeta(sessionId, { sdkSessionId: undefined }) } catch { /* 忽略 */ }
             }
@@ -2223,15 +2277,15 @@ export class AgentOrchestrator {
             const errMsg: SDKMessage = {
               type: 'assistant',
               message: {
-                content: [{ type: 'text', text: errorContent }],
+                content: [{ type: 'text', text: finalErrorContent }],
               },
               parent_tool_use_id: null,
               uuid: randomUUID(),
-              error: { message: errorContent, errorType: errorCode },
+              error: { message: finalErrorContent, errorType: finalErrorCode },
               _createdAt: Date.now(),
-              _errorCode: errorCode,
-              _errorTitle: errorTitle,
-              _errorActions: errorActions,
+              _errorCode: finalErrorCode,
+              _errorTitle: finalErrorTitle,
+              _errorActions: finalErrorActions,
             } as unknown as SDKMessage
             appendSDKMessages(sessionId, [errMsg])
             console.log(`[Agent 编排] 已保存错误消息到 JSONL`)
