@@ -87,7 +87,8 @@ const PROVIDER_OPTIONS: ProviderType[] = ['anthropic', 'anthropic-compatible', '
 /** 需要用 messages 端点测试的供应商预设模型 */
 const PROVIDER_TEST_MODEL_PRESETS: Partial<Record<ProviderType, string[]>> = {
   deepseek: ['deepseek-v4-pro', 'deepseek-v4-flash', 'deepseek-flash', 'deepseek-v4-flash-vision-exp'],
-  'kimi-api': ['kimi-k3', 'kimi-k2.6'],
+  'kimi-api': ['kimi-k3.1-pro', 'kimi-k3', 'kimi-k2.6'],
+  'kimi-coding': ['k3.1-pro', 'k3'],
   xiaomi: ['mimo-v2.6-pro', 'mimo-v2.6-flash', 'mimo-v2.6-pro-ultraspeed'],
   'xiaomi-token-plan': ['mimo-v2.6-pro', 'mimo-v2.6-flash', 'mimo-v2.6-pro-ultraspeed'],
   'qwen-token-plan': ['qwen3.8-max-preview', 'qwen3.7-max', 'qwen3.7-flash', 'qwen3.6-flash'],
@@ -430,11 +431,13 @@ export function ChannelForm({ channel, onSaved, onCancel }: ChannelFormProps): R
         ])
       } else if (p === 'kimi-api') {
         setModels([
+          { id: 'kimi-k3.1-pro', name: 'Kimi K3.1 Pro', enabled: true },
           { id: 'kimi-k3', name: 'Kimi K3', enabled: true },
           { id: 'kimi-k2.6', name: 'Kimi K2.6', enabled: true },
         ])
       } else if (p === 'kimi-coding') {
         setModels([
+          { id: 'k3.1-pro', name: 'Kimi K3.1 Pro', enabled: true },
           { id: 'k3', name: 'Kimi K3', enabled: true },
           { id: 'kimi-for-coding', name: 'Kimi for Coding', enabled: true },
         ])

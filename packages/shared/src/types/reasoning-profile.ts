@@ -1,4 +1,4 @@
-import { isGpt6AstraFamily, isGpt6LunaFamily, isGpt6SolFamily } from '../utils/model-family'
+import { isGpt61Model, isGpt6AstraFamily, isGpt6LunaFamily, isGpt6SolFamily, isGpt6TerraFamily } from '../utils/model-family'
 import type { ProviderType } from './channel'
 import type { AgentThinkingLevel } from './agent'
 
@@ -50,7 +50,7 @@ export interface ReasoningEncoding {
 }
 
 export interface ReasoningProfile {
-  id: 'deepseek-v4-flash' | 'deepseek-flash' | 'deepseek-v4-pro' | 'kimi-k3' | 'glm-5.2' | 'glm-5.3' | 'openai-reasoning-standard' | 'openai-reasoning-max' | 'openai-reasoning-astra' | 'openai-reasoning-sol-luna'
+  id: 'deepseek-v4-flash' | 'deepseek-flash' | 'deepseek-v4-pro' | 'kimi-k3' | 'glm-5.2' | 'glm-5.3' | 'openai-reasoning-standard' | 'openai-reasoning-max' | 'openai-reasoning-astra' | 'openai-reasoning-sol-luna' | 'openai-reasoning-gpt61'
   levels: readonly AgentThinkingLevel[]
   defaultLevel: AgentThinkingLevel
   normalize(level: AgentThinkingLevel | undefined): AgentThinkingLevel
@@ -86,6 +86,7 @@ export interface ResolveReasoningProfileInput {
 
 const DEEPSEEK_V4_LEVELS = ['off', 'low', 'high', 'xhigh', 'max'] as const satisfies readonly AgentThinkingLevel[]
 const K3_LEVELS = ['off', 'low', 'high', 'max'] as const satisfies readonly AgentThinkingLevel[]
+const GPT61_LEVELS = ['low', 'medium', 'high', 'xhigh', 'max'] as const satisfies readonly AgentThinkingLevel[]
 const GLM_52_LEVELS = ['off', 'high', 'max'] as const satisfies readonly AgentThinkingLevel[]
 const GLM_53_LEVELS = ['low', 'high', 'max'] as const satisfies readonly AgentThinkingLevel[]
 /**
@@ -338,6 +339,18 @@ const OPENAI_SOL_LUNA_PROFILE: ReasoningProfile = {
   },
 }
 
+/** GPT-6.1 Sol/Terra 不再支持关闭思考，默认使用 high。 */
+const OPENAI_GPT61_PROFILE: ReasoningProfile = {
+  id: 'openai-reasoning-gpt61',
+  levels: GPT61_LEVELS,
+  defaultLevel: 'high',
+  normalize: (level) => level === 'off' || level === 'minimal' ? 'low' : level ?? 'high',
+  encodings: {
+    'openai-completions': { kind: 'openai-reasoning-effort', effortMap: { off: 'low', minimal: 'low', xhigh: 'xhigh', max: 'max' } },
+    'openai-responses': { kind: 'openai-reasoning-effort', effortMap: { off: 'low', minimal: 'low', xhigh: 'xhigh', max: 'max' } },
+  },
+}
+
 export const REASONING_PROFILES: readonly ReasoningProfile[] = [
   DEEPSEEK_V4_FLASH_PROFILE,
   DEEPSEEK_FLASH_PROFILE,
@@ -349,6 +362,7 @@ export const REASONING_PROFILES: readonly ReasoningProfile[] = [
   OPENAI_MAX_PROFILE,
   OPENAI_ASTRA_PROFILE,
   OPENAI_SOL_LUNA_PROFILE,
+  OPENAI_GPT61_PROFILE,
 ]
 
 /** 仅按模型 ID 匹配，再以实际 transport 确认该模型是否有已验证的协议 encoding。 */
@@ -362,6 +376,9 @@ export function resolveReasoningProfile(input: ResolveReasoningProfileInput): Re
   if (isGpt6AstraFamily(modelId)) {
     return OPENAI_ASTRA_PROFILE.encodings[input.transport] ? OPENAI_ASTRA_PROFILE : undefined
   }
+  if (isGpt61Model(modelId) && (isGpt6SolFamily(modelId) || isGpt6TerraFamily(modelId))) {
+    return OPENAI_GPT61_PROFILE.encodings[input.transport] ? OPENAI_GPT61_PROFILE : undefined
+  }
   if (isGpt6SolFamily(modelId) || isGpt6LunaFamily(modelId)) {
     return OPENAI_SOL_LUNA_PROFILE.encodings[input.transport] ? OPENAI_SOL_LUNA_PROFILE : undefined
   }
@@ -371,7 +388,7 @@ export function resolveReasoningProfile(input: ResolveReasoningProfileInput): Re
       ? DEEPSEEK_V4_FLASH_PROFILE
       : /^deepseek-v4-pro(?:-|$)/.test(modelId)
         ? DEEPSEEK_V4_PRO_PROFILE
-      : /^(?:k3(?:-256k)?|kimi-k3)$/.test(modelId)
+      : /^(?:kimi-)?k3(?:\.1)?(?:-pro)?(?:-256k)?$/.test(modelId)
         ? K3_PROFILE
         : modelId === 'glm-5.3' || modelId === 'glm-5.3-flash' || modelId === 'glm-5.3-flashx'
           ? GLM_53_PROFILE

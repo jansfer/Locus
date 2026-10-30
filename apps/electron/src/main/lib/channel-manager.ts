@@ -83,6 +83,7 @@ const DEEPSEEK_PRESET_MODELS: ChannelModel[] = [
   { id: 'deepseek-v4-flash-vision-exp', name: 'DeepSeek V4 Flash Vision Exp', enabled: true },
 ]
 const KIMI_PRESET_MODELS: ChannelModel[] = [
+  { id: 'kimi-k3.1-pro', name: 'Kimi K3.1 Pro', enabled: true },
   { id: 'kimi-k3', name: 'Kimi K3', enabled: true },
   { id: 'kimi-k2.6', name: 'Kimi K2.6', enabled: true },
 ]
@@ -195,6 +196,18 @@ const PRESET_MODEL_CANDIDATE_UPDATES: readonly {
         { id: 'mimo-v2.6-pro', name: 'MiMo V2.6 Pro', enabled: true },
         { id: 'mimo-v2.6-flash', name: 'MiMo V2.6 Flash', enabled: true },
         { id: 'mimo-v2.6-pro-ultraspeed', name: 'MiMo V2.6 Pro UltraSpeed', enabled: false },
+      ],
+    },
+  },
+  {
+    // Kimi K3.1 Pro（1M 上下文）；以候选形式补充，不改动存量渠道已启用的旧模型。
+    id: 'kimi-k3-1-pro-v1',
+    candidates: {
+      'kimi-api': [
+        { id: 'kimi-k3.1-pro', name: 'Kimi K3.1 Pro', enabled: true },
+      ],
+      'kimi-coding': [
+        { id: 'k3.1-pro', name: 'Kimi K3.1 Pro', enabled: true },
       ],
     },
   },

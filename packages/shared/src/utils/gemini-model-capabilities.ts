@@ -90,6 +90,18 @@ const GEMINI_TEXT_MODEL_CAPABILITIES: Readonly<Record<string, GeminiModelCapabil
     thinkingLevels: NO_MINIMAL_LEVELS,
     defaultThinkingLevel: 'medium',
   },
+  'gemini-4-argon': {
+    contextWindow: ONE_MILLION,
+    maxOutputTokens: 32_768,
+    thinkingLevels: NO_MINIMAL_LEVELS,
+    defaultThinkingLevel: 'high',
+  },
+  'gemini-4-argon-preview': {
+    contextWindow: ONE_MILLION,
+    maxOutputTokens: 32_768,
+    thinkingLevels: NO_MINIMAL_LEVELS,
+    defaultThinkingLevel: 'high',
+  },
 }
 
 function normalizeGeminiModelId(modelId: string | undefined): string | undefined {

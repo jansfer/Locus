@@ -8,7 +8,7 @@
  */
 
 import { getGeminiModelCapability } from './gemini-model-capabilities'
-import { isGpt6AstraFamily, isGpt6LunaFamily, isGpt6SolFamily } from './model-family'
+import { isGpt61Model, isGpt6AstraFamily, isGpt6LunaFamily, isGpt6SolFamily, isGpt6TerraFamily } from './model-family'
 
 /** 默认上下文窗口（无法识别模型时使用） */
 export const DEFAULT_CONTEXT_WINDOW = 200_000
@@ -22,6 +22,8 @@ export const CODEX_GPT_54_MINI_CONTEXT_WINDOW = 400_000
 export const CODEX_GPT_56_CONTEXT_WINDOW = 372_000
 /** ChatGPT Codex 订阅中的 GPT-6 Astra、Sol 与 Luna 上下文窗口。 */
 export const CODEX_GPT_6_CONTEXT_WINDOW = 372_000
+/** GPT-6.1 系列的 Codex 上下文窗口（Pi catalog 已收 500K）。 */
+export const CODEX_GPT_61_CONTEXT_WINDOW = 500_000
 
 /**
  * 为 ChatGPT Codex 中的 GPT-5.x / GPT-6 模型返回统一上下文窗口。
@@ -30,6 +32,10 @@ export const CODEX_GPT_6_CONTEXT_WINDOW = 372_000
  * provider catalog 决定，避免把不同 SKU 误写成同一窗口。
  */
 export function inferCodexAlignedGPT5ContextWindow(modelId: string | undefined): number | undefined {
+  if (isGpt61Model(modelId)
+    && (isGpt6AstraFamily(modelId) || isGpt6SolFamily(modelId) || isGpt6LunaFamily(modelId) || isGpt6TerraFamily(modelId))) {
+    return CODEX_GPT_61_CONTEXT_WINDOW
+  }
   if (isGpt6AstraFamily(modelId) || isGpt6SolFamily(modelId) || isGpt6LunaFamily(modelId)) {
     return CODEX_GPT_6_CONTEXT_WINDOW
   }
@@ -69,7 +75,7 @@ const ONE_MILLION_CONTEXT_RULES = {
   // MiniMax
   minimax: ['minimax-m3'],
   // Kimi
-  kimi: ['k3'],
+  kimi: ['k3', 'kimi-k3.1', 'k3.1', 'kimi-k3.1-pro', 'k3.1-pro'],
   // 通义千问
   qwen: [
     'qwen3.8',
@@ -86,6 +92,10 @@ const ONE_MILLION_CONTEXT_DISPLAY_RULES = Object.values(ONE_MILLION_CONTEXT_RULE
 const EXACT_CONTEXT_RULES = new Set([
   'k3',
   'kimi-k3',
+  'kimi-k3.1',
+  'kimi-k3.1-pro',
+  'k3.1',
+  'k3.1-pro',
   // MiMo 全系列用精确匹配，避免子串误伤未来 ID（如 mimo-v2.50 / mimo-v2.60）。
   'mimo-v2.5',
   'mimo-v2.5-pro',
