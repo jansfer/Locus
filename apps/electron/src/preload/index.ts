@@ -335,8 +335,17 @@ export interface ElectronAPI {
   /** 取消进行中的 ChatGPT (Codex) OAuth 登录 */
   codexOAuthCancel: () => Promise<void>
 
+  /** 手动粘贴 Codex 回调地址 / 授权码；仅在登录流程等待输入时生效，返回是否被接受 */
+  codexOAuthSubmitCallback: (input: string) => Promise<boolean>
+
   /** 订阅登录期间，接收 Codex device code 与授权链接。返回取消订阅函数。 */
   onCodexOAuthDeviceCode: (callback: (deviceCode: import('@proma/shared').CodexOAuthDeviceCode) => void) => () => void
+
+  /** 订阅浏览器登录期间，接收授权页地址。返回取消订阅函数。 */
+  onCodexOAuthAuthUrl: (callback: (authUrl: import('@proma/shared').CodexOAuthAuthUrl) => void) => () => void
+
+  /** 浏览器登录等待手动粘贴回调地址时触发。返回取消订阅函数。 */
+  onCodexOAuthManualInput: (callback: (request: import('@proma/shared').CodexOAuthManualInputRequest) => void) => () => void
 
   /** 发起 GitHub Copilot device-code OAuth 登录。enterpriseUrl 为空时登录 github.com。 */
   githubCopilotOAuthLogin: (enterpriseUrl?: string) => Promise<import('@proma/shared').GithubCopilotOAuthLoginResult>
@@ -1566,6 +1575,23 @@ const electronAPI: ElectronAPI = {
 
   codexOAuthCancel: () => {
     return ipcRenderer.invoke(CHANNEL_IPC_CHANNELS.CODEX_OAUTH_CANCEL)
+  },
+
+  /** 手动粘贴 Codex 回调地址 / 授权码；仅在登录流程等待输入时生效。 */
+  codexOAuthSubmitCallback: (input: string) => {
+    return ipcRenderer.invoke(CHANNEL_IPC_CHANNELS.CODEX_OAUTH_SUBMIT_CALLBACK, input)
+  },
+
+  onCodexOAuthAuthUrl: (callback: (authUrl: import('@proma/shared').CodexOAuthAuthUrl) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, authUrl: import('@proma/shared').CodexOAuthAuthUrl) => callback(authUrl)
+    ipcRenderer.on(CHANNEL_IPC_CHANNELS.CODEX_OAUTH_AUTH_URL, listener)
+    return () => ipcRenderer.removeListener(CHANNEL_IPC_CHANNELS.CODEX_OAUTH_AUTH_URL, listener)
+  },
+
+  onCodexOAuthManualInput: (callback: (request: import('@proma/shared').CodexOAuthManualInputRequest) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, request: import('@proma/shared').CodexOAuthManualInputRequest) => callback(request)
+    ipcRenderer.on(CHANNEL_IPC_CHANNELS.CODEX_OAUTH_MANUAL_INPUT, listener)
+    return () => ipcRenderer.removeListener(CHANNEL_IPC_CHANNELS.CODEX_OAUTH_MANUAL_INPUT, listener)
   },
 
   onCodexOAuthDeviceCode: (callback: (deviceCode: import('@proma/shared').CodexOAuthDeviceCode) => void) => {

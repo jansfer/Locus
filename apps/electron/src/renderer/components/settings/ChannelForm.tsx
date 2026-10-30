@@ -42,7 +42,7 @@ import type {
   ChannelCreateInput,
   ChannelModel,
   ChannelTestResult,
-  CodexOAuthDeviceCode,
+  CodexOAuthAuthUrl, CodexOAuthDeviceCode, CodexOAuthManualInputRequest,
   GithubCopilotOAuthDeviceCode,
   FetchModelsResult,
   ProviderType,
@@ -234,6 +234,9 @@ export function ChannelForm({ channel, onSaved, onCancel }: ChannelFormProps): R
   const [pendingRiskAction, setPendingRiskAction] = React.useState<'auto-save' | 'create' | 'fetch' | 'save-and-close' | 'test' | null>(null)
   const [codexLoggingIn, setCodexLoggingIn] = React.useState(false)
   const [codexDeviceCode, setCodexDeviceCode] = React.useState<CodexOAuthDeviceCode | null>(null)
+  const [codexAuthUrl, setCodexAuthUrl] = React.useState<string | null>(null)
+  const [codexManualInput, setCodexManualInput] = React.useState<CodexOAuthManualInputRequest | null>(null)
+  const [codexManualInputValue, setCodexManualInputValue] = React.useState('')
   const [githubCopilotLoggingIn, setGithubCopilotLoggingIn] = React.useState(false)
   const [githubCopilotDeviceCode, setGithubCopilotDeviceCode] = React.useState<GithubCopilotOAuthDeviceCode | null>(null)
   const [githubCopilotEnterpriseUrl, setGithubCopilotEnterpriseUrl] = React.useState('')
@@ -259,6 +262,14 @@ export function ChannelForm({ channel, onSaved, onCancel }: ChannelFormProps): R
 
   React.useEffect(() => {
     return window.electronAPI.onCodexOAuthDeviceCode(setCodexDeviceCode)
+  }, [])
+
+  React.useEffect(() => {
+    return window.electronAPI.onCodexOAuthAuthUrl((authUrl) => setCodexAuthUrl(authUrl.url))
+  }, [])
+
+  React.useEffect(() => {
+    return window.electronAPI.onCodexOAuthManualInput(setCodexManualInput)
   }, [])
 
   React.useEffect(() => {
@@ -507,6 +518,22 @@ export function ChannelForm({ channel, onSaved, onCancel }: ChannelFormProps): R
     codexLoggingInRef.current = false
     void window.electronAPI.codexOAuthCancel()
     setCodexDeviceCode(null)
+    setCodexAuthUrl(null)
+    setCodexManualInput(null)
+    setCodexManualInputValue('')
+  }
+
+  /** 提交手动粘贴的浏览器回调地址（浏览器提示无法访问 localhost:1455 时的兑底）。 */
+  const handleSubmitCodexCallback = async (): Promise<void> => {
+    const input = codexManualInputValue.trim()
+    if (!input) return
+    const accepted = await window.electronAPI.codexOAuthSubmitCallback(input)
+    if (accepted) {
+      setCodexManualInput(null)
+      setCodexManualInputValue('')
+    } else {
+      toast.error('当前没有等待输入的登录流程，请重新发起登录')
+    }
   }
 
   /** 发起 ChatGPT (Codex) OAuth 登录，默认系统浏览器；网络受限时可改用设备码。 */
@@ -514,6 +541,9 @@ export function ChannelForm({ channel, onSaved, onCancel }: ChannelFormProps): R
     codexLoggingInRef.current = true
     setCodexLoggingIn(true)
     setCodexDeviceCode(null)
+    setCodexAuthUrl(null)
+    setCodexManualInput(null)
+    setCodexManualInputValue('')
     setTestResult(null)
     try {
       const result = await window.electronAPI.codexOAuthLogin(method)
@@ -1061,6 +1091,32 @@ export function ChannelForm({ channel, onSaved, onCancel }: ChannelFormProps): R
                   <Button variant="ghost" size="sm" type="button" onClick={handleCancelCodexLogin} className="w-full text-muted-foreground">
                     取消登录
                   </Button>
+                )}
+                {codexLoggingIn && codexAuthUrl && (
+                  <a href={codexAuthUrl} target="_blank" rel="noreferrer" className="block text-xs text-primary hover:underline">
+                    浏览器没有自动打开？点此打开 ChatGPT 授权页面
+                  </a>
+                )}
+                {codexLoggingIn && codexManualInput && (
+                  <div className="rounded-md border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground space-y-2">
+                    <div>
+                      浏览器授权后如果提示「无法访问 localhost:1455」，把浏览器地址栏的完整地址粘贴到下面即可完成登录；
+                      也可以改用下方的设备码登录。
+                    </div>
+                    <div className="flex gap-2">
+                      <input
+                        value={codexManualInputValue}
+                        onChange={(event) => setCodexManualInputValue(event.target.value)}
+                        onKeyDown={(event) => { if (event.key === 'Enter') void handleSubmitCodexCallback() }}
+                        placeholder={codexManualInput.placeholder || 'http://localhost:1455/auth/callback?code=…'}
+                        className="h-7 flex-1 min-w-0 rounded-md border border-border bg-background px-2 font-mono text-[11px] outline-none focus-visible:border-ring"
+                        aria-label="粘贴浏览器回调地址"
+                      />
+                      <Button size="sm" variant="outline" type="button" onClick={() => void handleSubmitCodexCallback()} disabled={!codexManualInputValue.trim()}>
+                        完成登录
+                      </Button>
+                    </div>
+                  </div>
                 )}
                 {codexDeviceCode && (
                   <div className="rounded-md border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground space-y-2">

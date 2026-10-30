@@ -191,7 +191,7 @@ import {
   getChannelById,
   getChannelPlanQuota,
 } from './lib/channel-manager'
-import { loginCodexOAuth, cancelCodexOAuthLogin } from './lib/codex-oauth-service'
+import { loginCodexOAuth, cancelCodexOAuthLogin, submitCodexOAuthCallbackInput } from './lib/codex-oauth-service'
 import { loginGithubCopilotOAuth, cancelGithubCopilotOAuthLogin } from './lib/github-copilot-oauth-service'
 import { loginXaiOAuth, cancelXaiOAuthLogin } from './lib/xai-oauth-service'
 import { resolvePiReasoningCapability } from './lib/adapters/pi-model-registry'
@@ -1804,6 +1804,16 @@ export function registerIpcHandlers(): void {
       try {
         const credentials = await loginCodexOAuth({
           method,
+          onAuthUrl: (url) => {
+            if (!event.sender.isDestroyed()) {
+              event.sender.send(CHANNEL_IPC_CHANNELS.CODEX_OAUTH_AUTH_URL, { url })
+            }
+          },
+          onManualInputRequest: (request) => {
+            if (!event.sender.isDestroyed()) {
+              event.sender.send(CHANNEL_IPC_CHANNELS.CODEX_OAUTH_MANUAL_INPUT, request)
+            }
+          },
           onDeviceCode: (deviceCode) => {
             void withOAuthDeviceCodeQr(deviceCode).then((payload) => {
               if (!event.sender.isDestroyed()) {
@@ -1824,6 +1834,12 @@ export function registerIpcHandlers(): void {
         }
       }
     }
+  )
+
+  // 渲染层提交手动粘贴的 Codex 回调地址 / 授权码；仅在登录流程等待输入时生效。
+  ipcMain.handle(
+    CHANNEL_IPC_CHANNELS.CODEX_OAUTH_SUBMIT_CALLBACK,
+    (_, input: string): boolean => submitCodexOAuthCallbackInput(input),
   )
 
   // 取消进行中的 ChatGPT OAuth 登录流程

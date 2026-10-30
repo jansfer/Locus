@@ -14,6 +14,8 @@
 import { shell } from 'electron'
 import type { CodexOAuthCredentials, CodexOAuthDeviceCode, CodexOAuthLoginMethod } from '@proma/shared'
 import { runWithOAuthProxyScope } from './oauth-proxy-scope'
+import { resolveCodexCallbackBindPlan } from './oauth-callback-host'
+import { getEffectiveProxyUrl } from './proxy-settings-service'
 /** Pi 0.80.10 将 OAuth 流程收敛到 ModelRuntime。保持动态 import，避免 Electron 主包将 Pi runtime 内联。 */
 type PiSdk = typeof import('@earendil-works/pi-coding-agent')
 
@@ -74,11 +76,37 @@ export interface CodexLoginCallbacks {
   onDeviceCode?: (deviceCode: CodexOAuthDeviceCode) => void
   /** 进度消息回调。 */
   onProgress?: (message: string) => void
+  /** 浏览器登录等待手动粘贴回调地址；渲染层可通过 submitCodexOAuthCallbackInput 提交。 */
+  onManualInputRequest?: (request: { message: string; placeholder: string }) => void
 }
 
 export interface CodexLoginOptions extends CodexLoginCallbacks {
   /** 默认系统浏览器；网络受限时可选择 RFC 8628 device-code 流程。 */
   method?: CodexOAuthLoginMethod
+}
+
+/** 等待渲染层提交手动回调输入的 pending prompt。 */
+interface PendingManualPrompt {
+  resolve: (input: string) => void
+  reject: (error: Error) => void
+  request: { message: string; placeholder: string }
+}
+
+let pendingManualPrompt: PendingManualPrompt | undefined
+
+/** 渲染层提交手动粘贴的回调地址 / 授权码；仅在登录流程等待输入时有效。 */
+export function submitCodexOAuthCallbackInput(input: string): boolean {
+  const pending = pendingManualPrompt
+  if (!pending) return false
+  pendingManualPrompt = undefined
+  pending.resolve(input)
+  return true
+}
+
+function rejectPendingManualPrompt(error: Error): void {
+  const pending = pendingManualPrompt
+  pendingManualPrompt = undefined
+  pending?.reject(error)
 }
 
 /**
@@ -96,6 +124,24 @@ export async function loginCodexOAuth(options?: CodexLoginOptions): Promise<Code
   const abort = new AbortController()
   activeLoginAbort = abort
 
+  // 浏览器登录优先双栈绑定 :1455：localhost 解析为 ::1 或 127.0.0.1 都可达。
+  // 端口被占用时在此抛出明确错误，避免 Pi 静默吞掉 EADDRINUSE 后无限等待。
+  let previousCallbackHost: string | undefined
+  if (method === 'browser') {
+    const plan = await resolveCodexCallbackBindPlan()
+    if (plan.bindHost) {
+      previousCallbackHost = process.env.PI_OAUTH_CALLBACK_HOST
+      process.env.PI_OAUTH_CALLBACK_HOST = plan.bindHost
+    }
+    const proxyUrl = await getEffectiveProxyUrl()
+    if (proxyUrl) {
+      options?.onProgress?.(
+        '检测到已配置代理：若浏览器授权后提示「无法访问 localhost:1455」，请把 localhost 加入系统代理直连列表，' +
+        '或直接把浏览器地址栏的完整回调地址粘贴到 Locus，也可以改用设备码登录。',
+      )
+    }
+  }
+
   try {
     return await runWithOAuthProxyScope(async () => {
       const runtime = await sdk.ModelRuntime.create({
@@ -106,6 +152,18 @@ export async function loginCodexOAuth(options?: CodexLoginOptions): Promise<Code
         signal: abort.signal,
         prompt: async (prompt) => {
           if (prompt.type === 'select') return method
+          if (prompt.type === 'manual_code' && method === 'browser') {
+            const request = {
+              message: 'message' in prompt && typeof prompt.message === 'string' ? prompt.message : '粘贴浏览器地址栏中的完整回调地址',
+              placeholder: 'placeholder' in prompt && typeof prompt.placeholder === 'string' ? prompt.placeholder : '',
+            }
+            options?.onManualInputRequest?.(request)
+            return new Promise<string>((resolve, reject) => {
+              pendingManualPrompt = { resolve, reject, request }
+              prompt.signal?.addEventListener('abort', () => rejectPendingManualPrompt(new Error('登录已取消')), { once: true })
+              abort.signal.addEventListener('abort', () => rejectPendingManualPrompt(new Error('登录已取消')), { once: true })
+            })
+          }
           return new Promise<string>((_resolve, reject) => {
             prompt.signal?.addEventListener('abort', () => reject(new Error('登录已取消')), { once: true })
             abort.signal.addEventListener('abort', () => reject(new Error('登录已取消')), { once: true })
@@ -128,6 +186,12 @@ export async function loginCodexOAuth(options?: CodexLoginOptions): Promise<Code
       return normalizeCredentials(credentials)
     })
   } finally {
+    rejectPendingManualPrompt(new Error('登录已结束'))
+    if (previousCallbackHost === undefined) {
+      delete process.env.PI_OAUTH_CALLBACK_HOST
+    } else {
+      process.env.PI_OAUTH_CALLBACK_HOST = previousCallbackHost
+    }
     if (activeLoginAbort === abort) {
       activeLoginAbort = undefined
     }
@@ -136,6 +200,7 @@ export async function loginCodexOAuth(options?: CodexLoginOptions): Promise<Code
 
 /** 取消进行中的 Codex OAuth 登录流程（若有）。 */
 export function cancelCodexOAuthLogin(): void {
+  rejectPendingManualPrompt(new Error('登录已取消'))
   activeLoginAbort?.abort()
   activeLoginAbort = undefined
 }

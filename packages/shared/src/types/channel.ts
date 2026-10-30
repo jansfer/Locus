@@ -528,6 +528,12 @@ export const CHANNEL_IPC_CHANNELS = {
   CODEX_OAUTH_CANCEL: 'channel:codex-oauth-cancel',
   /** Codex device-code 已就绪（主进程推送给发起登录的渲染窗口） */
   CODEX_OAUTH_DEVICE_CODE: 'channel:codex-oauth-device-code',
+  /** Codex 浏览器登录授权页地址（主进程推送给发起登录的渲染窗口） */
+  CODEX_OAUTH_AUTH_URL: 'channel:codex-oauth-auth-url',
+  /** Codex 浏览器登录等待手动粘贴回调地址（主进程推送给发起登录的渲染窗口） */
+  CODEX_OAUTH_MANUAL_INPUT: 'channel:codex-oauth-manual-input',
+  /** 渲染层提交手动粘贴的回调地址 / 授权码 */
+  CODEX_OAUTH_SUBMIT_CALLBACK: 'channel:codex-oauth-submit-callback',
   /** 发起 GitHub Copilot OAuth device-code 登录 */
   GITHUB_COPILOT_OAUTH_LOGIN: 'channel:github-copilot-oauth-login',
   /** 取消进行中的 GitHub Copilot OAuth 登录 */
@@ -549,6 +555,22 @@ export const CHANNEL_IPC_CHANNELS = {
  * 成功后返回已加密的凭据 JSON（可直接作为 Channel.apiKey 存储）与展示信息。
  */
 export type CodexOAuthLoginMethod = 'browser' | 'device_code'
+
+/** Codex 浏览器登录的授权页地址（主进程推送给发起登录的渲染窗口）。 */
+export interface CodexOAuthAuthUrl {
+  url: string
+}
+
+/**
+ * Codex 浏览器登录等待手动输入回调地址。
+ *
+ * Pi 在启动本地回调服务器的同时等待手动输入：浏览器授权后若提示
+ * 「无法访问 localhost:1455」，可把浏览器地址栏的完整地址粘贴进来完成登录。
+ */
+export interface CodexOAuthManualInputRequest {
+  message: string
+  placeholder: string
+}
 
 /** Pi Codex device-code 登录流程的用户可见信息。 */
 export interface CodexOAuthDeviceCode {
