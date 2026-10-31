@@ -109,6 +109,16 @@ release-notes/                    版本发布日志（上游历史，不要改�
 - 提交前检查 `git diff`，不要覆盖用户已有改动或提交无关文件。
 - 不要改写 `release-notes/` 与 `proma-thinking/` 的历史内容：前者是既成发布记录，后者是上游作者署名文章，改写等于篡改历史与他人表述。
 
+## 面向国际读者的英文信息（AI 提交与发布时遵守）
+
+本仓库是公开的开源项目，历史提交、PR 与 Release 需要让国际读者可读。Agent 产出的以下内容**优先使用英文**：
+
+- **Git commit message**：type(scope) 前缀与描述均用英文（如 `feat(i18n): add zh/en dictionaries`）；正文与 footer 同样英文。保留 `Made-with: Locus` trailer。
+- **PR / MR 标题与描述**：用英文撰写；引用中文上下文（如用户原话、中文文件名）时可保留原文。
+- **Release notes**：`release-notes/vX.Y.Z.md` 新增条目用英文；不迁移历史条目（改写历史等于篡改记录）。
+- **不改变现有约定**：代码注释、console 日志与项目内中文工程文档仍优先中文（见「必须遵守」）；界面文案遵循 i18n 词典双语；用户消息与历史内容不翻译。
+- **双语交付场景**：涉及用户可见行为变化时，README 已双语（`README.md` 英文 / `README.zh-CN.md` 中文），两个文件顶部互链，新增面向读者的说明需两份同步更新。
+
 ## 已知既有问题（改动前先确认，不要重复排查）
 
 - `bun run typecheck` 在 `apps/electron` 有 3 处**既有**错误，根因是 `packages/shared` 的 `ProviderType` 未包含 `doubao` 与 `ark-coding-plan`：`main/lib/adapters/pi-provider-compat.ts`、`main/lib/channel-manager.ts`、`renderer/lib/model-logo.ts`。修改这三个文件前先确认错误是否为既有问题。

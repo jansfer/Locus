@@ -1,86 +1,90 @@
 # Locus
 
-本地优先的桌面 AI Agent，把多模型 Chat、通用 Agent、工作区、Skills、MCP、记忆与自动化放进同一个客户端。数据与配置默认留在你自己的机器上。
+<p align="center">
+  <b>English</b> | <a href="./README.zh-CN.md">简体中文</a>
+</p>
 
-> **本仓库是基于 [Proma](https://github.com/proma-ai/Proma) 的修改版**，按 AGPL-3.0 第 5(a) 条要求在此声明：修改日期 2026-10-29，修改方 Jansfer。完整对应源码即本仓库，历史与上游保持同源可追溯。上游版权归 Erlich Liu 所有，详见 [LICENSE](./LICENSE) 与本仓库 `git log` 中的原始提交。
+A local-first desktop AI Agent that brings multi-model Chat, a general-purpose Agent, workspaces, Skills, MCP, memory, and automation into a single client. Your data and configuration stay on your own machine by default.
 
-## 目录
+> **This repository is a modified version of [Proma](https://github.com/proma-ai/Proma)**. As required by AGPL-3.0 Section 5(a), we state here: modified on 2026-10-29 by Jansfer. The complete corresponding source is this repository; its history shares the same origin as upstream and remains traceable. Upstream copyright belongs to Erlich Liu. See [LICENSE](./LICENSE) and the original commits in this repository's `git log`.
 
-- [这是什么](#这是什么)
-- [核心能力](#核心能力)
-- [面向专业用户的设计](#面向专业用户的设计)
-- [下载与安装](#下载与安装)
-- [从源码运行](#从源码运行)
-- [与上游 Proma 的差异](#与上游-proma-的差异)
-- [教程](#教程)
-- [贡献](#贡献)
-- [来源与致谢](#来源与致谢)
-- [许可证](#许可证)
+## Table of Contents
 
-## 这是什么
+- [What is this](#what-is-this)
+- [Core capabilities](#core-capabilities)
+- [Designed for professional users](#designed-for-professional-users)
+- [Download and install](#download-and-install)
+- [Run from source](#run-from-source)
+- [Differences from upstream Proma](#differences-from-upstream-proma)
+- [Tutorials](#tutorials)
+- [Contributing](#contributing)
+- [Origin and acknowledgements](#origin-and-acknowledgements)
+- [License](#license)
 
-Locus 是一个面向专业用户的通用桌面 Agent。它不是一个"聊天窗口加几个按钮"的产品，而是把 Agent 真正需要的东西——文件系统、终端、浏览器、Skills、记忆、日程与任务——放进同一个可观察、可干预的界面里。
+## What is this
 
-三个基础判断决定了它的形态：
+Locus is a general-purpose desktop Agent for professional users. It is not a "chat window with a few buttons": it puts what an Agent actually needs — the file system, terminal, browser, Skills, memory, calendar and tasks — into a single observable, interruptible interface.
 
-- **上下文质量决定输出质量**。所以产品的大部分设计都在帮你组织上下文：项目与项目的文件、会话与会话的文件、分层记忆、按项目隔离的 Skills。
-- **本地优先**。配置、会话、记忆默认以可移植的 JSON / JSONL 存放在本机，不依赖远端账户即可完整使用。
-- **Agent 的运行过程应当可见**。工具调用、文件改动、子会话、终端与浏览器都在界面上呈现，而不是藏在一个加载动画后面。
+Three foundational beliefs shape its design:
 
-## 核心能力
+- **Context quality determines output quality.** Most of the product exists to help you organize context: project and project files, session and session files, layered memory, and project-scoped Skills.
+- **Local first.** Configuration, sessions, and memory are stored on your machine as portable JSON / JSONL by default; no remote account is required for full functionality.
+- **An Agent's execution should be visible.** Tool calls, file changes, sub-sessions, the terminal, and the browser are all presented in the UI instead of hiding behind a loading spinner.
 
-- **Chat 模式**：轻量的多模型对话形态，适合快速提问与对照
-- **Agent 模式**：带工具、文件系统、终端与浏览器的完整执行形态
-- **计划模式**：先产出可审阅的计划，批准后再执行
-- **项目分区**：项目根目录与项目文件、会话与会话文件分层管理
-- **记忆能力**：项目级 `AGENTS.md` 与分层记忆索引，跨会话沉淀
-- **Skills / MCP / CLI**：按项目隔离，支持常见 MCP 与命令行工具接入
-- **内嵌浏览器**：Agent 可直接操作的真实浏览器，支持站内登录后的检索与交互
-- **内嵌终端**：可见、可打断的终端会话
-- **定时任务**：单次、间隔、每日/每周/每月，支持执行窗口与次数上限
-- **Agent 平行探索**：从任意一轮输出分叉探索，结论可带回主会话
-- **子会话与主会话**：比传统 SubAgent 更干净的上下文边界，可并行、可对抗审查
-- **远程接入**：微信、飞书、钉钉、Slack
-- **界面语言**：简体中文 / English，默认跟随系统；切换即时生效，Agent 默认回复语言随界面变化
-- **文件预览与编辑**：Markdown 实时编辑，PDF / Word / Excel / PPT 预览
+## Core capabilities
 
-## 面向专业用户的设计
+- **Chat mode**: lightweight multi-model conversations for quick questions and side-by-side comparisons
+- **Agent mode**: full execution with tools, file system, terminal, and browser
+- **Plan mode**: produce a reviewable plan first, execute after approval
+- **Project partitioning**: layered management of project roots / project files and sessions / session files
+- **Memory**: project-level `AGENTS.md` and layered memory indexes that persist across sessions
+- **Skills / MCP / CLI**: project-scoped, with support for common MCP servers and CLI tools
+- **Embedded browser**: a real browser the Agent can operate, including logged-in on-site search and interaction
+- **Embedded terminal**: visible, interruptible terminal sessions
+- **Scheduled automations**: once, interval, daily / weekly / monthly, with execution windows and run limits
+- **Parallel exploration**: branch exploration from any turn and bring conclusions back to the main session
+- **Sub-sessions and the main session**: cleaner context boundaries than traditional SubAgents; parallelizable and support adversarial review
+- **Remote access**: WeChat, Feishu (Lark), DingTalk, and Slack
+- **Interface language**: Simplified Chinese / English, following the system by default; switching applies instantly, and the Agent's default reply language follows the interface
+- **File preview and editing**: live Markdown editing, plus PDF / Word / Excel / PPT preview
 
-这些能力都与 Agent 打通，可以直接被 Agent 调用，也可以人工操作：
+## Designed for professional users
 
-- **Todo 与日程**：任务与时间安排既是你的，也是 Agent 的；可与 macOS 提醒事项、日历双向同步
-- **Obsidian**：内置 Obsidian 风格的 Markdown 编辑器与双向链接体验，面向知识管理与研究型工作
-- **文件改动**：按轮次查看 Agent 的改动，编程场景展示 Diff，worktree 场景可直接跳转终端
-- **worktree 工作流**：基于 Git worktree 的并行开发，会话右侧可查看相对主干的 Diff
+These capabilities are wired into the Agent — it can call them directly, and you can operate them manually:
 
-界面按三栏组织：左侧是会话与功能入口，中间是与 Agent 交互的主区域，右侧是辅助区域——项目文件、文件改动、文档预览、子会话、浏览器、终端、Obsidian、日程、Todo、Skills 都在这里，服务于中间那一栏的结果质量。
+- **Todos and calendar**: tasks and schedules belong to both you and the Agent; two-way sync with macOS Reminders and Calendar
+- **Obsidian**: a built-in Obsidian-style Markdown editor with wiki links, for knowledge management and research work
+- **File changes**: review the Agent's changes per turn, with diffs for coding sessions and one-click terminal handoff for worktree sessions
+- **Worktree workflow**: parallel development based on Git worktrees, with diffs against the mainline shown beside the session
 
-## 下载与安装
+The UI is organized in three columns: the left holds sessions and feature entries, the middle is the main area for interacting with the Agent, and the right is the auxiliary area — project files, file changes, document preview, sub-sessions, browser, terminal, Obsidian, calendar, todos, and Skills all live there, serving the quality of the middle column's results.
 
-从 [GitHub Releases](https://github.com/jansfer/Locus/releases) 获取安装包：
+## Download and install
 
-- macOS（Apple Silicon / Intel）：`.dmg`
-- Windows（amd64 / arm64）：`.exe` 安装程序
-- Ubuntu / Debian（amd64 / arm64）：`.deb`
-- Linux（amd64 / arm64）：`.AppImage`
+Get installers from [GitHub Releases](https://github.com/jansfer/Locus/releases):
 
-Linux 的安装步骤、安全边界与支持范围见 [Linux 说明](./docs/linux.md)。当前 macOS 安装包未做代码签名，首次打开需在「系统设置 → 隐私与安全性」中手动放行。
+- macOS (Apple Silicon / Intel): `.dmg`
+- Windows (amd64 / arm64): `.exe` installer
+- Ubuntu / Debian (amd64 / arm64): `.deb`
+- Linux (amd64 / arm64): `.AppImage`
 
-> 本项目目前不提供商业版或官方模型渠道。你需要自行准备 AI 供应商的 API Key，在「设置 → 渠道」中配置。
+Linux installation steps, security boundaries, and supported scope are documented in [Linux notes](./docs/linux.md) (Chinese). macOS installers are not code-signed yet; on first launch, allow the app in "System Settings → Privacy & Security".
 
-## 从源码运行
+> This project does not provide a commercial edition or official model channels. You need to bring your own AI provider API Key and configure it under "Settings → Channels".
 
-需要 [Bun](https://bun.sh)（不使用 npm / pnpm）。
+## Run from source
+
+Requires [Bun](https://bun.sh) (npm / pnpm are not used).
 
 ```bash
 bun install
-bun run dev          # 开发模式
-bun run typecheck    # 类型检查
-bun test             # 测试
+bun run dev          # development mode
+bun run typecheck    # type checking
+bun test             # tests
 bun run electron:build
 ```
 
-打包：
+Packaging:
 
 ```bash
 cd apps/electron
@@ -89,52 +93,52 @@ bun run dist:win     # Windows
 bun run dist:linux   # Linux
 ```
 
-支持 Windows、macOS 和 Linux 的 amd64 / arm64 原生打包，文件名统一包含版本、系统和 CPU。构建命令、下载选择和自动更新兼容说明见 [打包说明](docs/packaging.md)。
+Native packaging for Windows, macOS, and Linux on amd64 / arm64 is supported, with version, OS, and CPU in the file name. Build commands, download selection, and auto-update compatibility are documented in [packaging notes](docs/packaging.md) (Chinese).
 
-## 与上游 Proma 的差异
+## Differences from upstream Proma
 
-本 fork 的改动集中在品牌与分发边界，运行时能力与上游保持一致：
+This fork's changes focus on branding and distribution boundaries; runtime capabilities match upstream:
 
-- 应用标识改为 `Locus` / `com.locus.app`，图标、启动页与界面文案全部替换，不再使用上游品牌素材
-- 移除指向上游商业版的入口、推广卡片与配套文案
-- 自动更新与 Release 检测指向本仓库，不再从上游 Release 拉取
-- 启动后约 3 秒检查更新，之后每 15 分钟检查；电脑唤醒或网络恢复时也会检查，自动检查设有 2 分钟冷却且不会重复弹出无更新或网络错误提示
-- 星标会话跳过自动归档，仍可手动归档；删除会话时会取消浏览器操作并关闭其全部受管浏览器标签
-- 项目支持归档与一键恢复（默认项目除外），文件、会话与后台任务保留；项目列表可按名称或文件夹路径搜索
-- 不再请求上游商业 API（`api.proma.cool`），安装包清单改为内置
-- 打包产物排除 `docx` / `pdf` / `pptx` / `xlsx` 四个版权归 Anthropic 所有的 Skill；仓库中仍保留这些文件，本地开发可用
-- 有意保留的内部标识：`@proma/*` 包名、`~/.proma/` 数据目录、`proma-file://` 协议，以及 User-Agent 的 `Proma/` 前缀（部分第三方渠道按该前缀做服务端白名单校验，改名会导致这些渠道不可用）
+- App identity changed to `Locus` / `com.locus.app`; icons, startup splash, and UI copy fully replaced — upstream brand assets are no longer used
+- Removed upstream commercial edition entries, promo cards, and related copy
+- Auto-update and release checks point to this repository instead of upstream Releases
+- Update checks run ~3 seconds after startup and every 15 minutes afterwards, including on wake or network recovery, with a 2-minute cooldown; "no update" and network-error toasts are never repeated
+- Starred sessions are exempt from auto-archiving (manual archiving still works); deleting a session cancels its browser operations and closes all of its managed browser tabs
+- Projects support archiving and one-click restore (except the default project) with files, sessions, and background tasks preserved; the project list is searchable by name or folder path
+- No more requests to the upstream commercial API (`api.proma.cool`); the installer manifest is built in
+- Packaging excludes the `docx` / `pdf` / `pptx` / `xlsx` Skills, whose copyright belongs to Anthropic; the files remain in the repository for local development
+- Internal identifiers intentionally kept: `@proma/*` package names, the `~/.proma/` data directory, the `proma-file://` protocol, and the `Proma/` User-Agent prefix (some third-party channels validate that prefix server-side; renaming it would break those channels)
 
-## 教程
+## Tutorials
 
-- [上手指南](./tutorial/tutorial.md)：安装、供应商配置、Chat 与 Agent 的取舍
-- [进阶指南](./tutorial/tutorial-v2.md)：文件设计、Skills 工程化、自动任务、远程使用
+- [Getting started](./tutorial/tutorial.md) (Chinese): installation, provider configuration, choosing between Chat and Agent
+- [Advanced guide](./tutorial/tutorial-v2.md) (Chinese): file design, Skills engineering, scheduled automations, remote usage
 
-## 贡献
+## Contributing
 
-欢迎修 Bug、补文档、加测试。提交 PR 前请确认：
+Bug fixes, documentation, and tests are welcome. Before opening a PR, please make sure that:
 
-- 使用 Bun 运行脚本，不混用 npm / pnpm lockfile
-- 状态管理使用 Jotai
-- 保持本地优先，优先使用配置文件与 JSON / JSONL
-- TypeScript 不使用 `any`，对象结构优先 `interface`
-- 新增 IPC 时同步修改 shared 类型、main handler、preload bridge 与 renderer 调用
-- 影响包行为时递增对应 package 的 patch 版本
-- 能用测试覆盖的行为尽量补上测试，尤其是共享逻辑、IPC 契约与持久化格式
+- Scripts run with Bun; do not mix in npm / pnpm lockfiles
+- State management uses Jotai
+- Local-first is preserved; prefer config files and JSON / JSONL
+- TypeScript uses no `any`; prefer `interface` for object shapes
+- New IPC changes update shared types, the main handler, the preload bridge, and the renderer call together
+- Patch versions of affected packages are bumped when their behavior changes
+- Behavior that can be tested gets tests, especially shared logic, IPC contracts, and persistence formats
 
-## 来源与致谢
+## Origin and acknowledgements
 
-Locus 基于 [Proma](https://github.com/proma-ai/Proma) 修改而来。上游由 Erlich Liu 发起并维护，其架构设计、Agent 运行时集成与大量功能实现构成本项目的基础。上游的发布历史与本仓库同源，可通过 `git log` 追溯每一次原始提交的作者与时间。
+Locus is derived from [Proma](https://github.com/proma-ai/Proma), created and maintained by Erlich Liu; its architecture, Agent runtime integration, and many features form the foundation of this project. The upstream release history shares the same origin as this repository, and every original commit's author and time can be traced via `git log`.
 
-本仓库不是上游官方项目，上游团队不为本项目的改动负责。
+This repository is not the official upstream project; the upstream team is not responsible for changes made here.
 
-## 许可证
+## License
 
-本项目沿用上游的 [GNU Affero General Public License v3.0（AGPL-3.0）](./LICENSE)，完整条款见根目录 `LICENSE` 文件。作为修改版，本项目整体继续以 AGPL-3.0 授权。
+This project inherits the upstream [GNU Affero General Public License v3.0 (AGPL-3.0)](./LICENSE); the full text is in the root `LICENSE` file. As a modified version, this project as a whole remains licensed under AGPL-3.0.
 
-- **使用与修改**：允许自由使用、修改、分发，包括商业使用
-- **分发义务**：以源码或二进制形式分发时，必须提供与本版本对应的完整源码（含本项目的修改），并保留原始版权声明
-- **网络服务**：若通过网络向他人提供修改版的服务，须向这些用户提供获取完整源码的方式
-- **衍生作品**：必须继续以 AGPL-3.0 授权
+- **Use and modification**: free to use, modify, and distribute, including commercially
+- **Distribution obligation**: when distributing in source or binary form, you must provide the complete corresponding source for this version (including this project's modifications) and keep the original copyright notices
+- **Network service**: if you offer a modified version as a network service, you must provide its users a way to obtain the complete source
+- **Derivative works**: must continue to be licensed under AGPL-3.0
 
-如果你需要将本项目用于无法满足 AGPL-3.0 义务的场景（闭源集成、不公开源码的 SaaS），请与上游权利人联系获取商业许可。相关联系方式见上游仓库。
+If you need to use this project in scenarios that cannot satisfy AGPL-3.0 obligations (closed-source integration, SaaS without public source), contact the upstream rights holder for a commercial license. See the upstream repository for contact details.
