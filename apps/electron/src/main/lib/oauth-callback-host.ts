@@ -8,7 +8,7 @@
  *
  * 这里在登录前探测端口：优先确认双栈（`::`，同时接受 IPv4/IPv6 loopback）可绑定，
  * 让回调对 `localhost` 的两种解析结果都可达；端口被占用时给出明确错误，
- * 避免 Pi 静默吞掉 EADDRINUSE 后登录无限挂起。
+ * 端口不可用时保留 SDK 的手动回调兜底。
  */
 
 import { createServer, type AddressInfo } from 'node:net'
@@ -50,9 +50,10 @@ export interface CodexCallbackBindPlan {
    * - `undefined`：保持 Pi 默认（127.0.0.1），用于 IPv6 不可用的机器
    */
   bindHost: '::' | undefined
+  warning?: string
 }
 
-/** 依据探测结果生成回调绑定决策；端口被占用或被系统保留时抛出用户可读错误。 */
+/** 依据探测结果生成回调绑定决策；端口不可用时返回提示，继续浏览器授权与手动回调。 */
 export async function resolveCodexCallbackBindPlan(
   probe: (host: '::' | '127.0.0.1') => Promise<LoopbackProbeResult> = probeLoopbackBinding,
 ): Promise<CodexCallbackBindPlan> {
@@ -61,30 +62,24 @@ export async function resolveCodexCallbackBindPlan(
   if (dualStack.ok) return { bindHost: '::' }
 
   if (dualStack.errorCode === 'EADDRINUSE') {
-    throw buildPortOccupiedError()
+    return { bindHost: undefined, warning: buildPortOccupiedError().message }
   }
 
   // `::` 绑定失败的其他原因（EACCES / EADDRNOTAVAIL / EAFNOSUPPORT…）：
   // 回退到 IPv4 默认绑定前先确认 1455 在 IPv4 上可用。
   const loopback = await probe('127.0.0.1')
   if (loopback.ok) return { bindHost: undefined }
-  if (loopback.errorCode === 'EADDRINUSE') throw buildPortOccupiedError()
-  if (loopback.errorCode === 'EACCES') throw buildPortReservedError()
-  throw new Error(`本机无法绑定 OAuth 回调端口 ${CODEX_OAUTH_CALLBACK_PORT}（${loopback.errorCode ?? '未知错误'}）`)
+  if (loopback.errorCode === 'EADDRINUSE') return { bindHost: undefined, warning: buildPortOccupiedError().message }
+  return {
+    bindHost: undefined,
+    warning: `本机无法绑定 OAuth 回调端口 ${CODEX_OAUTH_CALLBACK_PORT}（${loopback.errorCode ?? '未知错误'}）。` +
+      '仍可继续浏览器授权，并将完整回调地址粘贴到 Locus；也可以改用设备码登录。',
+  }
 }
 
 function buildPortOccupiedError(): Error {
   return new Error(
-    `本地端口 ${CODEX_OAUTH_CALLBACK_PORT} 被其他程序占用，可能是上一次登录尚未结束或 Codex CLI 正在运行。` +
-    '请关闭占用该端口的程序后重试，或改用设备码登录。',
-  )
-}
-
-/** Windows 动态端口保留（Hyper-V/WSL）覆盖 1455 时的可操作提示。 */
-function buildPortReservedError(): Error {
-  return new Error(
-    `本机无法绑定 OAuth 回调端口 ${CODEX_OAUTH_CALLBACK_PORT}：Windows 已把它划入动态保留范围` +
-    '（Hyper-V / WSL 常见）。可在管理员终端执行「net stop winnat」再「net start winnat」清除保留后重试，' +
-    '或重启电脑让保留范围重排；也可以改用设备码登录（不需要本地端口）。',
+    `本地端口 ${CODEX_OAUTH_CALLBACK_PORT} 被其他程序占用。` +
+    '仍可继续浏览器授权，并将完整回调地址粘贴到 Locus；也可以改用设备码登录。',
   )
 }

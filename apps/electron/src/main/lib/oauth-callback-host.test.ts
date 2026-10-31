@@ -36,21 +36,21 @@ describe('回调绑定决策', () => {
     expect(plan.bindHost).toBeUndefined()
   })
 
-  test('given 端口被占用 when 生成计划 then 抛出可操作错误', async () => {
-    expect(resolveCodexCallbackBindPlan(async () => occupied)).rejects.toThrow('1455 被其他程序占用')
+  test('given 端口被占用 when 生成计划 then 返回提示并允许继续授权', async () => {
+    expect((await resolveCodexCallbackBindPlan(async () => occupied)).warning).toContain('1455 被其他程序占用')
   })
 
-  test('given IPv6 不可用且 IPv4 也被占用 when 生成计划 then 同样抛出占用错误', async () => {
-    expect(resolveCodexCallbackBindPlan(async (host) => (host === '::' ? noIpv6 : occupied)))
-      .rejects.toThrow('1455 被其他程序占用')
+  test('given IPv6 不可用且 IPv4 也被占用 when 生成计划 then 同样允许手动回调', async () => {
+    expect((await resolveCodexCallbackBindPlan(async (host) => (host === '::' ? noIpv6 : occupied))).warning)
+      .toContain('1455 被其他程序占用')
   })
 
-  test('given Windows 动态保留覆盖端口 when 生成计划 then 抛出保留范围指引', async () => {
-    expect(resolveCodexCallbackBindPlan(async () => reserved)).rejects.toThrow('动态保留')
+  test('given 端口权限被拒绝 when 生成计划 then 保留错误码且允许继续授权', async () => {
+    expect((await resolveCodexCallbackBindPlan(async () => reserved)).warning).toContain('EACCES')
   })
 
-  test('given IPv6 不可用且 IPv4 被保留 when 生成计划 then 同样抛出保留指引', async () => {
-    expect(resolveCodexCallbackBindPlan(async (host) => (host === '::' ? noIpv6 : reserved)))
-      .rejects.toThrow('net stop winnat')
+  test('given IPv6 不可用且 IPv4 权限被拒绝 when 生成计划 then 同样允许手动回调', async () => {
+    expect((await resolveCodexCallbackBindPlan(async (host) => (host === '::' ? noIpv6 : reserved))).warning)
+      .toContain('EACCES')
   })
 })

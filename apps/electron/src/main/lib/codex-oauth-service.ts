@@ -125,24 +125,27 @@ export async function loginCodexOAuth(options?: CodexLoginOptions): Promise<Code
   activeLoginAbort = abort
 
   // 浏览器登录优先双栈绑定 :1455：localhost 解析为 ::1 或 127.0.0.1 都可达。
-  // 端口被占用时在此抛出明确错误，避免 Pi 静默吞掉 EADDRINUSE 后无限等待。
-  let previousCallbackHost: string | undefined
-  if (method === 'browser') {
-    const plan = await resolveCodexCallbackBindPlan()
-    if (plan.bindHost) {
-      previousCallbackHost = process.env.PI_OAUTH_CALLBACK_HOST
-      process.env.PI_OAUTH_CALLBACK_HOST = plan.bindHost
-    }
-    const proxyUrl = await getEffectiveProxyUrl()
-    if (proxyUrl) {
-      options?.onProgress?.(
-        '检测到已配置代理：若浏览器授权后提示「无法访问 localhost:1455」，请把 localhost 加入系统代理直连列表，' +
-        '或直接把浏览器地址栏的完整回调地址粘贴到 Locus，也可以改用设备码登录。',
-      )
-    }
-  }
-
+  // 端口不可用时提示并继续，保留 SDK 的手动回调输入路径。
+  const previousCallbackHost = process.env.PI_OAUTH_CALLBACK_HOST
   try {
+    if (method === 'browser') {
+      const plan = await resolveCodexCallbackBindPlan()
+      if (plan.warning) {
+        console.warn('[Codex OAuth]', plan.warning)
+        options?.onProgress?.(plan.warning)
+      }
+      if (plan.bindHost) {
+        process.env.PI_OAUTH_CALLBACK_HOST = plan.bindHost
+      }
+      const proxyUrl = await getEffectiveProxyUrl()
+      if (proxyUrl) {
+        options?.onProgress?.(
+          '检测到已配置代理：若浏览器授权后提示「无法访问 localhost:1455」，请把 localhost 加入系统代理直连列表，' +
+          '或直接把浏览器地址栏的完整回调地址粘贴到 Locus，也可以改用设备码登录。',
+        )
+      }
+    }
+
     return await runWithOAuthProxyScope(async () => {
       const runtime = await sdk.ModelRuntime.create({
         credentials: createEphemeralCredentialStore(),
