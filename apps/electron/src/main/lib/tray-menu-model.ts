@@ -1,4 +1,5 @@
 import type { AgentSessionMeta, AgentWorkspace } from '@proma/shared'
+import { t } from '../../i18n'
 
 export const TRAY_RECENT_LIMIT = 3
 export const TRAY_MORE_LIMIT = 10
@@ -16,9 +17,9 @@ export interface TrayMenuModel {
 }
 
 function getWorkspaceLabel(session: AgentSessionMeta, workspacesById: Map<string, AgentWorkspace>): string {
-  if (!session.workspaceId) return '未选择项目'
+  if (!session.workspaceId) return t('tray.workspace.unselected')
   const workspace = workspacesById.get(session.workspaceId)
-  return workspace?.name ?? '未知项目'
+  return workspace?.name ?? t('tray.workspace.unknown')
 }
 
 function toRecentSessionItem(
@@ -27,7 +28,7 @@ function toRecentSessionItem(
 ): TrayRecentSessionItem {
   return {
     id: session.id,
-    title: session.title.trim() || '未命名会话',
+    title: session.title.trim() || t('tray.session.untitled'),
     subtitle: getWorkspaceLabel(session, workspacesById),
   }
 }

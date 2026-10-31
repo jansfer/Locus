@@ -5,11 +5,18 @@
  * 存储在 ~/.proma/settings.json
  */
 
-import { readFileSync, writeFileSync, existsSync } from 'node:fs'
+import { readFileSync, existsSync } from 'node:fs'
 import { getSettingsPath } from './config-paths'
 import { DEFAULT_THEME_MODE, normalizeProductivityToolsSettings } from '../../types'
 import type { AgentIslandSettings, AppSettings } from '../../types'
 import { getTerminalProfilesForPlatform, isTerminalProfile } from '@proma/shared'
+import { writeJsonFileAtomic } from './safe-file'
+import { isAppLanguage } from '../../i18n/types'
+
+/** 清理界面语言字段：旧配置缺失或非法值时按跟随系统处理。 */
+export function sanitizeAppLanguage(input: unknown): AppSettings['language'] {
+  return isAppLanguage(input) ? input : 'system'
+}
 
 function sanitizeAgentIslandSettings(input: unknown): AgentIslandSettings | undefined {
   if (!input || typeof input !== 'object') return undefined
@@ -45,6 +52,7 @@ export function getSettings(): AppSettings {
       agentThinking: { type: 'adaptive' },
       gitAttributionEnabled: true,
       productivityTools: normalizeProductivityToolsSettings(undefined),
+      language: 'system',
     }
   }
 
@@ -90,6 +98,8 @@ export function getSettings(): AppSettings {
       productivityTools: normalizeProductivityToolsSettings(data.productivityTools),
       // 仅保留 macOS 原生 Island 开关；清理旧非原生 surface 的持久化残留字段。
       agentIsland: sanitizeAgentIslandSettings(data.agentIsland),
+      // 旧配置缺失或值非法时按跟随系统处理。
+      language: sanitizeAppLanguage(data.language),
     }
   } catch (error) {
     console.error('[设置] 读取失败:', error)
@@ -106,6 +116,7 @@ export function getSettings(): AppSettings {
       agentThinking: { type: 'adaptive' },
       gitAttributionEnabled: true,
       productivityTools: normalizeProductivityToolsSettings(undefined),
+      language: 'system',
     }
   }
 }
@@ -113,7 +124,7 @@ export function getSettings(): AppSettings {
 /**
  * 更新应用设置
  *
- * 合并更新字段并写入文件。
+ * 合并更新字段并原子写入文件。
  */
 export function updateSettings(updates: Partial<AppSettings>): AppSettings {
   const current = getSettings()
@@ -127,11 +138,14 @@ export function updateSettings(updates: Partial<AppSettings>): AppSettings {
     productivityTools: updates.productivityTools === undefined
       ? normalizeProductivityToolsSettings(current.productivityTools)
       : normalizeProductivityToolsSettings({ ...current.productivityTools, ...updates.productivityTools }),
+    // 语言值由主进程统一清理，防止非法值写盘后影响后续解析。
+    language: sanitizeAppLanguage(updates.language !== undefined ? updates.language : current.language),
   }
   const filePath = getSettingsPath()
 
   try {
-    writeFileSync(filePath, JSON.stringify(updated, null, 2), 'utf-8')
+    // 崩溃安全写入：临时文件 + 原子重命名 + .bak 备份。
+    writeJsonFileAtomic(filePath, updated)
     console.log('[设置] 已更新 keys:', Object.keys(updates).join(', '))
   } catch (error) {
     console.error('[设置] 写入失败:', error)

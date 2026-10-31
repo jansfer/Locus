@@ -5,6 +5,7 @@ import { listAgentSessions } from './lib/agent-session-manager'
 import { listAgentWorkspaces } from './lib/agent-workspace-manager'
 import { isAgentSessionActive } from './lib/agent-service'
 import { createTrayMenuModel, type TrayRecentSessionItem } from './lib/tray-menu-model'
+import { t } from '../i18n'
 
 let tray: Tray | null = null
 
@@ -87,38 +88,38 @@ function buildTrayMenu(actions: TrayActions): Menu {
   const template: Electron.MenuItemConstructorOptions[] = [
     ...(runningItems.length > 0
       ? [
-          { label: '运行中', enabled: false },
+          { label: t('tray.running'), enabled: false },
           ...runningItems,
           { type: 'separator' as const },
         ]
       : []),
-    { label: '最近', enabled: false },
+    { label: t('tray.recent'), enabled: false },
     ...(recentItems.length > 0
       ? recentItems
-      : [{ label: '暂无最近会话', enabled: false }]),
+      : [{ label: t('tray.noRecentSessions'), enabled: false }]),
     ...(moreItems.length > 0
       ? [{
-          label: '更多',
+          label: t('tray.more'),
           submenu: moreItems,
         }]
       : []),
     { type: 'separator' },
     {
-      label: '新建对话',
+      label: t('tray.newChat'),
       click: () => actions.createChatSession(),
     },
     {
-      label: '新建 Agent 会话',
+      label: t('tray.newAgentSession'),
       click: () => actions.createAgentSession(),
     },
     { type: 'separator' },
     {
-      label: '打开 Locus',
+      label: t('tray.openLocus'),
       click: () => actions.showMainWindow(),
     },
     { type: 'separator' },
     {
-      label: '退出 Locus',
+      label: t('tray.quit'),
       click: () => {
         app.quit()
       },

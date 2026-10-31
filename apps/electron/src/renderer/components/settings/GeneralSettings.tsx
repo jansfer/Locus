@@ -6,7 +6,7 @@
  */
 
 import * as React from 'react'
-import { useAtom } from 'jotai'
+import { useAtom, useAtomValue } from 'jotai'
 import { Camera, Check, ExternalLink, ImagePlus, Play, Volume2 } from 'lucide-react'
 import Picker from '@emoji-mart/react'
 import data from '@emoji-mart/data'
@@ -50,6 +50,10 @@ import {
 import { cn } from '@/lib/utils'
 import { detectIsMac, detectIsWindows } from '@/lib/platform'
 import { getEffectiveSoundPackId } from '@/lib/notification-sound-selection'
+import { toast } from 'sonner'
+import { useT } from '@/i18n'
+import { isAppLanguage } from '@/i18n/types'
+import { languagePreferenceAtom, resolvedLanguageAtom, updateLanguagePreference } from '@/atoms/language'
 import type { NotificationSoundId, NotificationSoundType, NotificationSoundSettings, ProductivityToolsSettings } from '@/types/settings'
 
 /** emoji-mart 选择回调的 emoji 对象类型 */
@@ -63,6 +67,7 @@ interface EmojiMartEmoji {
 }
 
 export function GeneralSettings(): React.ReactElement {
+  const t = useT()
   const [userProfile, setUserProfile] = useAtom(userProfileAtom)
   const [notificationsEnabled, setNotificationsEnabled] = useAtom(notificationsEnabledAtom)
   const [notificationSoundEnabled, setNotificationSoundEnabled] = useAtom(notificationSoundEnabledAtom)
@@ -71,6 +76,8 @@ export function GeneralSettings(): React.ReactElement {
   const [richTextRenderingEnabled, setRichTextRenderingEnabled] = useAtom(richTextRenderingEnabledAtom)
   const [sessionHoverPreviewEnabled, setSessionHoverPreviewEnabled] = useAtom(sessionHoverPreviewEnabledAtom)
   const [productivityTools, setProductivityTools] = useAtom(productivityToolsAtom)
+  const [languagePreference, setLanguagePreference] = useAtom(languagePreferenceAtom)
+  const resolvedLanguage = useAtomValue(resolvedLanguageAtom)
   const [isEditingName, setIsEditingName] = React.useState(false)
   const [nameInput, setNameInput] = React.useState(userProfile.userName)
   const [showEmojiPicker, setShowEmojiPicker] = React.useState(false)
@@ -100,6 +107,20 @@ export function GeneralSettings(): React.ReactElement {
       await updateProductivityTools(next)
     } catch {
       setProductivityTools(previous)
+    }
+  }
+
+  /** 更新界面语言；保存失败时回滚 atom 并提示，保留原语言。 */
+  const handleLanguageChange = async (value: string): Promise<void> => {
+    if (!isAppLanguage(value)) return
+    const previous = languagePreference
+    setLanguagePreference(value)
+    try {
+      await updateLanguagePreference(value)
+    } catch (error) {
+      console.error('[通用设置] 更新语言失败:', error)
+      setLanguagePreference(previous)
+      toast.error(t('settings.general.language.saveFailed'))
     }
   }
 
@@ -189,8 +210,8 @@ export function GeneralSettings(): React.ReactElement {
     <div className="space-y-6">
       {/* 用户档案区域 */}
       <SettingsSection
-        title="用户档案"
-        description="设置你的头像和显示名称"
+        title={t('settings.general.sectionProfile')}
+        description={t('settings.general.sectionProfileDesc')}
       >
         <SettingsCard>
           <div className="flex items-center gap-5 px-4 py-4">
@@ -219,7 +240,7 @@ export function GeneralSettings(): React.ReactElement {
                 <Picker
                   data={data}
                   onEmojiSelect={(emoji: EmojiMartEmoji) => handleAvatarChange(emoji.native)}
-                  locale="zh"
+                  locale={resolvedLanguage === 'zh-CN' ? 'zh' : 'en'}
                   theme="auto"
                   previewPosition="none"
                   skinTonePosition="search"
@@ -235,7 +256,7 @@ export function GeneralSettings(): React.ReactElement {
                     )}
                   >
                     <ImagePlus className="size-4" />
-                    上传自定义图片
+                    {t('settings.general.uploadImage')}
                   </button>
                   <input
                     ref={fileInputRef}
@@ -276,7 +297,7 @@ export function GeneralSettings(): React.ReactElement {
                 </button>
               )}
               <p className="text-[12px] text-foreground/40 mt-0.5">
-                点击头像更换，点击名字编辑
+                {t('settings.general.profileEditHint')}
               </p>
             </div>
           </div>
@@ -285,37 +306,49 @@ export function GeneralSettings(): React.ReactElement {
 
       {/* 通用设置 */}
       <SettingsSection
-        title="通用设置"
-        description="应用的基本配置"
+        title={t('settings.general.sectionGeneral')}
+        description={t('settings.general.sectionGeneralDesc')}
       >
         <SettingsCard>
           <SettingsRow
-            label="语言"
-            description="更多语言支持即将推出"
+            label={t('settings.general.language.label')}
+            description={t('settings.general.language.description')}
           >
-            <span className="text-[13px] text-foreground/40">简体中文</span>
+            <Select
+              value={languagePreference}
+              onValueChange={(value) => { void handleLanguageChange(value) }}
+            >
+              <SelectTrigger className="w-[160px] h-8 text-[13px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="system">{t('settings.general.language.system')}</SelectItem>
+                <SelectItem value="zh-CN">{t('settings.general.language.zhCN')}</SelectItem>
+                <SelectItem value="en">{t('settings.general.language.en')}</SelectItem>
+              </SelectContent>
+            </Select>
           </SettingsRow>
           <SettingsToggle
-            label="Todo"
-            description="显示 Todo 入口，并允许 Agent 使用 Todo 相关工具"
+            label={t('settings.general.todo')}
+            description={t('settings.general.todoDesc')}
             checked={productivityTools.todosEnabled}
             onCheckedChange={(checked) => { void handleProductivityToolsChange({ todosEnabled: checked }) }}
           />
           <SettingsToggle
-            label="日程"
-            description="显示日程入口，并允许 Agent 使用日程相关工具"
+            label={t('settings.general.calendar')}
+            description={t('settings.general.calendarDesc')}
             checked={productivityTools.calendarEnabled}
             onCheckedChange={(checked) => { void handleProductivityToolsChange({ calendarEnabled: checked }) }}
           />
           <SettingsToggle
-            label="Obsidian"
-            description="显示 Obsidian 入口，并允许 Agent 使用已配置的 Vault"
+            label={t('settings.general.obsidian')}
+            description={t('settings.general.obsidianDesc')}
             checked={productivityTools.obsidianEnabled}
             onCheckedChange={(checked) => { void handleProductivityToolsChange({ obsidianEnabled: checked }) }}
           />
           <SettingsToggle
-            label="桌面通知"
-            description="Agent 完成任务或需要操作时发送通知"
+            label={t('settings.general.desktopNotifications')}
+            description={t('settings.general.desktopNotificationsDesc')}
             checked={notificationsEnabled}
             onCheckedChange={(checked) => {
               setNotificationsEnabled(checked)
@@ -323,8 +356,8 @@ export function GeneralSettings(): React.ReactElement {
             }}
           />
           <SettingsToggle
-            label="通知提示音"
-            description="阻塞操作（权限确认、问题回答、计划审批）触发时播放提示音"
+            label={t('settings.general.notificationSound')}
+            description={t('settings.general.notificationSoundDesc')}
             checked={notificationSoundEnabled}
             disabled={!notificationsEnabled}
             onCheckedChange={(checked) => {
@@ -344,8 +377,8 @@ export function GeneralSettings(): React.ReactElement {
             <div className="flex min-w-0 flex-1 items-start gap-2">
               <Volume2 className="mt-0.5 size-3.5 shrink-0" />
               <div className="min-w-0">
-                <p>音效与卡片插画来自 UI SFX，采用 CC0 公共领域许可。</p>
-                <p className="mt-0.5">Locus 非常喜欢这个音效库，并特别还原了一部分 UI SFX 的设计风格，推荐大家访问和使用他们的产品。</p>
+                <p>{t('settings.general.sfxNotice1')}</p>
+                <p className="mt-0.5">{t('settings.general.sfxNotice2')}</p>
               </div>
             </div>
             <a
@@ -354,14 +387,14 @@ export function GeneralSettings(): React.ReactElement {
               rel="noreferrer"
               className="inline-flex min-h-8 shrink-0 items-center gap-1 rounded-md px-2 text-foreground/70 transition-colors hover:bg-background hover:text-foreground"
             >
-              查看来源
+              {t('settings.general.sfxViewSource')}
               <ExternalLink className="size-3" />
             </a>
           </div>
           {isWindows && (
             <SettingsToggle
-              label="Agent 状态通知"
-              description="在任务栏托盘显示 Agent 运行状态，悬停查看会话详情"
+              label={t('settings.general.agentStatusNotification')}
+              description={t('settings.general.agentStatusNotificationDesc')}
               checked={agentIslandEnabled}
               disabled={!notificationsEnabled}
               onCheckedChange={(checked) => {
@@ -370,25 +403,25 @@ export function GeneralSettings(): React.ReactElement {
             />
           )}
           <SettingsRow
-            label="自动归档"
-            description="超过指定天数未更新的对话将自动归档（置顶对话除外）"
+            label={t('settings.general.autoArchive')}
+            description={t('settings.general.autoArchiveDesc')}
           >
             <Select value={String(archiveAfterDays)} onValueChange={handleArchiveDaysChange}>
               <SelectTrigger className="w-[120px] h-8 text-[13px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="0">禁用</SelectItem>
-                <SelectItem value="7">7 天</SelectItem>
-                <SelectItem value="14">14 天</SelectItem>
-                <SelectItem value="30">30 天</SelectItem>
-                <SelectItem value="60">60 天</SelectItem>
+                <SelectItem value="0">{t('settings.general.archiveDisabled')}</SelectItem>
+                <SelectItem value="7">{t('settings.general.archiveDays', { n: 7 })}</SelectItem>
+                <SelectItem value="14">{t('settings.general.archiveDays', { n: 14 })}</SelectItem>
+                <SelectItem value="30">{t('settings.general.archiveDays', { n: 30 })}</SelectItem>
+                <SelectItem value="60">{t('settings.general.archiveDays', { n: 60 })}</SelectItem>
               </SelectContent>
             </Select>
           </SettingsRow>
           <SettingsToggle
-            label="长文本粘贴转附件"
-            description="开启后，输入框粘贴超过 2000 字的文本会自动生成可预览编辑的附件"
+            label={t('settings.general.longTextPaste')}
+            description={t('settings.general.longTextPasteDesc')}
             checked={longTextPasteAsAttachmentEnabled}
             onCheckedChange={(checked) => {
               setLongTextPasteAsAttachmentEnabled(checked)
@@ -396,8 +429,8 @@ export function GeneralSettings(): React.ReactElement {
             }}
           />
           <SettingsToggle
-            label="输入框 Markdown 渲染"
-            description="开启后，输入框中的 Markdown 语法（如 **粗体**、# 标题）会实时渲染为富文本；关闭后为纯文本模式，保留 @ 引用等功能"
+            label={t('settings.general.markdownRender')}
+            description={t('settings.general.markdownRenderDesc')}
             checked={richTextRenderingEnabled}
             onCheckedChange={(checked) => {
               setRichTextRenderingEnabled(checked)
@@ -405,8 +438,8 @@ export function GeneralSettings(): React.ReactElement {
             }}
           />
           <SettingsToggle
-            label="会话悬浮预览"
-            description="鼠标悬停在左侧会话列表项上时，弹出会话内容迷你地图预览"
+            label={t('settings.general.hoverPreview')}
+            description={t('settings.general.hoverPreviewDesc')}
             checked={sessionHoverPreviewEnabled}
             onCheckedChange={(checked) => {
               setSessionHoverPreviewEnabled(checked)
@@ -415,8 +448,8 @@ export function GeneralSettings(): React.ReactElement {
           />
           {isMac && (
             <SettingsToggle
-              label="Agent 灵动岛"
-              description="在 macOS 刘海屏显示需要接手的 Agent 与 1 小时内的待办/日程"
+              label={t('settings.general.agentIsland')}
+              description={t('settings.general.agentIslandDesc')}
               checked={agentIslandEnabled}
               onCheckedChange={(checked) => {
                 void handleAgentIslandChange(checked)
@@ -424,8 +457,8 @@ export function GeneralSettings(): React.ReactElement {
             />
           )}
           <SettingsToggle
-            label="Git/PR 标识"
-            description="Agent 代你提交 commit 或创建 PR 时，附加 Made-with: Locus 与官网链接，便于推广；可随时关闭"
+            label={t('settings.general.gitAttribution')}
+            description={t('settings.general.gitAttributionDesc')}
             checked={gitAttributionEnabled}
             onCheckedChange={(checked) => {
               void handleGitAttributionChange(checked)
@@ -440,11 +473,18 @@ export function GeneralSettings(): React.ReactElement {
 
 // ===== SoundLibrary 内部组件 =====
 
-const SOUND_SCENES: Array<{ type: NotificationSoundType; label: string; shortLabel: string }> = [
-  { type: 'taskComplete', label: '任务完成', shortLabel: '完成' },
-  { type: 'permissionRequest', label: '权限审批', shortLabel: '权限' },
-  { type: 'exitPlanMode', label: '计划审批', shortLabel: '计划' },
-  { type: 'planningReminder', label: '日程提醒', shortLabel: '提醒' },
+/** 音效 pack ID（与 types 的 NotificationSoundPackId 同步，用于词典键类型收窄）。 */
+const SOUND_PACK_IDS = ['minimal', 'soft', 'glass', 'arcade', 'mechanical', 'organic', 'dreamy', 'scifi', 'rubber', 'cinematic', 'studio', 'zen'] as const
+type SoundPackId = typeof SOUND_PACK_IDS[number]
+function isSoundPackId(id: string): id is SoundPackId {
+  return (SOUND_PACK_IDS as readonly string[]).includes(id)
+}
+
+const SOUND_SCENES: Array<{ type: NotificationSoundType; labelKey: 'taskComplete' | 'permissionRequest' | 'exitPlanMode' | 'planningReminder'; shortLabelKey: 'taskCompleteShort' | 'permissionRequestShort' | 'exitPlanModeShort' | 'planningReminderShort' }> = [
+  { type: 'taskComplete', labelKey: 'taskComplete', shortLabelKey: 'taskCompleteShort' },
+  { type: 'permissionRequest', labelKey: 'permissionRequest', shortLabelKey: 'permissionRequestShort' },
+  { type: 'exitPlanMode', labelKey: 'exitPlanMode', shortLabelKey: 'exitPlanModeShort' },
+  { type: 'planningReminder', labelKey: 'planningReminder', shortLabelKey: 'planningReminderShort' },
 ]
 
 interface SoundLibraryProps {
@@ -455,6 +495,20 @@ interface SoundLibraryProps {
 
 /** 单一 UISFX 风格音效库：场景只切换当前配置，不重复渲染四套卡片。 */
 function SoundLibrary({ sounds, disabled, onSoundChange }: SoundLibraryProps): React.ReactElement {
+  const t = useT()
+  const sceneLabel = (type: NotificationSoundType): string => {
+    const key = SOUND_SCENES.find((scene) => scene.type === type)?.labelKey ?? 'taskComplete'
+    return t(`notifications.scenes.${key}`)
+  }
+  const sceneShortLabel = (type: NotificationSoundType): string => {
+    const key = SOUND_SCENES.find((scene) => scene.type === type)?.shortLabelKey ?? 'taskCompleteShort'
+    return t(`notifications.scenes.${key}`)
+  }
+  /** 音效 pack 的描述/适用场景走词典；'none' 等非 pack id 返回 null。 */
+  const soundPackText = (id: string, field: 'description' | 'bestFor'): string | null => {
+    if (!isSoundPackId(id)) return null
+    return t(`notifications.soundPacks.${id}.${field}`)
+  }
   const [activeType, setActiveType] = React.useState<NotificationSoundType>('taskComplete')
   const currentId = sounds[activeType] ?? DEFAULT_NOTIFICATION_SOUNDS[activeType]
   const currentPackId = currentId === 'none' ? undefined : getEffectiveSoundPackId(currentId)
@@ -468,8 +522,8 @@ function SoundLibrary({ sounds, disabled, onSoundChange }: SoundLibraryProps): R
     <div className={cn('border-t border-border/25 px-4 py-3', disabled && 'opacity-55')}>
       <div className="mb-2 flex items-center justify-between gap-3">
         <div>
-          <div className="text-sm font-semibold text-foreground">声音库</div>
-          <div className="mt-0.5 text-xs text-muted-foreground">选择一个通知场景，再为它挑选 feel</div>
+          <div className="text-sm font-semibold text-foreground">{t('notifications.library.title')}</div>
+          <div className="mt-0.5 text-xs text-muted-foreground">{t('notifications.library.description')}</div>
         </div>
         <a
           href="https://uisfx.com/#sound-library"
@@ -477,7 +531,7 @@ function SoundLibrary({ sounds, disabled, onSoundChange }: SoundLibraryProps): R
           rel="noreferrer"
           className="hidden min-h-8 items-center gap-1 rounded-md px-2 text-[11px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground sm:inline-flex"
         >
-          UI SFX 音效库
+          {t('notifications.library.uisfxLink')}
           <ExternalLink className="size-3" />
         </a>
       </div>
@@ -499,10 +553,10 @@ function SoundLibrary({ sounds, disabled, onSoundChange }: SoundLibraryProps): R
                 activeType === scene.type ? 'border-foreground bg-muted/55 text-foreground' : 'border-transparent text-muted-foreground hover:bg-muted/35 hover:text-foreground'
               )}
             >
-              <span className="truncate text-xs font-medium">{scene.label}</span>
+              <span className="truncate text-xs font-medium">{sceneLabel(scene.type)}</span>
               <span className="flex shrink-0 items-center gap-1 text-[10px] uppercase tracking-[0.08em] opacity-75">
                 <span className="size-1.5 rounded-full" style={{ backgroundColor: sceneSound?.color }} />
-                {sceneId === 'none' ? '关' : sceneSound?.label}
+                {sceneId === 'none' ? t('notifications.library.off') : sceneSound?.label}
               </span>
             </button>
           )
@@ -517,17 +571,17 @@ function SoundLibrary({ sounds, disabled, onSoundChange }: SoundLibraryProps): R
           </div>
           <div className="min-w-0">
             <div className="flex items-baseline gap-2">
-              <span className="truncate text-base font-semibold text-foreground">{activeScene.label} · {currentId === 'none' ? '已关闭' : selectedSound.label}</span>
+              <span className="truncate text-base font-semibold text-foreground">{sceneLabel(activeType)} · {currentId === 'none' ? t('notifications.library.offState') : selectedSound.label}</span>
               <span className="hidden shrink-0 text-[10px] uppercase tracking-[0.12em] text-muted-foreground sm:inline">{selectedSound.duration} S · ONE-SHOT</span>
             </div>
-            <p className="mt-1 truncate text-xs text-muted-foreground">{selectedSound.description}</p>
+            <p className="mt-1 truncate text-xs text-muted-foreground">{selectedSound ? soundPackText(selectedSound.id, 'description') : ''}</p>
             <Waveform color={selectedSound.color} />
           </div>
           <button
             type="button"
             disabled={disabled || currentId === 'none'}
-            aria-label={`试听${activeScene.label}`}
-            title={`试听${activeScene.label}`}
+            aria-label={t('notifications.library.preview', { name: sceneLabel(activeType) })}
+            title={t('notifications.library.preview', { name: sceneLabel(activeType) })}
             onClick={() => { void playNotificationSound(currentId, activeType) }}
             className="inline-flex size-9 items-center justify-center rounded-full bg-foreground text-background transition-[transform,opacity] hover:scale-105 active:scale-[0.96] disabled:opacity-35"
           >
@@ -560,14 +614,14 @@ function SoundLibrary({ sounds, disabled, onSoundChange }: SoundLibraryProps): R
                       <span className="truncate text-xs font-medium text-foreground">{sound.label}</span>
                       <span className="size-1.5 shrink-0 rounded-full" style={{ backgroundColor: sound.color }} />
                     </span>
-                    <span className="truncate text-[10px] leading-4 text-muted-foreground">{sound.description}</span>
+                    <span className="truncate text-[10px] leading-4 text-muted-foreground">{soundPackText(sound.id, 'bestFor')}</span>
                   </span>
                 </button>
                 <button
                   type="button"
                   disabled={disabled}
-                  aria-label={`试听 ${sound.label}`}
-                  title={`试听 ${sound.label}`}
+                  aria-label={t('notifications.library.preview', { name: sound.label })}
+                  title={t('notifications.library.preview', { name: sound.label })}
                   onClick={() => { void playNotificationSound(sound.id, activeType) }}
                   className="absolute bottom-1.5 right-1.5 inline-flex size-6 items-center justify-center rounded-full bg-foreground/90 text-background transition-[transform,opacity] hover:scale-105 active:scale-[0.96] disabled:opacity-35"
                 >
@@ -585,7 +639,7 @@ function SoundLibrary({ sounds, disabled, onSoundChange }: SoundLibraryProps): R
           className="inline-flex min-h-8 items-center gap-1.5 px-3 text-xs text-muted-foreground transition-colors hover:bg-muted/45 hover:text-foreground active:scale-[0.96]"
         >
           <Volume2 className="size-3.5" />
-          {currentId === 'none' ? '恢复默认音效' : '关闭此场景音效'}
+          {currentId === 'none' ? t('notifications.library.restoreDefault') : t('notifications.library.disableScene')}
         </button>
       </div>
     </div>

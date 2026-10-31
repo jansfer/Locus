@@ -5,6 +5,7 @@
  */
 
 import type { EnvironmentCheckResult, ThinkingConfig, AgentEffort, AgentThinkingLevel, FeishuSessionMirrorSettings, TerminalProfile, WindowsShellPreference } from '@proma/shared'
+import type { AppLanguage } from '../i18n/types'
 
 /** 通知音场景类型 */
 export type NotificationSoundType = 'taskComplete' | 'permissionRequest' | 'exitPlanMode' | 'planningReminder'
@@ -299,6 +300,8 @@ export interface AppSettings {
   themeMode: ThemeMode
   /** 特殊风格主题 */
   themeStyle?: ThemeStyle
+  /** 界面语言；缺省或 'system' 表示跟随操作系统（中文系统用简体中文，其他用英文）。 */
+  language?: AppLanguage
   /** Agent 默认渠道 ID（由当前 Agent Core 解释） — 当前选中的渠道 */
   agentChannelId?: string
   /** Agent 默认模型 ID */
@@ -414,6 +417,8 @@ export const SETTINGS_IPC_CHANNELS = {
   ON_SYSTEM_THEME_CHANGED: 'settings:system-theme-changed',
   /** 用户手动切换主题时广播给所有窗口 */
   ON_THEME_SETTINGS_CHANGED: 'settings:theme-settings-changed',
+  /** 用户手动切换语言时广播给所有窗口 */
+  ON_LANGUAGE_SETTINGS_CHANGED: 'settings:language-settings-changed',
 } as const
 
 /** Scratch Pad IPC 通道 */

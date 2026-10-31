@@ -9,6 +9,7 @@ import type {
   SDKAssistantMessage,
   SDKMessage,
 } from '@proma/shared'
+import { t } from '../../i18n'
 
 interface AutomationNotificationCardPayload {
   automation: Automation
@@ -43,30 +44,30 @@ export function extractAssistantText(messages: SDKMessage[]): string {
 }
 
 function formatDuration(ms?: number): string {
-  if (!ms || ms < 0) return '未知'
-  if (ms < 60_000) return `${(ms / 1000).toFixed(1)} 秒`
-  return `${Math.round(ms / 60_000)} 分钟`
+  if (!ms || ms < 0) return t('automation.notification.durationUnknown')
+  if (ms < 60_000) return t('automation.notification.durationSeconds', { n: (ms / 1000).toFixed(1) })
+  return t('automation.notification.durationMinutes', { n: Math.round(ms / 60_000) })
 }
 
 function truncate(text: string, maxLength: number): string {
   if (text.length <= maxLength) return text
-  return `${text.slice(0, maxLength)}\n\n... [内容过长，请在 Locus 中查看完整会话]`
+  return `${text.slice(0, maxLength)}${t('automation.notification.truncatedSuffix')}`
 }
 
 export function buildAutomationFeishuCard(payload: AutomationNotificationCardPayload): Record<string, unknown> {
   const { automation, run } = payload
   const success = run.status === 'success'
-  const title = success ? '定时任务已完成' : '定时任务失败'
+  const title = success ? t('automation.notification.completedTitle') : t('automation.notification.failedTitle')
   const template = success ? 'green' : 'red'
-  const statusLine = success ? '完成' : '失败'
-  const fallback = success ? 'Agent 已完成（无文本输出）' : '没有错误详情'
+  const statusLine = success ? t('automation.notification.successStatus') : t('automation.notification.failedStatus')
+  const fallback = success ? t('automation.notification.noOutput') : t('automation.notification.noErrorDetail')
 
   const lines = [
-    `**任务**: ${automation.name}`,
-    `**状态**: ${statusLine}`,
-    run.catchUp ? '**触发**: 启动补跑（应用未运行期间错过的任务）' : '',
-    `**耗时**: ${formatDuration(run.durationMs)}`,
-    run.sessionId ? `**会话 ID**: ${run.sessionId}` : '',
+    t('automation.notification.fieldTask', { name: automation.name }),
+    t('automation.notification.fieldStatus', { status: statusLine }),
+    run.catchUp ? t('automation.notification.fieldCatchUp') : '',
+    t('automation.notification.fieldDuration', { duration: formatDuration(run.durationMs) }),
+    run.sessionId ? t('automation.notification.fieldSessionId', { id: run.sessionId }) : '',
     '',
     truncate(payload.summary.trim() || fallback, 12000),
   ].filter(Boolean)

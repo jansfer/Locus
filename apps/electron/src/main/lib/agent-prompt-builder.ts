@@ -10,6 +10,7 @@ import { join, resolve } from 'node:path'
 import { getUserProfile } from './user-profile-service'
 import { getAgentWorkspaceBySlug, getProjectFilesPath, getWorkspaceMcpConfig, type WorkspaceMemoryGuidance } from './agent-workspace-manager'
 import { getConfigDirName } from './config-paths'
+import { getI18nLanguage, t } from '../../i18n'
 import { buildGitAttributionPromptSection, isGitAttributionEnabled } from './agent-git-attribution'
 import { getSettings } from './settings-service'
 import { hasRootProjectAgentsInstruction, type ProjectInstructionManifest } from './project-instruction-resolver'
@@ -125,7 +126,7 @@ export function buildSystemPrompt(ctx: SystemPromptContext): string {
 
   const sections = [
     `# Locus Agent
-你是由 Pi Agent SDK 驱动的 Locus Agent，协助用户 ${userName}。优先中文，直接解决明确目标；低风险、可验证操作直接执行。涉及不可逆删除、外部发送/发布、付费或安全边界变化时先确认。`,
+你是由 Pi Agent SDK 驱动的 Locus Agent，协助用户 ${userName}。直接解决明确目标；低风险、可验证操作直接执行。涉及不可逆删除、外部发送/发布、付费或安全边界变化时先确认。${t('prompts.defaultReplyInstruction')}`,
     `## Pi 运行时
 使用 Locus 提供的工具；Write 必须同时传入完整 \`path\` 与 \`content\`。附加目录可用其绝对路径访问。${modelRule}`,
     `## 可见终端
@@ -236,6 +237,10 @@ export function buildDynamicContext(ctx: DynamicContext): string {
     timeZoneName: 'short',
   })
   sections.push(`**当前时间: ${timeStr}**`)
+
+  // 每次发送都注入有效界面语言，保证语言切换后新会话/恢复会话的下一次回复即采用新语言，
+  // 且 Automation / Collaboration / Bridge 等 headless 路径同样覆盖。
+  sections.push(`<response_language>\n${t('prompts.responseLanguage')}（${getI18nLanguage()}）\n</response_language>`)
 
   if (ctx.workspaceSlug) {
     const workspaceLines: string[] = []

@@ -22,6 +22,10 @@ import {
   initializeTheme,
 } from './atoms/theme'
 import {
+  languagePreferenceAtom,
+  initializeLanguage,
+} from './atoms/language'
+import {
   agentChannelIdAtom,
   agentModelIdAtom,
   agentWorkspacesAtom,
@@ -156,6 +160,37 @@ function ThemeInitializer(): null {
     applyThemeToDOM(themeMode, themeStyle, systemIsDark)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [themeSignature])
+
+  return null
+}
+
+/**
+ * 语言初始化组件
+ *
+ * 负责从主进程加载语言偏好、监听跨窗口语言变更，
+ * 并把解析后的有效语言同步到 i18n 模块。
+ */
+function LanguageInitializer(): null {
+  const setPreference = useSetAtom(languagePreferenceAtom)
+
+  useEffect(() => {
+    let isMounted = true
+    let cleanup: (() => void) | undefined
+
+    initializeLanguage(setPreference).then((fn) => {
+      if (isMounted) {
+        cleanup = fn
+      } else {
+        // 组件已卸载（StrictMode 场景），立即清理监听器
+        fn()
+      }
+    })
+
+    return () => {
+      isMounted = false
+      cleanup?.()
+    }
+  }, [setPreference])
 
   return null
 }
@@ -1031,6 +1066,7 @@ if (isQuickTaskWindow) {
     ReactDOM.createRoot(document.getElementById('root')!).render(
       <React.StrictMode>
         <ThemeInitializer />
+        <LanguageInitializer />
         <QuickTaskApp />
       </React.StrictMode>
     )
@@ -1040,6 +1076,7 @@ if (isQuickTaskWindow) {
     ReactDOM.createRoot(document.getElementById('root')!).render(
       <React.StrictMode>
         <ThemeInitializer />
+        <LanguageInitializer />
         <VoiceDictationIndicatorApp />
       </React.StrictMode>
     )
@@ -1049,6 +1086,7 @@ if (isQuickTaskWindow) {
     ReactDOM.createRoot(document.getElementById('root')!).render(
       <React.StrictMode>
         <ThemeInitializer />
+        <LanguageInitializer />
         <MarkdownFontSizeInitializer />
         <DetachedPreviewApp />
         <Toaster position="top-right" offset={{ top: 58, right: 12 }} />
@@ -1060,6 +1098,7 @@ if (isQuickTaskWindow) {
     ReactDOM.createRoot(document.getElementById('root')!).render(
       <React.StrictMode>
         <ThemeInitializer />
+        <LanguageInitializer />
         <WorkspaceMemoryWindowApp />
         <Toaster position="top-right" offset={{ top: 58, right: 12 }} />
       </React.StrictMode>
@@ -1070,6 +1109,7 @@ if (isQuickTaskWindow) {
     ReactDOM.createRoot(document.getElementById('root')!).render(
       <React.StrictMode>
         <ThemeInitializer />
+        <LanguageInitializer />
         <HoverPanel />
       </React.StrictMode>
     )
@@ -1079,6 +1119,7 @@ if (isQuickTaskWindow) {
   ReactDOM.createRoot(document.getElementById('root')!).render(
     <React.StrictMode>
       <ThemeInitializer />
+      <LanguageInitializer />
       <AgentSettingsInitializer />
       <NotificationsInitializer />
       <DockBadgeInitializer />

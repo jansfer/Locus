@@ -9,6 +9,7 @@ import { BrowserWindow, Notification } from 'electron'
 import { claimDuePlanningReminders } from './planning-manager'
 import { getSettings } from './settings-service'
 import { broadcastPlanningChanged, broadcastPlanningRemindersDue } from './planning-events'
+import { t } from '../../i18n'
 import type { ActivePlanningReminder } from '@proma/shared'
 
 const POLL_INTERVAL_MS = 30_000
@@ -20,7 +21,7 @@ function showPlanningSystemNotification(reminder: ActivePlanningReminder): void 
   if (!getSettings().notificationsEnabled || !Notification.isSupported()) return
 
   const notification = new Notification({
-    title: reminder.targetType === 'todo' ? 'Todo 提醒' : '日程提醒',
+    title: reminder.targetType === 'todo' ? t('planning.reminder.todoTitle') : t('planning.reminder.eventTitle'),
     body: reminder.targetTitle,
     silent: true,
   })

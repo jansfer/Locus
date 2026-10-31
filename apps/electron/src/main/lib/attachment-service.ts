@@ -14,6 +14,7 @@ import { readFileSync, writeFileSync, unlinkSync, existsSync, rmSync, statSync }
 import { extname, basename, join, isAbsolute, normalize } from 'node:path'
 import { randomUUID } from 'node:crypto'
 import { dialog, BrowserWindow } from 'electron'
+import { t } from '../../i18n'
 import {
   getConfigDir,
   getConversationAttachmentsDir,
@@ -266,13 +267,13 @@ function readDialogFiles(
           mediaType,
           path: filePath,
           reason: 'unreadable',
-          message: '不是普通文件',
+          message: t('files.notRegularFile'),
         })
         continue
       }
       fileSize = fileStat.size
     } catch (error) {
-      const message = error instanceof Error ? error.message : '无法获取文件大小'
+      const message = error instanceof Error ? error.message : t('files.statFailed')
       console.warn(`[附件服务] 无法获取文件大小，跳过: ${filePath}`, error)
       skippedFiles.push({ filename, mediaType, path: filePath, reason: 'unreadable', message })
       continue
@@ -297,7 +298,7 @@ function readDialogFiles(
         size: buffer.length,
       })
     } catch (error) {
-      const message = error instanceof Error ? error.message : '读取文件失败'
+      const message = error instanceof Error ? error.message : t('files.readFailed')
       console.warn(`[附件服务] 读取文件失败，跳过: ${filePath}`, error)
       skippedFiles.push({ filename, mediaType, size: fileSize, path: filePath, reason: 'unreadable', message })
     }
@@ -350,9 +351,9 @@ export async function openFileOrFolderDialog(): Promise<FileOrFolderDialogResult
   if (process.platform === 'win32' || process.platform === 'linux') {
     const choiceOptions: Electron.MessageBoxOptions = {
       type: 'question',
-      title: '附加文件或文件夹',
-      message: '请选择要附加的内容类型',
-      buttons: ['文件', '文件夹', '取消'],
+      title: t('files.attachDialog.title'),
+      message: t('files.attachDialog.message'),
+      buttons: [t('files.attachDialog.file'), t('files.attachDialog.folder'), t('common.cancel')],
       defaultId: 0,
       cancelId: 2,
       noLink: true,
@@ -363,12 +364,12 @@ export async function openFileOrFolderDialog(): Promise<FileOrFolderDialogResult
     if (choice.response === 2) return { files: [], directories: [] }
 
     dialogOptions = choice.response === 0
-      ? { properties: ['openFile', 'multiSelections'], filters: FILE_FILTERS, title: '附加文件' }
-      : { properties: ['openDirectory', 'multiSelections'], title: '附加文件夹' }
+      ? { properties: ['openFile', 'multiSelections'], filters: FILE_FILTERS, title: t('files.attachDialog.file') }
+      : { properties: ['openDirectory', 'multiSelections'], title: t('files.attachDialog.folder') }
   } else {
     dialogOptions = {
       properties: ['openFile', 'openDirectory', 'multiSelections'],
-      title: '附加文件或文件夹',
+      title: t('files.attachDialog.title'),
     }
   }
 

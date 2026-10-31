@@ -1,0 +1,37 @@
+/** notifications 域文案（简体中文）。通知场景与音效库。 */
+export const notifications = {
+  scenes: {
+    taskComplete: '任务完成',
+    taskCompleteShort: '完成',
+    permissionRequest: '权限审批',
+    permissionRequestShort: '权限',
+    exitPlanMode: '计划审批',
+    exitPlanModeShort: '计划',
+    planningReminder: '日程提醒',
+    planningReminderShort: '提醒',
+  },
+  library: {
+    title: '声音库',
+    description: '选择一个通知场景，再为它挑选 feel',
+    uisfxLink: 'UI SFX 音效库',
+    off: '关',
+    offState: '已关闭',
+    preview: '试听{name}',
+    restoreDefault: '恢复默认音效',
+    disableScene: '关闭此场景音效',
+  },
+  soundPacks: {
+    minimal: { description: '干净、精准，几乎隐形', bestFor: '生产力与系统 UI' },
+    soft: { description: '圆润、温和，让人安心', bestFor: '友好的日常工作流' },
+    glass: { description: '明亮、晶莹，带一点高级感', bestFor: '清晰的状态反馈' },
+    arcade: { description: '像素感、轻快，带一点庆祝', bestFor: '高反馈密度的任务' },
+    mechanical: { description: '开关、继电器和确定的段落感', bestFor: '开发工具与自动化' },
+    organic: { description: '木头、水和小石子的自然触感', bestFor: '温和而有记忆点的反馈' },
+    dreamy: { description: '空气感、绽放感和慢速闪烁', bestFor: '长时间专注场景' },
+    scifi: { description: '克制的全息提示和数字光泽', bestFor: 'AI 与未来感界面' },
+    rubber: { description: '有弹性的轻触和友好回弹', bestFor: '轻松、亲切的交互' },
+    cinematic: { description: '深沉的冲击和精致的尾音', bestFor: '重要结果与完成状态' },
+    studio: { description: '有触感的精准，温暖而克制', bestFor: '创作与 AI 工作台' },
+    zen: { description: '纸张、木头与安静的钟声', bestFor: '阅读、规划与专注' },
+  },
+} as const

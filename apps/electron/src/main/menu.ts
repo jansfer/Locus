@@ -1,4 +1,5 @@
 import { Menu, shell, BrowserWindow } from 'electron'
+import { t } from '../i18n'
 
 export function createApplicationMenu(): Menu {
   const isMac = process.platform === 'darwin'
@@ -9,6 +10,8 @@ export function createApplicationMenu(): Menu {
    * 大部分快捷键由渲染进程的 shortcut-registry 统一管理。
    * 但 Cmd+W 需要在菜单中拦截（否则 macOS 默认关闭窗口），
    * 改为通知渲染进程关闭当前标签页。
+   *
+   * 菜单文案使用当前有效语言；语言切换时主进程会重建应用菜单。
    */
 
   /**
@@ -35,15 +38,15 @@ export function createApplicationMenu(): Menu {
           {
             label: 'Locus',
             submenu: [
-              { role: 'about' as const, label: '关于 Locus' },
+              { role: 'about' as const, label: t('menu.app.about') },
               { type: 'separator' as const },
-              { role: 'services' as const, label: '服务' },
+              { role: 'services' as const, label: t('menu.app.services') },
               { type: 'separator' as const },
-              { role: 'hide' as const, label: '隐藏 Locus' },
-              { role: 'hideOthers' as const, label: '隐藏其他' },
-              { role: 'unhide' as const, label: '显示全部' },
+              { role: 'hide' as const, label: t('menu.app.hide') },
+              { role: 'hideOthers' as const, label: t('menu.app.hideOthers') },
+              { role: 'unhide' as const, label: t('menu.app.unhide') },
               { type: 'separator' as const },
-              { role: 'quit' as const, label: '退出 Locus' },
+              { role: 'quit' as const, label: t('menu.app.quit') },
             ],
           },
         ]
@@ -51,11 +54,11 @@ export function createApplicationMenu(): Menu {
 
     // 文件菜单
     {
-      label: '文件',
+      label: t('menu.file.label'),
       submenu: [
         // Cmd+W / Ctrl+W：主窗口关闭当前标签页；独立记忆窗口关闭自身。
         {
-          label: '关闭标签页',
+          label: t('menu.file.closeTab'),
           accelerator: 'CmdOrCtrl+W',
           click: () => {
             const win = BrowserWindow.getFocusedWindow()
@@ -75,76 +78,76 @@ export function createApplicationMenu(): Menu {
             win.webContents.send('menu:close-tab')
           },
         },
-        ...(isMac ? [] : [{ type: 'separator' as const }, { role: 'quit' as const, label: '退出' }]),
+        ...(isMac ? [] : [{ type: 'separator' as const }, { role: 'quit' as const, label: t('menu.quit') }]),
       ],
     },
 
     // 编辑菜单
     {
-      label: '编辑',
+      label: t('menu.edit.label'),
       submenu: [
-        { role: 'undo' as const, label: '撤销' },
-        { role: 'redo' as const, label: '重做' },
+        { role: 'undo' as const, label: t('menu.edit.undo') },
+        { role: 'redo' as const, label: t('menu.edit.redo') },
         { type: 'separator' as const },
-        { role: 'cut' as const, label: '剪切' },
-        { role: 'copy' as const, label: '复制' },
-        { role: 'paste' as const, label: '粘贴' },
+        { role: 'cut' as const, label: t('common.cut') },
+        { role: 'copy' as const, label: t('common.copy') },
+        { role: 'paste' as const, label: t('common.paste') },
         ...(isMac
           ? [
-              { role: 'pasteAndMatchStyle' as const, label: '粘贴并匹配样式' },
-              { role: 'delete' as const, label: '删除' },
-              { role: 'selectAll' as const, label: '全选' },
+              { role: 'pasteAndMatchStyle' as const, label: t('menu.edit.pasteAndMatchStyle') },
+              { role: 'delete' as const, label: t('menu.edit.delete') },
+              { role: 'selectAll' as const, label: t('menu.edit.selectAll') },
             ]
-          : [{ role: 'delete' as const, label: '删除' }, { type: 'separator' as const }, { role: 'selectAll' as const, label: '全选' }]),
+          : [{ role: 'delete' as const, label: t('menu.edit.delete') }, { type: 'separator' as const }, { role: 'selectAll' as const, label: t('menu.edit.selectAll') }]),
       ],
     },
 
     // 视图菜单
     {
-      label: '视图',
+      label: t('menu.view.label'),
       submenu: [
         {
-          label: '重新加载',
+          label: t('menu.view.reload'),
           click: () => reloadFocusedWindow(),
         },
         {
-          label: '强制重新加载',
+          label: t('menu.view.forceReload'),
           click: () => reloadFocusedWindow(true),
         },
-        { role: 'toggleDevTools' as const, label: '切换开发者工具' },
+        { role: 'toggleDevTools' as const, label: t('menu.view.toggleDevTools') },
         { type: 'separator' as const },
-        { role: 'resetZoom' as const, label: '重置缩放' },
-        { role: 'zoomIn' as const, label: '放大' },
-        { role: 'zoomOut' as const, label: '缩小' },
+        { role: 'resetZoom' as const, label: t('menu.view.resetZoom') },
+        { role: 'zoomIn' as const, label: t('menu.view.zoomIn') },
+        { role: 'zoomOut' as const, label: t('menu.view.zoomOut') },
         { type: 'separator' as const },
-        { role: 'togglefullscreen' as const, label: '切换全屏' },
+        { role: 'togglefullscreen' as const, label: t('menu.view.toggleFullScreen') },
       ],
     },
 
     // 窗口菜单
     {
-      label: '窗口',
+      label: t('menu.window.label'),
       submenu: [
-        { role: 'minimize' as const, label: '最小化' },
-        { role: 'zoom' as const, label: '缩放' },
+        { role: 'minimize' as const, label: t('menu.window.minimize') },
+        { role: 'zoom' as const, label: t('menu.window.zoom') },
         ...(isMac
           ? [
               { type: 'separator' as const },
-              { role: 'front' as const, label: '前置全部窗口' },
+              { role: 'front' as const, label: t('menu.window.front') },
               { type: 'separator' as const },
-              { role: 'window' as const, label: '窗口' },
+              { role: 'window' as const, label: t('menu.window.window') },
             ]
-          : [{ role: 'close' as const, label: '关闭' }]),
+          : [{ role: 'close' as const, label: t('menu.window.close') }]),
       ],
     },
 
     // 帮助菜单
     {
-      label: '帮助',
+      label: t('menu.help.label'),
       role: 'help' as const,
       submenu: [
         {
-          label: '了解更多',
+          label: t('menu.help.learnMore'),
           click: async () => {
             await shell.openExternal('https://github.com/yourusername/proma')
           },

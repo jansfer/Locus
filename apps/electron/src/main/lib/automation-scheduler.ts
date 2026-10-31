@@ -70,32 +70,42 @@ function isSameLocalDay(a: number, b: number): boolean {
   )
 }
 
+import { currentLocaleTag, formatDate, t } from '../../i18n'
+
 function formatWeekdays(days?: number[]): string {
   const normalized = [...new Set(days ?? [])].sort((a, b) => a - b)
-  if (normalized.length === 0) return '每天'
-  if (normalized.join(',') === '1,2,3,4,5') return '工作日'
-  if (normalized.join(',') === '0,6') return '周末'
-  const names = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
-  return normalized.map((day) => names[day] ?? '').join('、')
+  if (normalized.length === 0) return t('automation.schedule.everyday')
+  if (normalized.join(',') === '1,2,3,4,5') return t('automation.schedule.workdays')
+  if (normalized.join(',') === '0,6') return t('automation.schedule.weekend')
+  // 星期名用 Intl 按当前语言生成，避免在词典里维护数组。
+  const base = new Date(2024, 0, 7) // 2024-01-07 是周日
+  const formatter = new Intl.DateTimeFormat(currentLocaleTag(), { weekday: 'short' })
+  return normalized.map((day) => formatter.format(new Date(base.getTime() + day * 86_400_000))).join('、')
 }
 
 function formatScheduleLabel(a: Automation): string {
   if (a.scheduleType === 'once') {
     const when = a.scheduledAt
-      ? new Date(a.scheduledAt).toLocaleString('zh-CN', {
+      ? formatDate(a.scheduledAt, {
           month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit',
         })
-      : '指定时间'
-    return `仅运行一次（${when}）`
+      : t('automation.schedule.unspecifiedTime')
+    return t('automation.schedule.once', { when })
   }
-  if (a.scheduleType === 'daily') return `每天 ${a.timeOfDay ?? '09:00'}`
+  if (a.scheduleType === 'daily') return t('automation.schedule.daily', { time: a.timeOfDay ?? '09:00' })
   if (a.scheduleType === 'weekly') {
-    const names = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
-    return `每${names[a.dayOfWeek ?? 1]} ${a.timeOfDay ?? '09:00'}`
+    // 2024-01-07 是周日；按偏移取对应星期的 Intl 本地名。
+    const base = new Date(2024, 0, 7)
+    const name = new Intl.DateTimeFormat(currentLocaleTag(), { weekday: 'short' }).format(new Date(base.getTime() + (a.dayOfWeek ?? 1) * 86_400_000))
+    return t('automation.schedule.weekly', { name, time: a.timeOfDay ?? '09:00' })
   }
-  if (a.scheduleType === 'monthly') return `每月 ${a.dayOfMonth ?? 1} 号 ${a.timeOfDay ?? '09:00'}`
+  if (a.scheduleType === 'monthly') return t('automation.schedule.monthly', { day: a.dayOfMonth ?? 1, time: a.timeOfDay ?? '09:00' })
   const min = a.intervalMinutes
-  const intervalLabel = min < 60 ? `每 ${min} 分钟` : min < 1440 ? `每 ${min / 60} 小时` : `每 ${min / 1440} 天`
+  const intervalLabel = min < 60
+    ? t('automation.schedule.interval', { n: min, unit: t('automation.schedule.unitMinutes') })
+    : min < 1440
+      ? t('automation.schedule.interval', { n: min / 60, unit: t('automation.schedule.unitHours') })
+      : t('automation.schedule.interval', { n: min / 1440, unit: t('automation.schedule.unitDays') })
   const weekdayLabel = a.activeWeekdays && a.activeWeekdays.length > 0 ? `，${formatWeekdays(a.activeWeekdays)}` : ''
   const windowLabel = a.activeWindowStart && a.activeWindowEnd ? `，${a.activeWindowStart}–${a.activeWindowEnd}` : ''
   return `${intervalLabel}${weekdayLabel}${windowLabel}`

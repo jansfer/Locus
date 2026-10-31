@@ -4,7 +4,7 @@
  * 负责注册主进程和渲染进程之间的通信处理器
  */
 
-import { ipcMain, nativeTheme, shell, dialog, BrowserWindow, app, clipboard, nativeImage } from 'electron'
+import { ipcMain, nativeTheme, shell, dialog, BrowserWindow, app, clipboard, nativeImage, Menu } from 'electron'
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { existsSync, realpathSync, readFileSync, writeFileSync, mkdirSync, statSync } from 'node:fs'
 import { realpath, stat, writeFile } from 'node:fs/promises'
@@ -223,6 +223,8 @@ import {
 import { extractTextFromAttachment } from './lib/document-parser'
 import { getUserProfile, updateUserProfile } from './lib/user-profile-service'
 import { getSettings, updateSettings } from './lib/settings-service'
+import { resolveLanguage, setI18nLanguage } from '../i18n'
+import { createApplicationMenu } from './menu'
 import { refreshAgentIslandConfiguration, markAgentIslandSessionViewed } from './lib/agent-island-service'
 import { getAgentStatusHoverWindow } from './agent-status-hover-window'
 import { setDockBadgeCount } from './lib/dock-badge-service'
@@ -2233,6 +2235,21 @@ export function registerIpcHandlers(): void {
       }
       if (updates.agentIsland !== undefined) {
         refreshAgentIslandConfiguration()
+      }
+
+      // 界面语言变化时：应用主进程侧语言（菜单、托盘、通知文案）并广播到所有窗口。
+      if (updates.language !== undefined) {
+        const effective = resolveLanguage(result.language, app.getLocale())
+        setI18nLanguage(effective)
+        // 托盘菜单在每次交互时重建，这里同步重建应用菜单即可即时生效。
+        Menu.setApplicationMenu(createApplicationMenu())
+        const payload = { language: result.language ?? 'system' }
+        BrowserWindow.getAllWindows().forEach((win) => {
+          // 跳过发起者窗口，避免重复应用
+          if (win.webContents.id !== event.sender.id) {
+            win.webContents.send(SETTINGS_IPC_CHANNELS.ON_LANGUAGE_SETTINGS_CHANGED, payload)
+          }
+        })
       }
 
       // 主题相关设置变化时，广播给所有窗口（跨窗口同步，如 Quick Task 面板）

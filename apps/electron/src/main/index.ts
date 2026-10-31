@@ -52,6 +52,7 @@ function registerProtocolsAndHandlers(): void {
 
 
 import { getSettings, updateSettings } from './lib/settings-service'
+import { resolveLanguage, setI18nLanguage, t } from '../i18n'
 import { handlePromaFileRequest } from './lib/local-file-protocol'
 
 // 处理 EPIPE 错误：当 stdout/stderr 管道被关闭时（如 electronmon 重启），忽略写入错误
@@ -737,6 +738,10 @@ async function bootstrap(): Promise<void> {
   // 升级所有工作区中版本过旧的默认 Skills
   safeRun('upgradeDefaultSkillsInWorkspaces', upgradeDefaultSkillsInWorkspaces)
 
+  // 初始化主进程侧界面语言：菜单、托盘、通知等文案按设置解析。
+  // 必须在创建菜单前执行，避免启动闪现错误语言。
+  setI18nLanguage(resolveLanguage(getSettings().language, app.getLocale()))
+
   // Create application menu
   const menu = createApplicationMenu()
   Menu.setApplicationMenu(menu)
@@ -909,14 +914,14 @@ function handleBootstrapFailure(err: unknown): void {
   try {
     const message = err instanceof Error ? (err.stack ?? err.message) : String(err)
     dialog.showErrorBox(
-      'Locus 启动遇到错误',
-      `部分功能可能不可用：\n\n${message}\n\n` +
-        `日志位置：${app.getPath('logs')}\n\n` +
-        `常见原因与排查：\n` +
-        `1. 旧版 Locus 进程未退出（终端运行 killall Locus 后重试）\n` +
-        `2. ~/.proma/ 配置损坏（重命名 ~/.proma 后重启）\n` +
-        `3. 系统 Keychain 无法解密保存的凭证（删除 ~/.proma/feishu.json 等后重新登录）\n\n` +
-        `如需协助请到 GitHub Issues 反馈。`,
+      t('updater.bootstrapError.title'),
+      `${t('updater.bootstrapError.intro')}\n\n${message}\n\n` +
+        `${t('updater.bootstrapError.logLocation')}${app.getPath('logs')}\n\n` +
+        `${t('updater.bootstrapError.causesTitle')}\n` +
+        `${t('updater.bootstrapError.cause1')}\n` +
+        `${t('updater.bootstrapError.cause2')}\n` +
+        `${t('updater.bootstrapError.cause3')}\n\n` +
+        `${t('updater.bootstrapError.feedback')}`,
     )
   } catch {
     /* dialog 也失败，无能为力 */
