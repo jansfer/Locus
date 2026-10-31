@@ -28,6 +28,8 @@ import {
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ShortcutKeycaps } from "@/components/shortcuts/ShortcutKeycaps";
+import { useT } from "@/i18n";
+import type { MessageKey } from "@/i18n";
 import {
   settingsTabAtom,
   channelFormDirtyAtom,
@@ -69,46 +71,47 @@ import { useOpenSession } from '@/hooks/useOpenSession'
 /** 设置 Tab 定义 */
 interface TabItem {
   id: SettingsTab;
-  label: string;
+  /** 导航名称的文案键，渲染处用 t() 翻译 */
+  labelKey: MessageKey;
   icon: React.ReactNode;
 }
 
 /** 基础 Tabs（所有模式都有） */
 const BASE_TABS: TabItem[] = [
-  { id: "general", label: "通用设置", icon: <Settings size={16} /> },
-  { id: "channels", label: "模型配置", icon: <Radio size={16} /> },
-  { id: "vision-relay", label: "视觉助手", icon: <Eye size={16} /> },
-  { id: "prompts", label: "提示词管理", icon: <BookOpen size={16} /> },
-  { id: "proxy", label: "代理设置", icon: <Globe size={16} /> },
+  { id: "general", labelKey: "settings.general.sectionGeneral", icon: <Settings size={16} /> },
+  { id: "channels", labelKey: "settings.nav.channels", icon: <Radio size={16} /> },
+  { id: "vision-relay", labelKey: "settings.nav.visionRelay", icon: <Eye size={16} /> },
+  { id: "prompts", labelKey: "settings.nav.prompts", icon: <BookOpen size={16} /> },
+  { id: "proxy", labelKey: "settings.nav.proxy", icon: <Globe size={16} /> },
 ];
 
 const BOTS_TAB: TabItem = {
   id: "bots",
-  label: "远程连接",
+  labelKey: "settings.nav.bots",
   icon: <Bot size={16} />,
 };
 const SHORTCUTS_TAB: TabItem = {
   id: "shortcuts",
-  label: "快捷键管理",
+  labelKey: "settings.nav.shortcuts",
   icon: <Keyboard size={16} />,
 };
 const ONBOARDING_TAB: TabItem = {
   id: "onboarding",
-  label: "Locus 新手引导",
+  labelKey: "settings.nav.onboarding",
   icon: <GraduationCap size={16} />,
 };
 const VOICE_INPUT_TAB: TabItem = {
   id: "voice-input",
-  label: "语音输入",
+  labelKey: "settings.nav.voiceInput",
   icon: <Mic size={16} />,
 };
 /** 尾部 Tabs */
 const TAIL_TABS: TabItem[] = [
-  { id: "migration", label: "数据迁移", icon: <HardDriveDownload size={16} /> },
-  { id: "storage", label: "磁盘管理", icon: <HardDrive size={16} /> },
-  { id: "appearance", label: "外观设置", icon: <Palette size={16} /> },
+  { id: "migration", labelKey: "settings.nav.migration", icon: <HardDriveDownload size={16} /> },
+  { id: "storage", labelKey: "settings.nav.storage", icon: <HardDrive size={16} /> },
+  { id: "appearance", labelKey: "settings.nav.appearance", icon: <Palette size={16} /> },
   ONBOARDING_TAB,
-  { id: "about", label: "关于/更新", icon: <Info size={16} /> },
+  { id: "about", labelKey: "settings.nav.about", icon: <Info size={16} /> },
 ];
 
 /** 根据标签页 id 渲染对应内容 */
@@ -152,6 +155,7 @@ interface SettingsPanelProps {
 export function SettingsPanel({
   onClose,
 }: SettingsPanelProps): React.ReactElement {
+  const t = useT();
   const isWindows = React.useMemo(() => detectIsWindows(), [])
   const [activeTab, setActiveTab] = useAtom(settingsTabAtom);
   const channelFormDirty = useAtomValue(channelFormDirtyAtom);
@@ -283,7 +287,7 @@ export function SettingsPanel({
                 )}
               >
                 {tab.icon}
-                <span>{tab.label}</span>
+                <span>{t(tab.labelKey)}</span>
                 {tab.id === "about" && (hasUpdate || hasEnvironmentIssues) && (
                   <span className="w-2 h-2 rounded-full bg-red-500" />
                 )}
@@ -296,7 +300,7 @@ export function SettingsPanel({
               className="group flex w-full items-center gap-2 rounded-md px-3 py-2.5 text-sm text-muted-foreground transition-colors hover:bg-background/60 hover:text-foreground"
             >
               <ArrowLeft size={16} />
-              <span>返回</span>
+              <span>{t('common.back')}</span>
               <span aria-hidden="true" className="ml-auto inline-flex opacity-0 transition-opacity group-hover:opacity-100">
                 <ShortcutKeycaps accelerator="Esc" />
               </span>
@@ -316,14 +320,14 @@ export function SettingsPanel({
       <AlertDialog open={showNavDialog} onOpenChange={(open) => { if (!open) cancelPendingAction() }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>放弃未保存的更改？</AlertDialogTitle>
+            <AlertDialogTitle>{t('settings.channels.discardTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
-              当前渠道配置尚未保存，确定要离开吗？
+              {t('settings.channels.leaveDesc')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={cancelPendingAction}>留在当前页</AlertDialogCancel>
-            <AlertDialogAction onClick={executePendingAction}>放弃并离开</AlertDialogAction>
+            <AlertDialogCancel onClick={cancelPendingAction}>{t('settings.channels.stayOnPage')}</AlertDialogCancel>
+            <AlertDialogAction onClick={executePendingAction}>{t('settings.channels.discardAndLeave')}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

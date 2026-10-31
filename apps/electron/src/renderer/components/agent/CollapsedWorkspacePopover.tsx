@@ -13,6 +13,7 @@
 import * as React from 'react'
 import { FolderOpen, FolderInput, Plus } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useT } from '@/i18n'
 import { filterProjectWorkspaces } from '@/lib/project-list'
 import { Input } from '@/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -30,6 +31,7 @@ export function CollapsedWorkspacePopover({
   children,
 }: CollapsedWorkspacePopoverProps): React.ReactElement {
   const { workspaces, currentWorkspaceId, selectProject, createProject, createProjectFromFolder } = useProjectActions()
+  const t = useT()
   const [projectQuery, setProjectQuery] = React.useState('')
 
   const [open, setOpen] = React.useState(false)
@@ -130,14 +132,14 @@ export function CollapsedWorkspacePopover({
         {/* 头部 */}
         <div className="flex items-center justify-between px-2.5 py-1.5 border-b border-border/40">
           <span className="text-[11px] font-medium text-foreground/50 uppercase tracking-wide">
-            Agent 模式 · 项目
+            {t('agentMisc.agentModeProjects')}
           </span>
           <div className="flex items-center gap-0.5">
             <button
               type="button"
               onClick={() => void createProjectFromFolder()}
               className="p-1 rounded hover:bg-foreground/[0.06] text-foreground/35 hover:text-foreground/60 transition-colors"
-              title="从本地文件夹创建项目"
+              title={t('agentMisc.createProjectFromFolder')}
             >
               <FolderInput size={13} />
             </button>
@@ -145,7 +147,7 @@ export function CollapsedWorkspacePopover({
               type="button"
               onClick={handleStartCreate}
               className="p-1 rounded hover:bg-foreground/[0.06] text-foreground/35 hover:text-foreground/60 transition-colors"
-              title="新建空白项目"
+              title={t('agentMisc.createBlankProject')}
             >
               <Plus size={13} />
             </button>
@@ -154,10 +156,10 @@ export function CollapsedWorkspacePopover({
 
         {/* 项目列表 */}
         <div className="flex flex-col p-1 max-h-[320px] overflow-y-auto scrollbar-thin">
-          <Input type="search" aria-label="搜索项目" placeholder="搜索项目名称或路径…" value={projectQuery}
+          <Input type="search" aria-label={t('agentMisc.searchProjectsAria')} placeholder={t('agentMisc.searchProjectsPlaceholder')} value={projectQuery}
             onChange={(event) => setProjectQuery(event.target.value)}
             onKeyDown={(event) => { if (event.key === 'Escape') setProjectQuery('') }} className="mb-1 h-8 text-xs" />
-          {filterProjectWorkspaces(workspaces, projectQuery).length === 0 && <div role="status" className="px-2 py-2 text-xs text-muted-foreground">未找到匹配的项目</div>}
+          {filterProjectWorkspaces(workspaces, projectQuery).length === 0 && <div role="status" className="px-2 py-2 text-xs text-muted-foreground">{t('agentMisc.noMatchingProjects')}</div>}
           {filterProjectWorkspaces(workspaces, projectQuery).map((ws) => (
             <button
               key={ws.id}
@@ -188,7 +190,7 @@ export function CollapsedWorkspacePopover({
                 onChange={(e) => setNewName(e.target.value)}
                 onKeyDown={handleCreateKeyDown}
                 onBlur={() => setCreating(false)}
-                placeholder="项目名称..."
+                placeholder={t('agentMisc.projectNamePlaceholder')}
                 className="flex-1 min-w-0 bg-transparent text-[13px] text-foreground border-b border-primary/50 outline-none px-0.5"
                 maxLength={50}
               />

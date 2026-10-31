@@ -1,4 +1,5 @@
 import type { Channel, ChannelPlanQuotaResult, ProviderType } from '@proma/shared'
+import { t } from '@/i18n'
 
 const PLAN_QUOTA_PROVIDERS = new Set<ProviderType>([
   'deepseek',
@@ -71,7 +72,7 @@ export async function fetchChannelPlanQuota(
         provider: 'custom',
         windows: [],
         updatedAt: Date.now(),
-        message: '订阅额度查询失败，请稍后重试',
+        message: t('misc.quota.fetchFailed'),
       }
       return cacheIfCurrent(result)
     })

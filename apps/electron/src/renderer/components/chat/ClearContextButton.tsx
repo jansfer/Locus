@@ -14,6 +14,7 @@ import {
 import { cn } from '@/lib/utils'
 import { inputToolbarButtonClass } from '@/components/ai-elements/input-toolbar-styles'
 import { Eraser } from 'lucide-react'
+import { useT } from '@/i18n'
 import type { ComponentProps } from 'react'
 
 export interface ClearContextButtonProps
@@ -27,6 +28,7 @@ export function ClearContextButton({
   className,
   ...props
 }: ClearContextButtonProps): React.ReactElement {
+  const t = useT()
   // 检测平台以显示正确的快捷键
   const isMac =
     typeof navigator !== 'undefined' &&
@@ -42,14 +44,14 @@ export function ClearContextButton({
           size="icon"
           className={cn(inputToolbarButtonClass, className)}
           onClick={onClick}
-          aria-label="清除上下文"
+          aria-label={t('chat.clearContext.label')}
           {...props}
         >
           <Eraser className="size-4" />
         </Button>
       </TooltipTrigger>
       <TooltipContent side="top">
-        <p>清除上下文 ({shortcutKey})</p>
+        <p>{t('chat.clearContext.withShortcut', { shortcut: shortcutKey })}</p>
       </TooltipContent>
     </Tooltip>
   )

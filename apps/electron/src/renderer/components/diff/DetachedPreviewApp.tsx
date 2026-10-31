@@ -10,6 +10,7 @@ import { useSetAtom } from 'jotai'
 import type { DetachedPreviewWindowData } from '@proma/shared'
 import { agentDiffRefreshVersionAtom } from '@/atoms/agent-atoms'
 import { cn } from '@/lib/utils'
+import { useT } from '@/i18n'
 import { DiffTabContent } from './DiffTabContent'
 import { PreviewContentErrorBoundary } from './PreviewContentErrorBoundary'
 import { DefaultAppOpenButton } from './DefaultAppOpenButton'
@@ -24,6 +25,7 @@ function getFileName(filePath: string): string {
 }
 
 export function DetachedPreviewApp(): React.ReactElement {
+  const t = useT()
   const [data, setData] = React.useState<DetachedPreviewWindowData | null>(null)
   const [loading, setLoading] = React.useState(true)
   const [error, setError] = React.useState<string | null>(null)
@@ -32,7 +34,7 @@ export function DetachedPreviewApp(): React.ReactElement {
   React.useEffect(() => {
     const previewId = getPreviewId()
     if (!previewId) {
-      setError('缺少预览窗口 ID')
+      setError(t('diff.detached.missingId'))
       setLoading(false)
       return
     }
@@ -40,7 +42,7 @@ export function DetachedPreviewApp(): React.ReactElement {
     window.electronAPI.getDetachedPreviewData(previewId)
       .then((payload) => {
         if (!payload) {
-          setError('预览数据已失效')
+          setError(t('diff.detached.expired'))
           return
         }
         setData(payload)
@@ -48,9 +50,11 @@ export function DetachedPreviewApp(): React.ReactElement {
       })
       .catch((err) => {
         console.error('[DetachedPreviewApp] 加载预览数据失败:', err)
-        setError('加载预览数据失败')
+        setError(t('diff.detached.loadFailed'))
       })
       .finally(() => setLoading(false))
+    // 仅首次挂载加载一次；错误文案取当次语言快照。
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const handleRefresh = React.useCallback(() => {
@@ -65,7 +69,7 @@ export function DetachedPreviewApp(): React.ReactElement {
   if (loading) {
     return (
       <div className="h-screen w-screen flex items-center justify-center bg-content-area text-xs text-muted-foreground">
-        正在打开预览...
+        {t('diff.detached.opening')}
       </div>
     )
   }
@@ -75,7 +79,7 @@ export function DetachedPreviewApp(): React.ReactElement {
       <div className="h-screen w-screen flex items-center justify-center bg-content-area text-sm text-muted-foreground">
         <div className="flex items-center gap-2">
           <AlertCircle className="size-4" />
-          <span>{error ?? '无法打开预览'}</span>
+          <span>{error ?? t('diff.detached.cannotOpen')}</span>
         </div>
       </div>
     )
@@ -104,7 +108,7 @@ export function DetachedPreviewApp(): React.ReactElement {
             'size-7 flex items-center justify-center rounded-md text-muted-foreground',
             'hover:bg-muted/60 hover:text-foreground transition-colors',
           )}
-          title="刷新预览"
+          title={t('diff.detached.refresh')}
         >
           <RefreshCw className="size-3.5" />
         </button>

@@ -1,4 +1,38 @@
 /** environment 域文案（简体中文）。迁移时按功能补充键；叶子必须是 string。 */
 export const environment = {
-
+  card: {
+    checking: '检测中...',
+    installed: '已安装',
+    installedWithVersion: 'v{version} (已安装)',
+    outdated: '版本过低',
+    upgradeAdvised: 'v{version} (建议升级)',
+    notInstalled: '未安装',
+    downloadTool: '下载 {tool}',
+    oneClickDownload: '一键下载 {tool}',
+    downloadingProgress: '下载中 {pct}%（{downloaded} / {total}）',
+    cancelDownload: '取消下载',
+    downloadDone: '已下载完成，请在安装器中完成安装，然后点「重新检测」刷新状态。',
+    relaunchInstaller: '再次打开安装程序',
+    downloadFailed: '下载失败：{error}',
+    retryDownload: '重试下载',
+  },
+  panel: {
+    title: 'Windows 环境检测',
+    subtitle: '基础 Agent 无需额外环境；Git Bash 或 WSL 可启用 Bash 命令执行',
+    recheck: '重新检测',
+    shellName: 'Shell 环境',
+    shellRequirement: '可选 · 安装 Git Bash 或 WSL 后可使用 Bash 命令',
+    nodeRequirement: '推荐 · 仅在使用 MCP 服务器（npx xxx）时需要',
+    shellMissingHint: '未检测到 Git Bash 或 WSL：仍可使用基础 Agent，但本次不会提供 Bash 命令工具。',
+    nodeMissingHint: '未检测到 Node.js。如果不使用基于 npx 的 MCP 服务器，可以忽略此项。',
+    gitBashReady: 'Git Bash v{version} 已可用',
+    wslReady: 'WSL {distro} 已可用',
+    shellMissing: '未检测到 Git Bash 或 WSL（基础 Agent 仍可用）',
+    nodeInstalledWithVersion: 'v{version} 已安装',
+    nodeNotInstalledOptional: '未安装（可选）',
+  },
+  dialog: {
+    title: '环境检测',
+    description: '检查并修复 Locus 运行所需的 Windows 本地环境',
+  },
 } as const

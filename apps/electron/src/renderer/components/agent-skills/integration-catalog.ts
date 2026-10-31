@@ -1,4 +1,12 @@
 import type { McpOAuthProvider, McpServerEntry } from '@proma/shared'
+import type { MessageKey, TranslateFn } from '@/i18n'
+
+/** 目录卡片 description 字段的词典键（skills 域 catalog 分组）。 */
+export type CatalogDescriptionKey = Extract<MessageKey, `skills.catalog.${string}.description`>
+/** 目录卡片 capabilities 数组元素的词典键。 */
+export type CatalogCapabilityKey = Extract<MessageKey, `skills.catalog.${string}.capabilities.${string}`>
+/** 目录凭据表单可见文本（label/placeholder/helpText/acquisitionLabel）的词典键。 */
+export type CatalogCredentialTextKey = Extract<MessageKey, `skills.catalog.${string}.credential.${string}`>
 
 export type CatalogIntegrationKind = 'mcp' | 'cli' | 'guided' | 'credential'
 export type CatalogAuthentication = 'none' | 'oauth' | 'api-key'
@@ -6,8 +14,10 @@ export type CatalogAuthentication = 'none' | 'oauth' | 'api-key'
 interface CatalogIntegrationBase {
   id: string
   name: string
-  description: string
-  capabilities: string[]
+  /** 用户可见描述；值是 skills 域词典键，渲染处用 t() 翻译。 */
+  description: CatalogDescriptionKey
+  /** 用户可见能力标签；元素是 skills 域词典键，渲染处用 t() 翻译。 */
+  capabilities: ReadonlyArray<CatalogCapabilityKey>
   iconSlug: string
   setupUrl: string
   kind: CatalogIntegrationKind
@@ -47,11 +57,11 @@ export interface CatalogCredentialIntegration extends CatalogIntegrationBase {
   serverName: string
   entry: McpServerEntry
   credential: {
-    label: string
-    placeholder: string
-    helpText: string
+    label: CatalogCredentialTextKey
+    placeholder: CatalogCredentialTextKey
+    helpText: CatalogCredentialTextKey
     acquisitionUrl: string
-    acquisitionLabel: string
+    acquisitionLabel: CatalogCredentialTextKey
     headerName: string
     /** 需要附加到 API Key 前的认证前缀（例如 Bearer）。 */
     valuePrefix?: string
@@ -231,8 +241,8 @@ export function isCatalogIntegrationVisible(integration: CatalogIntegration): bo
 export const MCP_INTEGRATION_CATALOG: CatalogIntegration[] = [
   {
     id: 'github-mcp', name: 'GitHub', iconSlug: 'github', kind: 'mcp', authentication: 'oauth', oauthProvider: 'github', serverName: 'github',
-    description: '让 Agent 在你的 GitHub 上读取代码上下文，并处理协作与代码质量工作流。',
-    capabilities: ['仓库与文件', 'Issue / PR', 'Actions 与安全扫描'],
+    description: 'skills.catalog.github-mcp.description',
+    capabilities: ['skills.catalog.github-mcp.capabilities.repos', 'skills.catalog.github-mcp.capabilities.issues', 'skills.catalog.github-mcp.capabilities.actions'],
     setupUrl: 'https://docs.github.com/en/copilot/how-tos/provide-context/use-mcp-in-your-ide/set-up-the-github-mcp-server',
     entry: {
       ...remoteMcp('https://api.githubcopilot.com/mcp/'),
@@ -247,97 +257,97 @@ export const MCP_INTEGRATION_CATALOG: CatalogIntegration[] = [
   },
   {
     id: 'notion-mcp', name: 'Notion', iconSlug: 'notion', kind: 'mcp', authentication: 'oauth', oauthProvider: 'notion', serverName: 'notion',
-    description: '把页面、数据库和团队知识直接提供给 Agent，用于查询、整理和写回协作文档。',
-    capabilities: ['页面与区块', '数据库查询', '评论与内容编辑'],
+    description: 'skills.catalog.notion-mcp.description',
+    capabilities: ['skills.catalog.notion-mcp.capabilities.pages', 'skills.catalog.notion-mcp.capabilities.db', 'skills.catalog.notion-mcp.capabilities.comments'],
     setupUrl: 'https://developers.notion.com/guides/mcp/get-started-with-mcp',
     entry: remoteMcp('https://mcp.notion.com/mcp'),
   },
   {
     id: 'google-calendar-mcp', name: 'Google 日历', iconSlug: 'googlecalendar', kind: 'mcp', authentication: 'oauth', serverName: 'google-calendar',
-    description: '让 Agent 查询、创建和管理 Google Calendar 日程，并协助安排会议与响应邀请。',
-    capabilities: ['日历与事件查询', '创建与更新日程', '会议邀请与时间建议'],
+    description: 'skills.catalog.google-calendar-mcp.description',
+    capabilities: ['skills.catalog.google-calendar-mcp.capabilities.query', 'skills.catalog.google-calendar-mcp.capabilities.create', 'skills.catalog.google-calendar-mcp.capabilities.invites'],
     setupUrl: 'https://developers.google.com/workspace/calendar/api/guides/configure-mcp-server',
     entry: remoteMcp('https://calendarmcp.googleapis.com/mcp/v1'),
   },
   {
     id: 'linear-mcp', name: 'Linear', iconSlug: 'linear', kind: 'mcp', authentication: 'oauth', serverName: 'linear',
-    description: '让 Agent 查询和更新 Linear issue、项目、团队与评论，协助推进产品开发工作流。',
-    capabilities: ['Issue 与评论', '项目与团队管理', '状态、优先级与负责人'],
+    description: 'skills.catalog.linear-mcp.description',
+    capabilities: ['skills.catalog.linear-mcp.capabilities.issues', 'skills.catalog.linear-mcp.capabilities.projects', 'skills.catalog.linear-mcp.capabilities.status'],
     setupUrl: 'https://linear.app/docs/mcp',
     entry: remoteMcp('https://mcp.linear.app/mcp'),
   },
   {
     id: 'vercel-mcp', name: 'Vercel', iconSlug: 'vercel', kind: 'mcp', authentication: 'oauth', serverName: 'vercel', placement: 'bottom',
-    description: '为 Agent 提供部署上下文，定位生产问题并查询项目与运行状态。',
-    capabilities: ['项目与部署', '日志与运行状态', 'Web Analytics'],
+    description: 'skills.catalog.vercel-mcp.description',
+    capabilities: ['skills.catalog.vercel-mcp.capabilities.deploys', 'skills.catalog.vercel-mcp.capabilities.logs', 'skills.catalog.vercel-mcp.capabilities.analytics'],
     setupUrl: 'https://vercel.com/docs/agent-resources/vercel-mcp',
     entry: remoteMcp('https://mcp.vercel.com'),
   },
   {
     id: 'supabase-mcp', name: 'Supabase', iconSlug: 'supabase', kind: 'mcp', authentication: 'oauth', serverName: 'supabase', placement: 'bottom',
-    description: '让 Agent 查询并管理 Supabase 项目，覆盖数据库、认证、Storage 和 Edge Functions。',
-    capabilities: ['SQL 与数据库 schema', 'Auth 与 Storage', '项目与 Edge Functions'],
+    description: 'skills.catalog.supabase-mcp.description',
+    capabilities: ['skills.catalog.supabase-mcp.capabilities.sql', 'skills.catalog.supabase-mcp.capabilities.auth', 'skills.catalog.supabase-mcp.capabilities.projects'],
     setupUrl: 'https://supabase.com/docs/guides/ai-tools/mcp',
     entry: remoteMcp('https://mcp.supabase.com/mcp'),
   },
   {
     id: 'stripe-mcp', name: 'Stripe', iconSlug: 'stripe', kind: 'mcp', authentication: 'oauth', serverName: 'stripe', placement: 'bottom',
-    description: '让 Agent 搜索 Stripe 文档并在授权范围内读取或操作支付与账务资源。',
-    capabilities: ['API 文档检索', '账户与资源查询', '退款与支付操作'],
+    description: 'skills.catalog.stripe-mcp.description',
+    capabilities: ['skills.catalog.stripe-mcp.capabilities.docs', 'skills.catalog.stripe-mcp.capabilities.accounts', 'skills.catalog.stripe-mcp.capabilities.payments'],
     setupUrl: 'https://docs.stripe.com/mcp',
     entry: remoteMcp('https://mcp.stripe.com'),
   },
   {
     id: 'tongdaxin-mcp', name: '通达信 MCP', iconSlug: 'asset:tongdaxin', kind: 'guided', authType: 'provider-login',
-    description: '金融行情和投研能力需要先核验通达信的正式 MCP 契约与账户授权方式。',
-    capabilities: ['行情与金融数据', '账户授权核验', '官方契约调研'],
+    description: 'skills.catalog.tongdaxin-mcp.description',
+    capabilities: ['skills.catalog.tongdaxin-mcp.capabilities.market', 'skills.catalog.tongdaxin-mcp.capabilities.auth', 'skills.catalog.tongdaxin-mcp.capabilities.contract'],
     setupUrl: 'https://vip.tdx.com.cn/site/app/pc-mall/main.html#/page_product_mcp',
     agentPrompt: tongdaxinVipPrompt,
   },
   {
     id: 'wecom-cli', name: '企业微信 CLI', iconSlug: 'asset:wecom', kind: 'cli', featured: true, priority: 3,
-    description: '使用企业微信官方 CLI 配置组织协作、通讯录与消息相关的开发能力。',
-    capabilities: ['企业协作与通讯录', '消息与会话', '官方 CLI 配置'],
+    description: 'skills.catalog.wecom-cli.description',
+    capabilities: ['skills.catalog.wecom-cli.capabilities.collab', 'skills.catalog.wecom-cli.capabilities.messages', 'skills.catalog.wecom-cli.capabilities.cli'],
     setupUrl: 'https://open.work.weixin.qq.com/help2/pc/21676',
     agentPrompt: cliSetupPrompt('企业微信 CLI', 'https://open.work.weixin.qq.com/help2/pc/21676', '设置 → 远程连接 → 配置企业微信 CLI'),
   },
   {
     id: 'dingtalk-cli', name: '钉钉 CLI', iconSlug: 'asset:dingtalk', kind: 'cli', featured: true, priority: 2,
-    description: '使用钉钉官方 CLI 调用 AI 开发助手，完成问答、代码生成与开发辅助。',
-    capabilities: ['AI 开发助手', '代码生成与解释', '钉钉开发工具'],
+    description: 'skills.catalog.dingtalk-cli.description',
+    capabilities: ['skills.catalog.dingtalk-cli.capabilities.assistant', 'skills.catalog.dingtalk-cli.capabilities.codegen', 'skills.catalog.dingtalk-cli.capabilities.tools'],
     setupUrl: 'https://open.dingtalk.com/document/development/dingtalk-cli-performing-tasks-within',
     agentPrompt: cliSetupPrompt('钉钉 CLI', 'https://open.dingtalk.com/document/development/dingtalk-cli-performing-tasks-within', '设置 → 远程连接 → 配置钉钉 CLI'),
   },
   {
     id: 'exa-search-mcp', name: 'Exa Search', iconSlug: 'asset:exa', kind: 'credential', priority: 6,
-    description: '接入 Exa 官方远程 MCP，提供语义网页搜索与页面内容提取能力。',
-    capabilities: ['语义网页搜索', '页面内容提取'],
+    description: 'skills.catalog.exa-search-mcp.description',
+    capabilities: ['skills.catalog.exa-search-mcp.capabilities.search', 'skills.catalog.exa-search-mcp.capabilities.extract'],
     setupUrl: 'https://dashboard.exa.ai/api-keys',
     serverName: 'exa',
     entry: remoteMcp('https://mcp.exa.ai/mcp'),
     credential: {
-      label: 'Exa API Key',
-      placeholder: '粘贴 Exa API Key',
-      helpText: '仅需填写 API Key。Locus 会加密保存到系统 Keychain，并通过 x-api-key 请求头连接 Exa 官方远程 MCP。',
+      label: 'skills.catalog.exa-search-mcp.credential.label',
+      placeholder: 'skills.catalog.exa-search-mcp.credential.placeholder',
+      helpText: 'skills.catalog.exa-search-mcp.credential.helpText',
       acquisitionUrl: 'https://dashboard.exa.ai/api-keys',
-      acquisitionLabel: '打开 Exa API Console',
+      acquisitionLabel: 'skills.catalog.exa-search-mcp.credential.acquisitionLabel',
       headerName: 'x-api-key',
       credentialStorageUrl: 'https://mcp.exa.ai/mcp',
     },
   },
   {
     id: 'brave-search-mcp', name: 'Brave Search', iconSlug: 'asset:brave', kind: 'credential', priority: 5,
-    description: '接入 Brave 官方搜索 MCP，提供网页、新闻、图片、视频、本地和地点搜索。',
-    capabilities: ['网页与新闻搜索', '图片与视频搜索', '地点与本地搜索'],
+    description: 'skills.catalog.brave-search-mcp.description',
+    capabilities: ['skills.catalog.brave-search-mcp.capabilities.webNews', 'skills.catalog.brave-search-mcp.capabilities.imageVideo', 'skills.catalog.brave-search-mcp.capabilities.local'],
     setupUrl: 'https://api-dashboard.search.brave.com/app/keys',
     serverName: 'brave-search',
     entry: stdioMcp('npx', ['-y', '@brave/brave-search-mcp-server', '--transport', 'stdio']),
     credential: {
-      label: 'Brave Search API Key',
-      placeholder: '粘贴 Brave Search API Key',
-      helpText: '仅需填写 API Key。Locus 会加密保存到系统 Keychain，并仅在启动 Brave MCP 时作为 BRAVE_API_KEY 注入。',
+      label: 'skills.catalog.brave-search-mcp.credential.label',
+      placeholder: 'skills.catalog.brave-search-mcp.credential.placeholder',
+      helpText: 'skills.catalog.brave-search-mcp.credential.helpText',
       acquisitionUrl: 'https://api-dashboard.search.brave.com/app/keys',
-      acquisitionLabel: '打开 Brave Search API Console',
+      acquisitionLabel: 'skills.catalog.brave-search-mcp.credential.acquisitionLabel',
       headerName: '',
       envName: 'BRAVE_API_KEY',
       credentialStorageUrl: 'https://api.search.brave.com/',
@@ -345,17 +355,17 @@ export const MCP_INTEGRATION_CATALOG: CatalogIntegration[] = [
   },
   {
     id: 'tavily-search-mcp', name: 'Tavily Search', iconSlug: 'asset:tavily', kind: 'credential', priority: 4,
-    description: '接入 Tavily 官方远程 MCP，为 Agent 提供面向 AI 的网页搜索、提取和研究能力。',
-    capabilities: ['网页搜索', '页面提取', '深度研究'],
+    description: 'skills.catalog.tavily-search-mcp.description',
+    capabilities: ['skills.catalog.tavily-search-mcp.capabilities.search', 'skills.catalog.tavily-search-mcp.capabilities.extract', 'skills.catalog.tavily-search-mcp.capabilities.research'],
     setupUrl: 'https://app.tavily.com/home',
     serverName: 'tavily-search',
     entry: remoteMcp('https://mcp.tavily.com/mcp'),
     credential: {
-      label: 'Tavily API Key',
-      placeholder: '粘贴 Tavily API Key',
-      helpText: '仅需填写 API Key。Locus 会加密保存到系统 Keychain，并通过 Authorization 请求头连接 Tavily 官方远程 MCP。',
+      label: 'skills.catalog.tavily-search-mcp.credential.label',
+      placeholder: 'skills.catalog.tavily-search-mcp.credential.placeholder',
+      helpText: 'skills.catalog.tavily-search-mcp.credential.helpText',
       acquisitionUrl: 'https://app.tavily.com/home',
-      acquisitionLabel: '打开 Tavily API Console',
+      acquisitionLabel: 'skills.catalog.tavily-search-mcp.credential.acquisitionLabel',
       headerName: 'Authorization',
       valuePrefix: 'Bearer ',
       credentialStorageUrl: 'https://mcp.tavily.com/mcp',
@@ -363,40 +373,40 @@ export const MCP_INTEGRATION_CATALOG: CatalogIntegration[] = [
   },
   {
     id: 'tencent-docs-mcp', name: '腾讯文档', iconSlug: 'asset:tencent-docs', kind: 'credential', priority: 10, placement: 'bottom',
-    description: '使用当前腾讯文档空间的 MCP Token，安全连接文档、表格和空间工具。',
-    capabilities: ['文档与表格', '空间 MCP Token', '真实连接验证'],
+    description: 'skills.catalog.tencent-docs-mcp.description',
+    capabilities: ['skills.catalog.tencent-docs-mcp.capabilities.docs', 'skills.catalog.tencent-docs-mcp.capabilities.token', 'skills.catalog.tencent-docs-mcp.capabilities.verify'],
     setupUrl: 'https://docs.qq.com/open/document/mcp/get-token',
     serverName: 'tencent-docs',
     entry: remoteMcp('https://docs.qq.com/openapi/mcp'),
     credential: {
-      label: 'MCP Token',
-      placeholder: '粘贴当前腾讯文档空间的 MCP Token',
-      helpText: '在当前空间右上角「≡ → 使用 MCP → 获取 MCP token」复制。Locus 将原样作为 Authorization 请求头保存到系统 Keychain，不会添加 Bearer 前缀。',
+      label: 'skills.catalog.tencent-docs-mcp.credential.label',
+      placeholder: 'skills.catalog.tencent-docs-mcp.credential.placeholder',
+      helpText: 'skills.catalog.tencent-docs-mcp.credential.helpText',
       acquisitionUrl: 'https://docs.qq.com/open/document/mcp/get-token',
-      acquisitionLabel: '打开腾讯文档官方 Token 获取说明',
+      acquisitionLabel: 'skills.catalog.tencent-docs-mcp.credential.acquisitionLabel',
       headerName: 'Authorization',
       credentialStorageUrl: 'https://docs.qq.com/openapi/mcp',
     },
   },
   {
     id: 'ctrip-wendao', name: '携程问道', iconSlug: 'asset:ctrip', kind: 'guided', authType: 'api-key', priority: 11,
-    description: '携程问道 Token 可提供机酒火车、景点推荐和行程规划；官方当前以 Skill 封装接入。',
-    capabilities: ['机酒火车查询', '景点与行程规划', 'API Token + Skill'],
+    description: 'skills.catalog.ctrip-wendao.description',
+    capabilities: ['skills.catalog.ctrip-wendao.capabilities.travel', 'skills.catalog.ctrip-wendao.capabilities.planning', 'skills.catalog.ctrip-wendao.capabilities.skill'],
     setupUrl: 'https://ctrip.com/wendao/openclaw',
     expectedSkillSlug: 'ctrip-wendao',
     agentPrompt: providerSetupPrompt('携程问道', 'https://ctrip.com/wendao/openclaw', '携程问道开放平台 API Token；获取后安装官方 Skill 封装并验证'),
   },
   {
     id: 'baidu-netdisk', name: '百度网盘', iconSlug: 'asset:baidu-netdisk', kind: 'guided', authType: 'api-key',
-    description: '百度网盘官方 MCP 可检索、管理与分享文件；上传场景还需要本地 stdio 服务。',
-    capabilities: ['文件与目录管理', '搜索与分享', 'OAuth Access Token'],
+    description: 'skills.catalog.baidu-netdisk.description',
+    capabilities: ['skills.catalog.baidu-netdisk.capabilities.files', 'skills.catalog.baidu-netdisk.capabilities.sharing', 'skills.catalog.baidu-netdisk.capabilities.oauth'],
     setupUrl: 'https://pan.baidu.com/union/doc/mcp-server/%E4%BD%BF%E7%94%A8%E6%A6%82%E8%BF%B0/',
     agentPrompt: providerSetupPrompt('百度网盘', 'https://pan.baidu.com/union/doc/mcp-server/%E4%BD%BF%E7%94%A8%E6%A6%82%E8%BF%B0/', '百度网盘 OAuth Access Token；SSE 模式不支持上传，上传需官方本地 stdio 方案'),
   },
   {
     id: 'qichacha-mcp', name: '企查查', iconSlug: 'asset:qichacha', kind: 'guided', authType: 'api-key',
-    description: '企业工商、风险和关联信息需通过企查查开放平台的业务授权或 API Key 获取。',
-    capabilities: ['工商与股权信息', '风险与关联查询', '开放平台 API Key'],
+    description: 'skills.catalog.qichacha-mcp.description',
+    capabilities: ['skills.catalog.qichacha-mcp.capabilities.business', 'skills.catalog.qichacha-mcp.capabilities.risk', 'skills.catalog.qichacha-mcp.capabilities.api'],
     setupUrl: 'https://agent.qcc.com/',
     // 官方按业务域拆分 MCP；公司信息服务是安装流程写入的首个稳定 server key。
     serverName: 'qcc-company',
@@ -405,23 +415,23 @@ export const MCP_INTEGRATION_CATALOG: CatalogIntegration[] = [
 
   {
     id: 'eastmoney-miaoxiang', name: '东方财富妙想', iconSlug: 'lucide-trending-up', kind: 'guided', authType: 'api-key',
-    description: '投研与金融数据能力按妙想 Skills、平台预授权或 API Key 的正式路径配置。',
-    capabilities: ['金融投研 Skills', '市场与数据能力', 'API Key / 平台授权'],
+    description: 'skills.catalog.eastmoney-miaoxiang.description',
+    capabilities: ['skills.catalog.eastmoney-miaoxiang.capabilities.skills', 'skills.catalog.eastmoney-miaoxiang.capabilities.market', 'skills.catalog.eastmoney-miaoxiang.capabilities.auth'],
     setupUrl: 'https://choice.eastmoney.com/mcp/',
     serverName: 'eastmoney-miaoxiang',
     agentPrompt: providerSetupPrompt('东方财富妙想', 'https://choice.eastmoney.com/mcp/', '东方财富妙想 Skills API Key 或平台预授权'),
   },
   {
     id: 'github-cli', name: 'GitHub CLI', iconSlug: 'github', kind: 'cli',
-    description: '在终端管理 GitHub 资源，适合开发、协作与仓库自动化，不会作为 MCP 注入。',
-    capabilities: ['PR、Issue 与 Release', '仓库与 Actions', '认证与 API 调用'],
+    description: 'skills.catalog.github-cli.description',
+    capabilities: ['skills.catalog.github-cli.capabilities.pr', 'skills.catalog.github-cli.capabilities.automation', 'skills.catalog.github-cli.capabilities.auth'],
     setupUrl: 'https://cli.github.com/',
     agentPrompt: cliSetupPrompt('GitHub CLI', 'https://cli.github.com/', '设置 → 远程连接 → 配置 GitHub CLI'),
   },
   {
     id: 'feishu-cli', name: '飞书 CLI', iconSlug: 'asset:feishu', kind: 'cli', priority: 1,
-    description: '飞书官方命令行与 Agent 工具集，可操作消息、日历、文档、多维表格和任务。',
-    capabilities: ['消息、日历与文档', '多维表格与任务', '多 Profile 授权'],
+    description: 'skills.catalog.feishu-cli.description',
+    capabilities: ['skills.catalog.feishu-cli.capabilities.docs', 'skills.catalog.feishu-cli.capabilities.bitable', 'skills.catalog.feishu-cli.capabilities.profile'],
     setupUrl: 'https://www.feishu.cn/feishu-cli',
     agentPrompt: cliSetupPrompt('飞书 CLI', 'https://www.feishu.cn/feishu-cli', '设置 → 远程连接 → 配置飞书 CLI'),
   },
@@ -436,7 +446,13 @@ export function getCatalogServerNames(): Set<string> {
     .filter(isCatalogIntegrationVisible)
     .flatMap((integration) => 'serverName' in integration && integration.serverName ? [integration.serverName] : []))
 }
-export function matchesCatalogSearch(integration: CatalogIntegration, query: string): boolean {
+export function matchesCatalogSearch(integration: CatalogIntegration, query: string, translate: TranslateFn): boolean {
   if (!query) return true
-  return `${integration.name} ${integration.description} ${integration.capabilities.join(' ')} ${integration.kind}`.toLowerCase().includes(query.toLowerCase())
+  const haystack = [
+    integration.name,
+    translate(integration.description),
+    ...integration.capabilities.map((capability) => translate(capability)),
+    integration.kind,
+  ].join(' ')
+  return haystack.toLowerCase().includes(query.toLowerCase())
 }

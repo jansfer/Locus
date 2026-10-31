@@ -14,6 +14,7 @@
 
 import * as React from 'react'
 import { cn } from '@/lib/utils'
+import { t, useT } from '@/i18n'
 import type { FileIndexEntry } from '@proma/shared'
 import { FileTypeIcon } from './FileTypeIcon'
 import { ChevronRight } from 'lucide-react'
@@ -37,7 +38,7 @@ class MentionErrorBoundary extends React.Component<
       console.error('[FileMentionList] render error:', this.state.error)
       return (
         <div className="rounded-lg border bg-popover p-2 shadow-lg text-[11px] text-muted-foreground">
-          无匹配文件
+          {t('files.mention.noMatch')}
         </div>
       )
     }
@@ -168,6 +169,7 @@ function getTreeNodeStateKey(node: Pick<FileTreeNode, 'source' | 'treePath'>): s
 
 export const FileMentionList = React.forwardRef<FileMentionRef, FileMentionListProps>(
   function FileMentionList({ sessionEntries, workspaceEntries, onSelect, onBack, embedded = false }, ref) {
+    const t = useT()
     // 构建一棵连续树；项目与会话来源只通过 badge 区分，不形成两个列表。
     const tree = React.useMemo(
       () => buildFileMentionTree([...workspaceEntries, ...sessionEntries]),
@@ -300,10 +302,10 @@ export const FileMentionList = React.forwardRef<FileMentionRef, FileMentionListP
       return (
         <div className={cn(!embedded && 'rounded-lg border bg-popover shadow-lg', 'overflow-hidden min-w-[260px]')}>
           <div className="flex items-center justify-between gap-2 px-2.5 py-1.5 text-[11px] font-medium bg-primary/10 text-primary border-b border-border/50">
-            <span>文件</span>
-            <span className="font-normal text-muted-foreground">Esc 关闭 · Enter 选中</span>
+            <span>{t('files.mention.title')}</span>
+            <span className="font-normal text-muted-foreground">{t('files.mention.shortcutHint')}</span>
           </div>
-          <div className="p-2 text-[11px] text-muted-foreground">无匹配文件</div>
+          <div className="p-2 text-[11px] text-muted-foreground">{t('files.mention.noMatch')}</div>
         </div>
       )
     }
@@ -320,8 +322,8 @@ export const FileMentionList = React.forwardRef<FileMentionRef, FileMentionListP
         )}
       >
         <div className="flex items-center px-2.5 py-1.5 text-[11px] font-medium bg-primary/10 text-primary border-b border-border/50">
-          <span>文件</span>
-          <span className="ml-auto font-normal text-muted-foreground">Esc 关闭 · Enter 选中</span>
+          <span>{t('files.mention.title')}</span>
+          <span className="ml-auto font-normal text-muted-foreground">{t('files.mention.shortcutHint')}</span>
         </div>
         <TreeNodeList
           nodes={treeWithState}
@@ -356,6 +358,7 @@ function TreeNodeList({
   onToggle: (node: FileTreeNode) => void
   setSelectedIndex: (index: number) => void
 }) {
+  const t = useT()
   let offset = 0
 
   // 双击检测：单击目录时延迟触发 toggle，等待可能的双击
@@ -448,7 +451,7 @@ function TreeNodeList({
           {/* 名称 */}
           <span className="truncate flex-1">{node.name}</span>
           {node.source === 'session' && (
-            <span className="rounded-md bg-muted px-1.5 py-0.5 text-[10px] leading-none text-muted-foreground shrink-0">会话文件</span>
+            <span className="rounded-md bg-muted px-1.5 py-0.5 text-[10px] leading-none text-muted-foreground shrink-0">{t('files.sessionFileBadge')}</span>
           )}
 
           {/* 路径（当路径不等于文件名时显示） */}
@@ -461,12 +464,12 @@ function TreeNodeList({
           {/* 选中文件夹时的快捷键提示 */}
           {isSelected && node.type === 'dir' && node.children.length > 0 && !node.expanded && (
             <span className="text-[10px] text-muted-foreground/60 shrink-0 bg-muted/50 rounded px-1 py-px">
-              Tab 展开
+              {t('files.mention.tabExpand')}
             </span>
           )}
           {isSelected && node.type === 'dir' && node.children.length > 0 && node.expanded && (
             <span className="text-[10px] text-muted-foreground/60 shrink-0 bg-muted/50 rounded px-1 py-px">
-              Tab 折叠
+              {t('files.mention.tabCollapse')}
             </span>
           )}
         </button>

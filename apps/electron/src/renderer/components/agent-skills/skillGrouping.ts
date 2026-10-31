@@ -6,7 +6,11 @@ export interface SkillGroup {
   skills: SkillMeta[]
 }
 
-const UNGROUPED_TITLE = '未分组'
+/**
+ * 无 group 字段的 Skill 归到哨兵标题；渲染处用 skills.group.ungrouped 键翻译。
+ * 用非中文哨兵而不是中文文案，避免本文件出现用户可见中文字面量。
+ */
+export const UNGROUPED_TITLE_KEY = 'ungrouped'
 
 function normalizeGroup(value: string): string {
   return value.trim().replace(/^["']|["']$/g, '')
@@ -18,7 +22,7 @@ export function getSkillGroupTitle(skill: SkillMeta): string {
     if (group) return group
   }
 
-  return UNGROUPED_TITLE
+  return UNGROUPED_TITLE_KEY
 }
 
 export function groupSkills(skills: SkillMeta[]): SkillGroup[] {
@@ -41,7 +45,7 @@ export function groupSkills(skills: SkillMeta[]): SkillGroup[] {
 }
 
 function compareGroupTitle(a: string, b: string): number {
-  if (a === UNGROUPED_TITLE && b !== UNGROUPED_TITLE) return 1
-  if (b === UNGROUPED_TITLE && a !== UNGROUPED_TITLE) return -1
+  if (a === UNGROUPED_TITLE_KEY && b !== UNGROUPED_TITLE_KEY) return 1
+  if (b === UNGROUPED_TITLE_KEY && a !== UNGROUPED_TITLE_KEY) return -1
   return a.localeCompare(b, 'zh-CN')
 }

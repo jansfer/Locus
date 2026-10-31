@@ -29,6 +29,19 @@ import { sessionPreview } from './sessionPreview'
 import { environment } from './environment'
 import { voice } from './voice'
 import { updater } from './updater'
+import { agentView } from './agentView'
+import { agentMessages } from './agentMessages'
+import { agentMisc } from './agentMisc'
+import { settingsIntegrations } from './settingsIntegrations'
+import { settingsMisc } from './settingsMisc'
+import { aiElements } from './aiElements'
+import { aiElementsMisc } from './aiElementsMisc'
+import { markdown } from './markdown'
+import { obsidian } from './obsidian'
+import { quickTask } from './quickTask'
+import { misc } from './misc'
+import { uiCommon } from './uiCommon'
+import { appBoot } from './appBoot'
 import type { MirrorStructure } from '../../types'
 import type { zhCN } from '../zh-CN/index.ts'
 
@@ -57,4 +70,17 @@ export const en: MirrorStructure<typeof zhCN> = {
   environment,
   voice,
   updater,
+  agentView,
+  agentMessages,
+  agentMisc,
+  settingsIntegrations,
+  settingsMisc,
+  aiElements,
+  aiElementsMisc,
+  markdown,
+  obsidian,
+  quickTask,
+  misc,
+  uiCommon,
+  appBoot,
 }

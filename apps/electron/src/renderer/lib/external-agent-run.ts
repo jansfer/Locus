@@ -1,6 +1,7 @@
 import type { AgentSessionMeta, SDKMessage } from '@proma/shared'
 import type { AgentStreamState } from '@/atoms/agent-atoms'
 import type { TabItem } from '@/atoms/tab-atoms'
+import { t } from '@/i18n'
 
 /** 顶部入口与 TabItem 保持同一类型契约，避免已删除的入口类型回流。 */
 export type ExternalAgentRunTab = TabItem
@@ -79,7 +80,7 @@ export function buildExternalAgentRunActivation(
   input: ExternalAgentRunActivationInput,
 ): ExternalAgentRunActivation {
   const session = input.sessions.find((item) => item.id === input.sessionId)
-  const title = input.title ?? session?.title ?? '新 Agent 会话'
+  const title = input.title ?? session?.title ?? t('misc.session.newAgentSession')
   const tabsWithoutPreview = input.tabs.filter((tab) => tab.type !== 'preview')
   const existingTab = tabsWithoutPreview.find((tab) => tab.type === 'agent' && tab.sessionId === input.sessionId)
   const tabs = existingTab

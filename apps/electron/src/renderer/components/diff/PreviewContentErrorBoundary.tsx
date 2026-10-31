@@ -1,5 +1,6 @@
 import * as React from 'react'
 import { AlertTriangle, RotateCw } from 'lucide-react'
+import { t } from '@/i18n'
 
 interface PreviewContentErrorBoundaryProps {
   /** 文件切换时自动清除上一个文件的错误状态。 */
@@ -48,14 +49,14 @@ export class PreviewContentErrorBoundary extends React.Component<
       return (
         <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center text-muted-foreground">
           <AlertTriangle className="size-7 text-destructive/70" />
-          <p className="text-[13px]">此文件无法安全渲染预览，请使用默认应用打开。</p>
+          <p className="text-[13px]">{t('diff.boundary.unsafeRender')}</p>
           <button
             type="button"
             onClick={this.handleRetry}
             className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted"
           >
             <RotateCw className="size-3.5" />
-            重试预览
+            {t('diff.boundary.retry')}
           </button>
         </div>
       )

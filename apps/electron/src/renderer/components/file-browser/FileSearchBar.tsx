@@ -14,6 +14,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { fileBrowserAutoRevealAtom } from '@/atoms/agent-atoms'
 import type { FileIndexEntry } from '@proma/shared'
 import { hasMixedFileSources } from './file-search-sources'
+import { useT } from '@/i18n'
 
 interface FileSearchBarProps {
   workspaceFilesPath: string | null
@@ -56,10 +57,11 @@ export function FileSearchBar({
   sourceFilter = 'all',
   showSessionBadge = true,
   children,
-  placeholder = '搜索文件...',
+  placeholder,
   sessionId,
   onFilePreview,
 }: FileSearchBarProps): React.ReactElement | null {
+  const t = useT()
   const [query, setQuery] = React.useState('')
   const [results, setResults] = React.useState<FileIndexEntry[]>([])
   const [isOpen, setIsOpen] = React.useState(false)
@@ -77,6 +79,8 @@ export function FileSearchBar({
   const pendingShowRef = React.useRef(false)
 
   const setAutoReveal = useSetAtom(fileBrowserAutoRevealAtom)
+
+  const resolvedPlaceholder = placeholder ?? t('files.searchPlaceholder')
 
   const hasAnyRoot = (sourceFilter !== 'session' && !!workspaceFilesPath)
     || (sourceFilter !== 'project' && !!sessionPath)
@@ -260,7 +264,7 @@ export function FileSearchBar({
           ref={inputRef}
           type="text"
           className="flex-1 bg-transparent text-[11px] outline-none placeholder:text-muted-foreground/40"
-          placeholder={placeholder}
+          placeholder={resolvedPlaceholder}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onClick={() => {
@@ -318,6 +322,7 @@ function ResultItem({
     }
     return entry.path
   }, [entry.path, entry.name])
+  const t = useT()
 
   return (
     <Tooltip delayDuration={500}>
@@ -336,7 +341,7 @@ function ResultItem({
             {entry.name}
           </span>
           {showSessionBadge && entry.source === 'session' && (
-            <span className="flex-shrink-0 rounded-md bg-muted px-1.5 py-0.5 text-[10px] leading-none text-muted-foreground">会话文件</span>
+            <span className="flex-shrink-0 rounded-md bg-muted px-1.5 py-0.5 text-[10px] leading-none text-muted-foreground">{t('files.sessionFileBadge')}</span>
           )}
           {dirPath && (
             <span

@@ -26,9 +26,11 @@ import { projectListHeightAtom } from '@/atoms/sidebar-atoms'
 import { useProjectActions } from '@/hooks/useProjectActions'
 import { LocalProjectBadge } from './LocalProjectBadge'
 import { agentSessionsAtom, agentWorkspacesAtom } from '@/atoms/agent-atoms'
+import { useT } from '@/i18n'
 import type { AgentWorkspace } from '@proma/shared'
 
 export function WorkspaceSelector(): React.ReactElement {
+  const t = useT()
   const { workspaces, currentWorkspaceId, selectProject, createProject, createProjectFromFolder } = useProjectActions()
   const [, setWorkspaces] = useAtom(agentWorkspacesAtom)
   const [, setAgentSessions] = useAtom(agentSessionsAtom)
@@ -151,7 +153,7 @@ export function WorkspaceSelector(): React.ReactElement {
       const updated = await window.electronAPI.updateAgentWorkspace(editingId, { name: trimmed })
       setWorkspaces((prev) => prev.map((w) => (w.id === updated.id ? updated : w)))
     } catch (error) {
-      const msg = error instanceof Error ? error.message : '重命名失败'
+      const msg = error instanceof Error ? error.message : t('agentMisc.renameFailed')
       toast.error(msg)
     } finally {
       setEditingId(null)
@@ -278,19 +280,19 @@ export function WorkspaceSelector(): React.ReactElement {
       <div className="rounded-lg border border-border/60 overflow-hidden">
         {/* 头部 */}
         <div className="flex items-center justify-between px-2.5 py-1.5 border-b border-border/40">
-          <span className="text-[11px] font-medium text-foreground/50 uppercase tracking-wide">项目</span>
+          <span className="text-[11px] font-medium text-foreground/50 uppercase tracking-wide">{t('agentMisc.projects')}</span>
           <div className="flex items-center gap-0.5">
             <button
               onClick={() => void createProjectFromFolder()}
               className="p-1 rounded hover:bg-foreground/[0.06] text-foreground/35 hover:text-foreground/60 transition-colors titlebar-no-drag"
-              title="从本地文件夹创建项目"
+              title={t('agentMisc.createProjectFromFolder')}
             >
               <FolderInput size={13} />
             </button>
             <button
               onClick={handleStartCreate}
               className="p-1 rounded hover:bg-foreground/[0.06] text-foreground/35 hover:text-foreground/60 transition-colors titlebar-no-drag"
-              title="新建空白项目"
+              title={t('agentMisc.createBlankProject')}
             >
               <Plus size={13} />
             </button>
@@ -298,7 +300,7 @@ export function WorkspaceSelector(): React.ReactElement {
         </div>
 
         <div className="px-2 pt-2">
-          <Input type="search" aria-label="搜索项目" placeholder="搜索项目名称或路径…" value={projectQuery}
+          <Input type="search" aria-label={t('agentMisc.searchProjectsAria')} placeholder={t('agentMisc.searchProjectsPlaceholder')} value={projectQuery}
             onChange={(event) => setProjectQuery(event.target.value)}
             onKeyDown={(event) => { if (event.key === 'Escape') setProjectQuery('') }} className="h-8 text-xs" />
         </div>
@@ -308,7 +310,7 @@ export function WorkspaceSelector(): React.ReactElement {
           className="overflow-y-auto scrollbar-thin flex flex-col p-1"
           style={{ maxHeight: listHeight }}
         >
-          {visibleWorkspaces.length === 0 && <div role="status" className="px-2 py-3 text-xs text-muted-foreground">未找到匹配的项目</div>}
+          {visibleWorkspaces.length === 0 && <div role="status" className="px-2 py-3 text-xs text-muted-foreground">{t('agentMisc.noMatchingProjects')}</div>}
           {visibleWorkspaces.map((ws) => (
             <div key={ws.id} className="relative">
               {/* 上方插入指示线 */}
@@ -360,7 +362,7 @@ export function WorkspaceSelector(): React.ReactElement {
                     <button
                       onClick={(e) => handleStartRename(e, ws)}
                       className="p-0.5 rounded hover:bg-foreground/[0.08] text-foreground/30 hover:text-foreground/60 transition-colors"
-                      title="重命名"
+                      title={t('common.rename')}
                     >
                       <Pencil size={12} />
                     </button>
@@ -368,7 +370,7 @@ export function WorkspaceSelector(): React.ReactElement {
                       <button
                         onClick={(e) => handleStartDelete(e, ws.id)}
                         className="p-0.5 rounded hover:bg-destructive/10 text-foreground/30 hover:text-destructive transition-colors"
-                        title="删除"
+                        title={t('common.delete')}
                       >
                         <Trash2 size={12} />
                       </button>
@@ -395,7 +397,7 @@ export function WorkspaceSelector(): React.ReactElement {
                 onChange={(e) => setNewName(e.target.value)}
                 onKeyDown={handleCreateKeyDown}
                 onBlur={() => setCreating(false)}
-                placeholder="项目名称..."
+                placeholder={t('agentMisc.projectNamePlaceholder')}
                 className="flex-1 min-w-0 bg-transparent text-[13px] text-foreground border-b border-primary/50 outline-none px-0.5"
                 maxLength={50}
               />
@@ -419,18 +421,18 @@ export function WorkspaceSelector(): React.ReactElement {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>确认删除项目</AlertDialogTitle>
+            <AlertDialogTitle>{t('agentMisc.deleteProjectTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
-              删除后项目配置将被移除，但目录文件会保留。确定要删除吗？
+              {t('agentMisc.deleteProjectDescription')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleConfirmDelete}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              删除
+              {t('common.delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

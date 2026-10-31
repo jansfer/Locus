@@ -28,6 +28,7 @@ import Mention from '@tiptap/extension-mention'
 import { ChevronsDownUp, ChevronsUpDown } from 'lucide-react'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
+import { useT } from '@/i18n'
 import { lowlight } from '@/lib/lowlight'
 import {
   hasRichClipboardMarkup,
@@ -220,7 +221,7 @@ export const RichTextInput = forwardRef<RichTextInputHandle, RichTextInputProps>
   onPasteLongText,
   longTextPasteThreshold,
   voiceInputId,
-  placeholder = '有什么可以帮助到你的呢？',
+  placeholder,
   suggestionActive = false,
   className,
   disabled = false,
@@ -239,6 +240,9 @@ export const RichTextInput = forwardRef<RichTextInputHandle, RichTextInputProps>
   sendWithCmdEnter = false,
   onAgentHistoryQuoteClick,
 }: RichTextInputProps, ref: React.Ref<RichTextInputHandle>): React.ReactElement {
+  const t = useT()
+  // 未显式传入 placeholder 时使用词典默认文案；渲染时解析保证语言切换后同步更新。
+  const resolvedPlaceholder = placeholder ?? t('aiElements.input.placeholder')
   const [isExpanded, setIsExpanded] = useState(false)
   const inputIdRef = useRef(voiceInputId ?? `rich-text-input-${Math.random().toString(36).slice(2)}`)
   const voicePreviewRef = useRef<VoiceDictationPreviewRange | null>(null)
@@ -554,7 +558,7 @@ export const RichTextInput = forwardRef<RichTextInputHandle, RichTextInputProps>
         }),
       ] : []),
       Placeholder.configure({
-        placeholder,
+        placeholder: resolvedPlaceholder,
         emptyEditorClass: 'is-editor-empty',
       }),
       // Mention 扩展：启用时注册，路径/slug 后续通过 ref 异步更新。
@@ -654,10 +658,10 @@ export const RichTextInput = forwardRef<RichTextInputHandle, RichTextInputProps>
                 ...(quotePayload ? { 'data-mention-quote': quotePayload } : {}),
                 ...(isNavigableHistoryQuote
                   ? {
-                      title: '跳转到引用位置并高亮',
+                      title: t('aiElements.message.quoteJumpTitle'),
                       role: 'button',
                       tabindex: '0',
-                      'aria-label': `跳转到${label}的引用位置并高亮`,
+                      'aria-label': t('aiElements.message.quoteJumpAria', { label }),
                     }
                   : {}),
                 ...(node.attrs.commandMenuMention ? { 'data-command-menu-mention': 'true' } : {}),
@@ -1035,11 +1039,11 @@ export const RichTextInput = forwardRef<RichTextInputHandle, RichTextInputProps>
       (ext) => ext.name === 'placeholder'
     )
     if (placeholderExt) {
-      placeholderExt.options.placeholder = placeholder
+      placeholderExt.options.placeholder = resolvedPlaceholder
       // 触发 TipTap 重新渲染 placeholder
       editor.view.dispatch(editor.state.tr)
     }
-  }, [editor, placeholder])
+  }, [editor, resolvedPlaceholder])
 
   // 自动聚焦仅属于「切换到另一会话」：同一输入框因 loading/streaming 等状态重建 editor
   // 时，不应在 100ms 后把用户刚移走的焦点抢回来。
@@ -1284,7 +1288,7 @@ export const RichTextInput = forwardRef<RichTextInputHandle, RichTextInputProps>
             </button>
           </TooltipTrigger>
           <TooltipContent side="top">
-            {isManuallyCollapsed ? '展开输入框' : '折叠输入框'}
+            {isManuallyCollapsed ? t('aiElements.input.expandInput') : t('aiElements.input.collapseInput')}
           </TooltipContent>
         </Tooltip>
       )}

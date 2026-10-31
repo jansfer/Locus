@@ -2,6 +2,7 @@ import { syntaxTree } from '@codemirror/language'
 import type { EditorState, Extension, Text } from '@codemirror/state'
 import { Decoration, EditorView, MatchDecorator, ViewPlugin, WidgetType } from '@codemirror/view'
 import { getLeadingFrontmatterRange } from '../markdown/live-markdown-frontmatter'
+import { t } from '@/i18n'
 
 // Text 不可变；选区/焦点事务复用文档，弱引用不会保留历史正文。
 const frontmatterEnds = new WeakMap<Text, number>()
@@ -65,8 +66,8 @@ class VaultWikiLinkWidget extends WidgetType {
     link.type = 'button'
     link.className = 'vault-wikilink'
     link.textContent = `[${this.label}]`
-    link.title = `${this.target}（Alt/Option 点击编辑链接）`
-    link.setAttribute('aria-label', `打开笔记：${this.label}`)
+    link.title = t('vault.wikilink.openTitle', { target: this.target })
+    link.setAttribute('aria-label', t('vault.wikilink.openAria', { label: this.label }))
     // 在 CodeMirror 把指针位置变成源码选区前保留链接，普通单击即可打开。
     link.onmousedown = (event) => event.preventDefault()
     link.onclick = (event) => {

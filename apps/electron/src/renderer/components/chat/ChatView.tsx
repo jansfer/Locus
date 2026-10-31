@@ -48,6 +48,7 @@ import {
 import { registerPendingTitle } from '@/hooks/useGlobalChatListeners'
 import { draftSessionIdsAtom } from '@/atoms/draft-session-atoms'
 import { cn } from '@/lib/utils'
+import { useT } from '@/i18n'
 import { buildQuotedSelectionBlock } from '@/lib/quoted-selection'
 import {
   clearStopGenerationTarget,
@@ -84,6 +85,7 @@ export function ChatView({ conversationId }: ChatViewProps): React.ReactElement 
 
 function ChatViewInner({ conversationId }: ChatViewProps): React.ReactElement {
   // ===== 本地状态（每个实例独立） =====
+  const t = useT()
   const [messages, setMessages] = React.useState<ChatMessage[]>([])
   const [contextDividers, setContextDividers] = React.useState<string[]>([])
   const [pendingAttachments, setPendingAttachments] = React.useState<PendingAttachment[]>([])
@@ -398,7 +400,7 @@ function ChatViewInner({ conversationId }: ChatViewProps): React.ReactElement {
         map.delete(conversationId)
         return map
       })
-      setChatStreamErrors((prev) => new Map(prev).set(conversationId, '发送失败，请重试'))
+      setChatStreamErrors((prev) => new Map(prev).set(conversationId, t('chat.input.sendFailed')))
       return false
     }
   }, [
@@ -418,6 +420,7 @@ function ChatViewInner({ conversationId }: ChatViewProps): React.ReactElement {
     setStreamingStates,
     setConversations,
     store,
+    t,
   ])
 
   // ===== 自动发送快速任务消息 =====

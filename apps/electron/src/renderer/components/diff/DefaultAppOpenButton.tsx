@@ -9,6 +9,7 @@
 import * as React from 'react'
 import { ExternalLink } from 'lucide-react'
 import type { FileAccessOptions } from '@proma/shared'
+import { useT } from '@/i18n'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useDefaultAppForFile } from '@/hooks/useDefaultAppForFile'
 import { getDefaultAppOpenLabel } from '@/lib/default-app-open-label'
@@ -29,6 +30,7 @@ export function DefaultAppOpenButton({
   variant = 'labeled',
   className,
 }: DefaultAppOpenButtonProps): React.ReactElement | null {
+  const t = useT()
   const info = useDefaultAppForFile(filePath, access)
 
   const handleClick = React.useCallback(() => {
@@ -64,12 +66,12 @@ export function DefaultAppOpenButton({
             <ExternalLink className={cn('shrink-0', labeled ? 'size-4' : 'size-3.5')} />
           )}
           {labeled && (
-            <span className="text-[11px] leading-none truncate">{info?.name ?? '系统默认应用'}</span>
+            <span className="text-[11px] leading-none truncate">{info?.name ?? t('diff.defaultApp.systemName')}</span>
           )}
         </button>
       </TooltipTrigger>
       <TooltipContent side="bottom">
-        <p>{info ? `用 ${info.name} 打开编辑` : '用系统默认应用打开'}</p>
+        <p>{info ? t('diff.defaultApp.openWith', { name: info.name }) : t('diff.defaultApp.openWithSystem')}</p>
       </TooltipContent>
     </Tooltip>
   )

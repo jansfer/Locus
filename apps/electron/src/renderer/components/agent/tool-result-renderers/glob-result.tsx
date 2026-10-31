@@ -5,6 +5,7 @@
 import * as React from 'react'
 import { CollapsibleResult } from './collapsible-result'
 import { FileTypeIcon } from '@/components/file-browser'
+import { useT } from '@/i18n'
 
 interface GlobResultRendererProps {
   result: string
@@ -21,13 +22,14 @@ export function GlobResultRenderer({ result, isError }: GlobResultRendererProps)
   }
 
   const files = React.useMemo(() => result.split('\n').filter(Boolean), [result])
+  const t = useT()
 
   const renderList = React.useCallback((text: string): React.ReactNode => {
     const visibleFiles = text.split('\n').filter(Boolean)
     return (
       <div className="space-y-1">
         <div className="text-[11px] text-muted-foreground/60">
-          {files.length} 个文件
+          {t('agentMisc.toolResult.fileCount', { n: files.length })}
         </div>
         <div className="rounded-md bg-muted/20 p-2 space-y-0.5">
           {visibleFiles.map((file, i) => (

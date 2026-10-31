@@ -1,5 +1,6 @@
 import * as React from 'react'
 import { cn } from '@/lib/utils'
+import { useT } from '@/i18n'
 
 interface SpinnerProps extends React.HTMLAttributes<HTMLDivElement> {
   /**
@@ -24,6 +25,7 @@ export function Spinner({
   className,
   ...props
 }: SpinnerProps): React.ReactElement {
+  const t = useT()
   const sizeClasses = {
     sm: 'text-sm',      // 14px → spinner 约 21px
     default: 'text-base', // 16px → spinner 约 24px
@@ -38,7 +40,7 @@ export function Spinner({
         className
       )}
       role="status"
-      aria-label="加载中"
+      aria-label={t('common.loading')}
       {...props}
     >
       {Array.from({ length: 9 }).map((_, i) => (

@@ -12,6 +12,7 @@
 import * as React from 'react'
 import { GitBranch } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useT } from '@/i18n'
 import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover'
 import type { AgentSessionMeta } from '@proma/shared'
 import type { SessionIndicatorStatus } from '@/atoms/agent-atoms'
@@ -60,6 +61,7 @@ export function CollapsedDelegatedSessionsPopover({
   const contentId = React.useId()
   const anchorRef = React.useRef<HTMLSpanElement | null>(null)
   const popover = useHoverPopover({ open, onOpenChange })
+  const t = useT()
 
   const child = React.Children.only(children) as TriggerElement
   const parentButton = React.cloneElement(child, {
@@ -95,7 +97,7 @@ export function CollapsedDelegatedSessionsPopover({
         side="right"
         align="start"
         sideOffset={8}
-        aria-label={`「${parentTitle}」的子会话`}
+        aria-label={t('agentMisc.childSessionsAria', { title: parentTitle })}
         className={cn('w-64 p-1.5', HOVER_POPOVER_CONTENT_CLASS)}
         {...popover.hoverProps}
         {...popover.contentFocusProps}
@@ -131,13 +133,13 @@ export function CollapsedDelegatedSessionsPopover({
                   )}
                 >
                   <GitBranch className={cn('size-3.5 shrink-0', getDelegationStatusIconClass(status))} />
-                  <span className="min-w-0 flex-1 truncate">{session.title || '未命名子会话'}</span>
+                  <span className="min-w-0 flex-1 truncate">{session.title || t('agentMisc.untitledSubsession')}</span>
                 </button>
               )
             })}
           </div>
         ) : (
-          <div className="px-2 py-2 text-[12px] text-foreground/40">暂无子会话</div>
+          <div className="px-2 py-2 text-[12px] text-foreground/40">{t('agentMisc.noSubsessions')}</div>
         )}
       </PopoverContent>
     </Popover>

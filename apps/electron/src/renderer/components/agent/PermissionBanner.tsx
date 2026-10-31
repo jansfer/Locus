@@ -14,6 +14,7 @@ import { Shield, ShieldAlert, Check, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { allPendingPermissionRequestsAtom, agentStreamingStatesAtom } from '@/atoms/agent-atoms'
 import type { DangerLevel } from '@proma/shared'
+import { useT } from '@/i18n'
 
 /** 危险等级对应的图标颜色 */
 const DANGER_ICON_STYLES: Record<DangerLevel, string> = {
@@ -37,6 +38,7 @@ interface PermissionBannerProps {
 }
 
 export function PermissionBanner({ sessionId }: PermissionBannerProps): React.ReactElement | null {
+  const t = useT()
   const [allRequests, setAllRequests] = useAtom(allPendingPermissionRequestsAtom)
   const setStreamingStates = useSetAtom(agentStreamingStatesAtom)
   const requests = allRequests.get(sessionId) ?? []
@@ -127,7 +129,7 @@ export function PermissionBanner({ sessionId }: PermissionBannerProps): React.Re
         <div className="flex items-center gap-2">
           <IconComponent className={`size-4 ${iconColor}`} />
           <span className="text-sm font-medium">
-            {isDangerous ? '危险操作需要确认' : '需要确认'}
+            {isDangerous ? t('agentMisc.dangerousConfirmTitle') : t('agentMisc.permissionConfirmTitle')}
           </span>
           {requests.length > 1 && (
             <span className="text-xs text-muted-foreground">
@@ -143,7 +145,7 @@ export function PermissionBanner({ sessionId }: PermissionBannerProps): React.Re
             type="button"
             className="size-5 flex items-center justify-center rounded-md text-muted-foreground/50 hover:text-foreground hover:bg-muted/60 transition-colors"
             onClick={handleDismiss}
-            title="关闭并终止 Agent"
+            title={t('agentMisc.dismissAndStopAgent')}
           >
             <X className="size-3.5" />
           </button>
@@ -179,7 +181,7 @@ export function PermissionBanner({ sessionId }: PermissionBannerProps): React.Re
       {/* 操作按钮 */}
       <div className="flex items-center justify-end gap-1.5 px-3 pb-2.5">
         <span className="text-[10px] text-muted-foreground/40 mr-auto">
-          Enter 允许
+          {t('agentMisc.enterToAllow')}
         </span>
         <Button
           variant="ghost"
@@ -189,7 +191,7 @@ export function PermissionBanner({ sessionId }: PermissionBannerProps): React.Re
           className="h-7 px-3 text-xs text-muted-foreground hover:text-destructive"
         >
           <X className="size-3 mr-1" />
-          拒绝
+          {t('agentMisc.deny')}
         </Button>
 
         {request.allowAlways !== false && <Button
@@ -199,7 +201,7 @@ export function PermissionBanner({ sessionId }: PermissionBannerProps): React.Re
           disabled={responding}
           className="h-7 px-3 text-xs"
         >
-          本次会话总是允许
+          {t('agentMisc.alwaysAllowThisSession')}
         </Button>}
 
         <Button
@@ -210,7 +212,7 @@ export function PermissionBanner({ sessionId }: PermissionBannerProps): React.Re
           className="h-7 px-3 text-xs"
         >
           <Check className="size-3 mr-1" />
-          允许
+          {t('agentMisc.allow')}
         </Button>
       </div>
     </div>

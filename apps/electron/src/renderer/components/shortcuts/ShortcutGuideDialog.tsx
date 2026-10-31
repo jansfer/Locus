@@ -8,6 +8,8 @@ import * as React from 'react'
 import { useAtomValue, useSetAtom } from 'jotai'
 import * as DialogPrimitive from '@radix-ui/react-dialog'
 import { AppWindow, Compass, Globe2, Keyboard, PencilLine, X } from 'lucide-react'
+import { useT } from '@/i18n'
+import type { MessageKey } from '@/i18n'
 import { shortcutGuideOpenAtom } from '@/atoms/shortcut-guide'
 import { shortcutOverridesAtom, sendWithCmdEnterAtom } from '@/atoms/shortcut-atoms'
 import { cn } from '@/lib/utils'
@@ -25,8 +27,11 @@ import {
 
 interface ShortcutGuideItem {
   id: string
-  name: string
-  description: string
+  /** 词典键优先；来自 shortcut-defaults 的外部数据暂无键，回退 name/description 原文。 */
+  nameKey?: MessageKey
+  name?: string
+  descriptionKey?: MessageKey
+  description?: string
   accelerator: string | null
   /** `undefined` 为非全局快捷键或状态查询失败，`null` 为正在查询。 */
   globalRegistration?: boolean | null
@@ -73,8 +78,9 @@ const CATEGORY_ICONS: Record<ShortcutCategory, React.ComponentType<{ className?:
 }
 
 function ShortcutKeys({ accelerator }: { accelerator: string | null }): React.ReactElement {
+  const t = useT()
   if (accelerator === null) {
-    return <span className="text-[11px] font-medium text-muted-foreground">已禁用</span>
+    return <span className="text-[11px] font-medium text-muted-foreground">{t('onboarding.shortcuts.disabled')}</span>
   }
 
   return (
@@ -92,14 +98,15 @@ function ShortcutKeys({ accelerator }: { accelerator: string | null }): React.Re
 }
 
 function ShortcutTile({ item }: { item: ShortcutGuideItem }): React.ReactElement {
+  const t = useT()
   const disabled = item.accelerator === null
   const unavailable = item.globalRegistration === false
   const globalStatus = item.globalRegistration === null
-    ? '正在确认'
+    ? t('onboarding.shortcuts.globalChecking')
     : item.globalRegistration
-      ? '应用未聚焦时也可用'
+      ? t('onboarding.shortcuts.globalActive')
       : item.globalRegistration === false
-        ? '当前未注册'
+        ? t('onboarding.shortcuts.globalUnregistered')
         : null
 
   return (
@@ -110,11 +117,11 @@ function ShortcutTile({ item }: { item: ShortcutGuideItem }): React.ReactElement
       )}
     >
       <div className="flex items-start justify-between gap-3">
-        <span className="min-w-0 text-sm font-medium leading-5 text-foreground">{item.name}</span>
+        <span className="min-w-0 text-sm font-medium leading-5 text-foreground">{item.nameKey ? t(item.nameKey) : item.name}</span>
         <ShortcutKeys accelerator={item.accelerator} />
       </div>
       <div className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-        <p className="text-xs leading-4 text-muted-foreground">{item.description}</p>
+        <p className="text-xs leading-4 text-muted-foreground">{item.descriptionKey ? t(item.descriptionKey) : item.description}</p>
         {globalStatus && (
           <span className={cn(
             'text-[11px] leading-4',
@@ -129,6 +136,7 @@ function ShortcutTile({ item }: { item: ShortcutGuideItem }): React.ReactElement
 }
 
 export function ShortcutGuideDialog(): React.ReactElement {
+  const t = useT()
   const open = useAtomValue(shortcutGuideOpenAtom)
   const setOpen = useSetAtom(shortcutGuideOpenAtom)
   const overrides = useAtomValue(shortcutOverridesAtom)
@@ -180,28 +188,28 @@ export function ShortcutGuideDialog(): React.ReactElement {
     groups.get('navigation')?.push(
       {
         id: 'quick-switch-session',
-        name: '直达会话',
-        description: '按住主修饰键后，继续按 1-9 跳转对应会话',
+        nameKey: 'onboarding.shortcuts.directSession',
+        descriptionKey: 'onboarding.shortcuts.directSessionDesc',
         accelerator: `${primaryModifier}+1-9`,
       },
       {
         id: 'cycle-sessions',
-        name: '循环切换会话',
-        description: 'Ctrl+Shift+Tab 可反向切换，松开 Ctrl 确认',
+        nameKey: 'onboarding.shortcuts.cycleSessions',
+        descriptionKey: 'onboarding.shortcuts.cycleSessionsDesc',
         accelerator: 'Ctrl+Tab',
       },
     )
     groups.get('edit')?.push(
       {
         id: 'send-message',
-        name: '发送消息',
-        description: '在 Chat 或 Agent 输入框中发送当前内容',
+        nameKey: 'onboarding.shortcuts.sendMessage',
+        descriptionKey: 'onboarding.shortcuts.sendMessageDesc',
         accelerator: sendWithCmdEnter ? `${primaryModifier}+Enter` : 'Enter',
       },
       {
         id: 'insert-line-break',
-        name: '插入换行',
-        description: '在输入框中继续编辑下一行',
+        nameKey: 'onboarding.shortcuts.insertLineBreak',
+        descriptionKey: 'onboarding.shortcuts.insertLineBreakDesc',
         accelerator: sendWithCmdEnter ? 'Enter' : 'Shift+Enter',
       },
     )
@@ -228,8 +236,8 @@ export function ShortcutGuideDialog(): React.ReactElement {
                 <Keyboard className="size-4" />
               </span>
               <div>
-                <DialogPrimitive.Title className="text-sm font-medium text-foreground">快捷键地图</DialogPrimitive.Title>
-                <p className="text-xs text-muted-foreground">{isMac ? 'macOS 当前生效按键' : '当前生效按键'}</p>
+                <DialogPrimitive.Title className="text-sm font-medium text-foreground">{t('onboarding.shortcuts.title')}</DialogPrimitive.Title>
+                <p className="text-xs text-muted-foreground">{isMac ? t('onboarding.shortcuts.macKeys') : t('onboarding.shortcuts.currentKeys')}</p>
               </div>
             </div>
             <DialogPrimitive.Close
@@ -238,7 +246,7 @@ export function ShortcutGuideDialog(): React.ReactElement {
                 'focus-visible:bg-muted focus-visible:text-foreground',
                 iconButtonNoRingFocusClass,
               )}
-              aria-label="关闭快捷键地图"
+              aria-label={t('onboarding.shortcuts.closeAria')}
             >
               <X className="size-4" />
             </DialogPrimitive.Close>
@@ -257,10 +265,10 @@ export function ShortcutGuideDialog(): React.ReactElement {
                       <Icon className="size-3.5" />
                     </span>
                     <h2 id={`shortcut-category-${category}`} className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                      {SHORTCUT_CATEGORY_LABELS[category]}
+                      {t(SHORTCUT_CATEGORY_LABELS[category])}
                     </h2>
                     {category === 'global' && (
-                      <span className="text-[11px] text-muted-foreground/75">系统注册状态</span>
+                      <span className="text-[11px] text-muted-foreground/75">{t('onboarding.shortcuts.systemStatus')}</span>
                     )}
                   </div>
                   <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">

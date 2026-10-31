@@ -20,6 +20,7 @@ import {
 } from '@/lib/project-search-panel'
 import { Input } from '@/components/ui/input'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
+import { useT, t, subscribeI18n, getI18nLanguage } from '@/i18n'
 import { ModeSwitcher } from './ModeSwitcher'
 import { SearchDialog } from './SearchDialog'
 import { UserAvatar } from '@/components/chat/UserAvatar'
@@ -186,26 +187,26 @@ function getSidebarUpdateLabel(status: string, version?: string): string {
   const versionText = version ? ` v${version}` : ''
   switch (status) {
     case 'available':
-      return `发现新版本${versionText}`
+      return t('appShell.update.newVersion', { version: versionText })
     case 'downloading':
-      return `正在下载更新${versionText}`
+      return t('appShell.update.downloading', { version: versionText })
     case 'downloaded':
-      return `立即重启更新${versionText}`
+      return t('appShell.update.restartToUpdate', { version: versionText })
     default:
-      return '软件更新'
+      return t('appShell.update.title')
   }
 }
 
 function getSidebarUpdateButtonText(status: string): string {
   switch (status) {
     case 'available':
-      return '查看'
+      return t('appShell.update.view')
     case 'downloading':
-      return '下载中'
+      return t('appShell.update.downloadingShort')
     case 'downloaded':
-      return '更新'
+      return t('appShell.update.update')
     default:
-      return '更新'
+      return t('appShell.update.update')
   }
 }
 
@@ -332,8 +333,8 @@ export interface LeftSidebarProps {
   noTransition?: boolean
 }
 
-/** 日期分组标签 */
-type DateGroup = '今天' | '昨天' | '更早'
+/** 日期分组标签（词典键名，渲染时通过 t() 转换为当前语言文案） */
+type DateGroup = 'today' | 'yesterday' | 'earlier'
 
 interface AgentProjectGroup {
   workspace: AgentWorkspace
@@ -376,12 +377,12 @@ function formatRelativeUpdatedAt(updatedAt: number, now: number): string {
   const month = 30 * day
   const year = 365 * day
 
-  if (diff < minute) return '刚刚'
-  if (diff < hour) return `${Math.max(1, Math.floor(diff / minute))} 分钟`
-  if (diff < day) return `${Math.floor(diff / hour)} 小时`
-  if (diff < month) return `${Math.floor(diff / day)} 天`
-  if (diff < year) return `${Math.floor(diff / month)} 月`
-  return `${Math.floor(diff / year)} 年`
+  if (diff < minute) return t('appShell.time.justNow')
+  if (diff < hour) return t('appShell.time.minutes', { n: Math.max(1, Math.floor(diff / minute)) })
+  if (diff < day) return t('appShell.time.hours', { n: Math.floor(diff / hour) })
+  if (diff < month) return t('appShell.time.days', { n: Math.floor(diff / day) })
+  if (diff < year) return t('appShell.time.months', { n: Math.floor(diff / month) })
+  return t('appShell.time.years', { n: Math.floor(diff / year) })
 }
 
 /** 按 updatedAt 将项目分为 今天 / 昨天 / 更早 三组 */
@@ -405,9 +406,9 @@ function groupByDate<T extends { updatedAt: number }>(items: T[]): Array<{ label
   }
 
   const groups: Array<{ label: DateGroup; items: T[] }> = []
-  if (today.length > 0) groups.push({ label: '今天', items: today })
-  if (yesterday.length > 0) groups.push({ label: '昨天', items: yesterday })
-  if (earlier.length > 0) groups.push({ label: '更早', items: earlier })
+  if (today.length > 0) groups.push({ label: 'today', items: today })
+  if (yesterday.length > 0) groups.push({ label: 'yesterday', items: yesterday })
+  if (earlier.length > 0) groups.push({ label: 'earlier', items: earlier })
   return groups
 }
 
@@ -607,6 +608,9 @@ function deleteSetEntry<T>(prev: Set<T>, value: T): Set<T> {
 }
 
 export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.ReactElement {
+  const t = useT()
+  // 语言变化时重算下方缓存了文案的 useMemo（自动化组名、归档分组标题等）。
+  const language = React.useSyncExternalStore(subscribeI18n, getI18nLanguage)
   const [activeView, setActiveView] = useAtom(activeViewAtom)
   const setAutomationForm = useSetAtom(automationFormAtom)
   const setPlanningTab = useSetAtom(planningTabAtom)
@@ -1122,7 +1126,7 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
       )
       // 归档会话被置顶时会自动取消归档
       if (original?.archived && updated.pinned && !updated.archived) {
-        toast.success('已取消归档并置顶')
+        toast.success(t('appShell.toast.unarchivedAndPinned'))
       }
     } catch (error) {
       console.error('[侧边栏] 切换置顶失败:', error)
@@ -1154,7 +1158,7 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
           syncActiveTabSideEffects(newActiveTab)
         }
       }
-      toast.success(updated.archived ? '已归档' : '已取消归档')
+      toast.success(updated.archived ? t('appShell.archived') : t('appShell.unarchived'))
     } catch (error) {
       console.error('[侧边栏] 切换归档失败:', error)
     }
@@ -1187,7 +1191,7 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
             }
           }
           if (failedChildIds.length > 0) {
-            toast.error(`部分子会话删除失败（${failedChildIds.length} 个），请手动清理`)
+            toast.error(t('appShell.toast.partialChildDeleteFailed', { n: failedChildIds.length }))
           }
           closeArchivedAgentTabs(childIds)
           for (const childId of childIds) {
@@ -1240,12 +1244,12 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
           // 保持用户在 Agent 工作流内：新会话先作为隐藏 draft，首条消息发出后才进入侧栏。
           const draftId = await createAgent({ draft: true })
           if (!draftId) {
-            toast.error('已删除会话，但无法创建新的 Agent 会话')
+            toast.error(t('appShell.toast.deletedButCreateFailed'))
           }
         }
       } catch (error) {
         console.error('[侧边栏] 删除 Agent 会话失败:', error)
-        toast.error('删除 Agent 会话失败，请重试')
+        toast.error(t('appShell.toast.deleteAgentSessionFailed'))
       } finally {
         setPendingDeleteId(null)
       }
@@ -1402,7 +1406,7 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
     if (!workspaceId || !workspace) return
 
     if (!canDeleteWorkspace(workspace)) {
-      toast.error(workspace.slug === 'default' ? '默认项目不能删除' : '至少需要保留一个项目')
+      toast.error(workspace.slug === 'default' ? t('appShell.toast.cannotDeleteDefault') : t('appShell.toast.keepAtLeastOneProject'))
       setPendingDeleteWorkspaceId(null)
       return
     }
@@ -1485,12 +1489,12 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
         }
       }
 
-      toast.success('项目已删除', {
-        description: `已删除「${workspace.name}」及其绑定资源`,
+      toast.success(t('appShell.toast.projectDeleted'), {
+        description: t('appShell.toast.projectDeletedDescription', { name: workspace.name }),
       })
     } catch (error) {
       console.error('[侧边栏] 删除项目失败:', error)
-      const msg = error instanceof Error ? error.message : '删除项目失败'
+      const msg = error instanceof Error ? error.message : t('appShell.toast.deleteProjectFailed')
       toast.error(msg)
     } finally {
       setDeletingWorkspaceId(null)
@@ -1592,11 +1596,12 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
       )
       if (sessions.length === 0) return null
       return {
-        workspace: { id: AUTOMATION_GROUP_ID, name: '定时任务', slug: AUTOMATION_GROUP_ID, createdAt: 0, updatedAt: 0 },
+        workspace: { id: AUTOMATION_GROUP_ID, name: t('appShell.automationGroupName'), slug: AUTOMATION_GROUP_ID, createdAt: 0, updatedAt: 0 },
         sessions,
       }
     },
-    [agentSessions, draftSessionIds],
+    // language：组名是 UI 文案，语言切换时需重算避免缓存旧语言翻译。
+    [agentSessions, draftSessionIds, language],
   )
 
   /** 完成项目排序并持久化（合成「自动任务」组与真实项目一起排序，二者分别持久化） */
@@ -1665,7 +1670,7 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
         .catch((error) => {
           console.error('[侧边栏] 项目排序失败:', error)
           setWorkspaces(workspaces)
-          toast.error('项目排序失败')
+          toast.error(t('appShell.toast.projectSortFailed'))
         })
     }
   }, [dragProjectId, projectDropIndicator, automationGroup, automationGroupOrder, setWorkspaces, workspaces])
@@ -1708,7 +1713,7 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
       setCreatingProject(false)
       setNewProjectName('')
     } catch (error) {
-      const msg = error instanceof Error ? error.message : '创建项目失败'
+      const msg = error instanceof Error ? error.message : t('appShell.toast.createProjectFailed')
       toast.error(msg)
     }
   }, [agentChannelId, agentModelId, newProjectName, openSession, setAgentSessions, setCurrentWorkspaceId, setWorkspaces])
@@ -1745,7 +1750,7 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
       openSession('agent', session.id, session.title)
       window.electronAPI.updateSettings({ agentWorkspaceId: workspace.id }).catch(console.error)
     } catch (error) {
-      const msg = error instanceof Error ? error.message : '从文件夹创建项目失败'
+      const msg = error instanceof Error ? error.message : t('appShell.toast.createProjectFromFolderFailed')
       toast.error(msg)
     }
   }, [agentChannelId, agentModelId, openSession, setAgentSessions, setCurrentWorkspaceId, setWorkspaces])
@@ -1759,7 +1764,7 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
         openSession('agent', parentSession.id, parentSession.title, {
           onOpened: () => {
             if (store.get(agentSidePanelSplitMapAtom).has(parentSession.id)) {
-              toast.info('请先退出并排模式，再切换子会话', {
+              toast.info(t('appShell.toast.exitSplitModeFirst'), {
                 id: 'split-delegation-sidebar-navigation',
               })
             }
@@ -2020,9 +2025,9 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
         setCurrentWorkspaceId(fallback?.id ?? null)
         if (fallback) void window.electronAPI.updateSettings({ agentWorkspaceId: fallback.id }).catch(console.error)
       }
-      toast.success(updated.archived ? '项目已归档' : '项目已恢复')
+      toast.success(updated.archived ? t('appShell.projectArchived') : t('appShell.projectRestored'))
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : '项目归档操作失败')
+      toast.error(error instanceof Error ? error.message : t('appShell.toast.projectArchiveFailed'))
     } finally {
       setArchivingWorkspaceId(null)
     }
@@ -2035,7 +2040,7 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
       setWorkspaces((prev) => prev.map((w) => (w.id === updated.id ? updated : w)))
     } catch (error) {
       console.error('[侧边栏] 重命名工作区失败:', error)
-      const msg = error instanceof Error ? error.message : '重命名失败'
+      const msg = error instanceof Error ? error.message : t('appShell.toast.renameFailed')
       toast.error(msg)
     }
   }, [setWorkspaces])
@@ -2047,10 +2052,10 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
       if (!folder) return
       const updated = await window.electronAPI.relinkAgentWorkspaceProjectRoot(workspaceId, folder.path)
       setWorkspaces((prev) => prev.map((workspace) => (workspace.id === updated.id ? updated : workspace)))
-      toast.success('本地项目根已重新关联', { description: folder.path })
+      toast.success(t('appShell.toast.projectRootRelinked'), { description: folder.path })
     } catch (error) {
       console.error('[侧边栏] 重新关联本地项目根失败:', error)
-      toast.error(error instanceof Error ? error.message : '重新关联项目文件夹失败')
+      toast.error(error instanceof Error ? error.message : t('appShell.toast.relinkProjectFolderFailed'))
     }
   }, [setWorkspaces])
 
@@ -2063,11 +2068,11 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
       setRestoringProjectRootId(workspaceId)
       const updated = await window.electronAPI.restoreAgentWorkspaceProjectRoot(workspaceId)
       setWorkspaces((prev) => prev.map((workspace) => (workspace.id === updated.id ? updated : workspace)))
-      toast.success('已在原路径新建空项目文件夹', { description: updated.projectRootPath })
+      toast.success(t('appShell.toast.projectFolderCreated'), { description: updated.projectRootPath })
       setPendingRestoreProjectRootId(null)
     } catch (error) {
       console.error('[侧边栏] 恢复本地项目根失败:', error)
-      toast.error(error instanceof Error ? error.message : '恢复项目文件夹失败')
+      toast.error(error instanceof Error ? error.message : t('appShell.toast.restoreProjectFolderFailed'))
     } finally {
       setRestoringProjectRootId(null)
     }
@@ -2123,17 +2128,17 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
       await refreshAgentSidebarSessions(viewMode === 'archived')
       if (updated.pinned) {
         if (original?.archived && !updated.archived) {
-          toast.success('已置顶', { description: '已自动取消归档' })
+          toast.success(t('appShell.pinned'), { description: t('appShell.toast.autoUnarchived') })
         } else if (delegatedChildren.length > 0) {
-          toast.success('已置顶', { description: `已同步 ${delegatedChildren.length} 个子会话` })
+          toast.success(t('appShell.pinned'), { description: t('appShell.toast.syncedChildSessions', { n: delegatedChildren.length }) })
         } else {
-          toast.success('已置顶')
+          toast.success(t('appShell.pinned'))
         }
       } else {
         toast.success(
-          '已取消置顶',
+          t('appShell.unpinned'),
           delegatedChildren.length > 0
-            ? { description: `已同步 ${delegatedChildren.length} 个子会话` }
+            ? { description: t('appShell.toast.syncedChildSessions', { n: delegatedChildren.length }) }
             : undefined,
         )
       }
@@ -2196,12 +2201,14 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
         closeArchivedAgentTabs([updated.id, ...changedChildIds])
       }
       if (failedChildIds.length > 0) {
-        toast.error(`部分子会话${updated.archived ? '归档' : '解归档'}失败（${failedChildIds.length} 个）`)
+        toast.error(updated.archived
+          ? t('appShell.toast.partialChildArchiveFailed', { n: failedChildIds.length })
+          : t('appShell.toast.partialChildUnarchiveFailed', { n: failedChildIds.length }))
       } else {
         toast.success(
-          updated.archived ? '已归档' : '已取消归档',
+          updated.archived ? t('appShell.archived') : t('appShell.unarchived'),
           delegatedChildren.length > 0
-            ? { description: `已同步 ${delegatedChildren.length} 个子会话` }
+            ? { description: t('appShell.toast.syncedChildSessions', { n: delegatedChildren.length }) }
             : undefined,
         )
       }
@@ -2259,8 +2266,8 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
       setCurrentAgentSessionId(null)
     }
     setMoveTargetId(null)
-    toast.success('会话已迁移', {
-      description: `已迁移到「${targetWorkspaceName}」，子会话会一起移动`,
+    toast.success(t('appShell.toast.sessionMigrated'), {
+      description: t('appShell.toast.sessionMigratedDescription', { name: targetWorkspaceName }),
     })
   }
 
@@ -2473,28 +2480,28 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
         }}
       >
         <AlertDialogHeader>
-          <AlertDialogTitle>确认删除{mode === 'agent' ? '会话' : '对话'}</AlertDialogTitle>
+          <AlertDialogTitle>{mode === 'agent' ? t('appShell.deleteDialog.sessionTitle') : t('appShell.deleteDialog.conversationTitle')}</AlertDialogTitle>
           <AlertDialogDescription>
             {mode === 'agent' && pendingDeleteChildCount > 0
-              ? `此会话下还有 ${pendingDeleteChildCount} 个子会话。删除后将无法恢复，请选择是否一并删除子会话。`
-              : '删除后将无法恢复，确定要删除这个对话吗？'}
+              ? t('appShell.deleteDialog.withChildrenDescription', { n: pendingDeleteChildCount })
+              : t('appShell.deleteDialog.conversationDescription')}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>取消</AlertDialogCancel>
+          <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
           {mode === 'agent' && pendingDeleteChildCount > 0 ? (
             <>
               <AlertDialogAction
                 onClick={() => { void handleConfirmDelete(false) }}
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               >
-                只删这个
+                {t('appShell.deleteDialog.deleteThisOnly')}
               </AlertDialogAction>
               <AlertDialogAction
                 onClick={() => { void handleConfirmDelete(true) }}
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               >
-                连子会话一起删
+                {t('appShell.deleteDialog.deleteWithChildren')}
               </AlertDialogAction>
             </>
           ) : (
@@ -2502,7 +2509,7 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
               onClick={() => { void handleConfirmDelete(false) }}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              删除
+              {t('common.delete')}
             </AlertDialogAction>
           )}
         </AlertDialogFooter>
@@ -2528,19 +2535,19 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
         }}
       >
         <AlertDialogHeader>
-          <AlertDialogTitle>确认删除项目</AlertDialogTitle>
+          <AlertDialogTitle>{t('appShell.projectDeleteDialog.title')}</AlertDialogTitle>
           <AlertDialogDescription>
-            将删除「{pendingDeleteWorkspace?.name ?? '该项目'}」在 Locus 中保存的会话、自动任务、MCP、Skills 与 Locus 工作区配置；空白项目的 Locus 托管项目文件也会被删除。本地项目根目录、附加目录和附加文件只会移除关联，不会删除原始文件。删除后无法恢复。
+            {t('appShell.projectDeleteDialog.description', { name: pendingDeleteWorkspace?.name ?? t('appShell.thisProject') })}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={!!deletingWorkspaceId}>取消</AlertDialogCancel>
+          <AlertDialogCancel disabled={!!deletingWorkspaceId}>{t('common.cancel')}</AlertDialogCancel>
           <AlertDialogAction
             disabled={!!deletingWorkspaceId}
             onClick={handleConfirmDeleteWorkspace}
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
           >
-            {deletingWorkspaceId ? '删除中...' : '删除项目'}
+            {deletingWorkspaceId ? t('appShell.deleting') : t('appShell.projectDeleteDialog.deleteButton')}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
@@ -2556,22 +2563,22 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
     >
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>在原路径新建空文件夹？</AlertDialogTitle>
+          <AlertDialogTitle>{t('appShell.restoreFolderDialog.title')}</AlertDialogTitle>
           <AlertDialogDescription>
-            将为「{pendingRestoreProjectRootWorkspace?.name ?? '该项目'}」在原路径创建一个空文件夹：
+            {t('appShell.restoreFolderDialog.description', { name: pendingRestoreProjectRootWorkspace?.name ?? t('appShell.thisProject') })}
             <span className="mt-2 block break-all font-mono text-xs text-foreground">
               {pendingRestoreProjectRootWorkspace?.projectRootPath}
             </span>
-            此操作不会恢复原来的文件，仅用于继续使用该项目关联。
+            {t('appShell.restoreFolderDialog.note')}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={!!restoringProjectRootId}>取消</AlertDialogCancel>
+          <AlertDialogCancel disabled={!!restoringProjectRootId}>{t('common.cancel')}</AlertDialogCancel>
           <AlertDialogAction
             disabled={!!restoringProjectRootId}
             onClick={() => void handleConfirmRestoreProjectRoot()}
           >
-            {restoringProjectRootId ? '创建中...' : '新建空文件夹'}
+            {restoringProjectRootId ? t('appShell.creating') : t('appShell.restoreFolderDialog.createButton')}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
@@ -2598,7 +2605,7 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
       rows.push({
         id: 'chat-pinned-heading',
         estimateSize: 32,
-        content: <div className="pl-6 pr-3.5 pt-2 pb-1 text-[15px] font-medium leading-5 text-foreground/45 select-none">置顶</div>,
+        content: <div className="pl-6 pr-3.5 pt-2 pb-1 text-[15px] font-medium leading-5 text-foreground/45 select-none">{t('appShell.pinnedHeading')}</div>,
       })
       for (const conv of pinnedConversations) {
         rows.push({
@@ -2631,12 +2638,12 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
       estimateSize: 34,
       content: (
         <div className="group/chat-section relative flex items-center px-2 pt-2 pb-1">
-          <span className="ml-[4px] px-1.5 text-[13px] font-medium leading-[18px] text-foreground/40 select-none">对话</span>
+          <span className="ml-[4px] px-1.5 text-[13px] font-medium leading-[18px] text-foreground/40 select-none">{t('appShell.chatsHeading')}</span>
           <Tooltip>
             <TooltipTrigger asChild>
               <button
                 type="button"
-                aria-label="新建对话"
+                aria-label={t('appShell.newConversation')}
                 onClick={() => { void createChat() }}
                 className="absolute right-2 top-1/2 flex size-5 -translate-y-1/2 items-center justify-center rounded-md text-foreground/30 transition-colors hover:bg-foreground/[0.055] hover:text-foreground/65 titlebar-no-drag"
               >
@@ -2644,7 +2651,7 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
               </button>
             </TooltipTrigger>
             <TooltipContent side="top">
-              {`新建对话${newChatShortcutLabel ? ` (${newChatShortcutLabel})` : ''}`}
+              {t('appShell.newConversationWithShortcut', { shortcut: newChatShortcutLabel ? ` (${newChatShortcutLabel})` : '' })}
             </TooltipContent>
           </Tooltip>
         </div>
@@ -2655,7 +2662,7 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
       rows.push({
         id: `chat-date-${group.label}`,
         estimateSize: 30,
-        content: <div className="ml-[4px] px-3.5 pt-2 pb-1 text-[13px] font-medium leading-[18px] text-foreground/40 select-none">{group.label}</div>,
+        content: <div className="ml-[4px] px-3.5 pt-2 pb-1 text-[13px] font-medium leading-[18px] text-foreground/40 select-none">{t(`appShell.dateGroup.${group.label}`)}</div>,
       })
       for (const conv of group.items) {
         rows.push({
@@ -2681,7 +2688,7 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
       }
     }
     return rows
-  }, [activeSessionId, conversationGroups, createChat, handleRename, handleRequestDelete, handleSelectConversation, handleToggleArchive, handleTogglePin, newChatShortcutLabel, pinnedConversations, relativeTimeNow, streamingIds])
+  }, [activeSessionId, conversationGroups, createChat, handleRename, handleRequestDelete, handleSelectConversation, handleToggleArchive, handleTogglePin, language, newChatShortcutLabel, pinnedConversations, relativeTimeNow, streamingIds])
 
   const chatArchivedVirtualRows = React.useMemo<VirtualSidebarRow[]>(() => {
     const rows: VirtualSidebarRow[] = []
@@ -2689,7 +2696,7 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
       rows.push({
         id: `chat-archived-date-${group.label}`,
         estimateSize: 30,
-        content: <div className="px-3 pt-2 pb-1 text-[13px] font-medium leading-[18px] text-foreground/40 select-none">{group.label}</div>,
+        content: <div className="px-3 pt-2 pb-1 text-[13px] font-medium leading-[18px] text-foreground/40 select-none">{t(`appShell.dateGroup.${group.label}`)}</div>,
       })
       for (const conv of group.items) {
         rows.push({
@@ -2715,7 +2722,7 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
       }
     }
     return rows
-  }, [activeSessionId, conversationGroups, handleRename, handleRequestDelete, handleSelectConversation, handleToggleArchive, handleTogglePin, relativeTimeNow, streamingIds])
+  }, [activeSessionId, conversationGroups, handleRename, handleRequestDelete, handleSelectConversation, handleToggleArchive, handleTogglePin, language, relativeTimeNow, streamingIds])
 
   const agentArchivedVirtualRows = React.useMemo<VirtualSidebarRow[]>(() => {
     const rows: VirtualSidebarRow[] = []
@@ -2744,7 +2751,7 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
                     <FolderOpen size={14} className="flex-shrink-0 text-[hsl(var(--sidebar-primary-foreground)/0.78)] dark:text-[hsl(var(--sidebar-primary-foreground)/0.65)]" />
                   )}
                   <span className="flex min-w-0 items-center gap-1.5">
-                    <span className="min-w-0 truncate text-[13px] font-medium leading-[18px]">{group.label}</span>
+                    <span className="min-w-0 truncate text-[13px] font-medium leading-[18px]">{group.kind === 'automation' ? t('appShell.automationGroupName') : group.kind === 'unassigned' ? t('appShell.unassignedGroupName') : group.label}</span>
                     <LocalProjectBadge
                       projectRootPath={group.workspace?.projectRootPath}
                       projectRootStatus={group.workspace?.projectRootStatus}
@@ -2843,7 +2850,7 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
       }
     }
     return rows
-  }, [activeDelegationSessionId, activeSessionId, agentIndicatorMap, archivedAgentSessionProjectGroups, collapsedDelegationParentIds, currentWorkspaceId, expandedArchivedProjectIds, expandedDelegationParentIds, handleAgentRename, handleRequestDelete, handleRequestMove, handleSelectAgentSession, handleToggleArchiveAgent, handleToggleArchivedProject, handleToggleDelegationParent, handleTogglePinAgent, handleToggleStarAgent, relativeTimeNow, sessionHoverPreviewEnabled, workspaceNameMap])
+  }, [activeDelegationSessionId, activeSessionId, agentIndicatorMap, archivedAgentSessionProjectGroups, collapsedDelegationParentIds, currentWorkspaceId, expandedArchivedProjectIds, expandedDelegationParentIds, handleAgentRename, handleRequestDelete, handleRequestMove, handleSelectAgentSession, handleToggleArchiveAgent, handleToggleArchivedProject, handleToggleDelegationParent, handleTogglePinAgent, handleToggleStarAgent, language, relativeTimeNow, sessionHoverPreviewEnabled, workspaceNameMap])
 
   const agentActiveVirtualRows = React.useMemo<VirtualSidebarRow[]>(() => {
     if (viewMode !== 'active') return []
@@ -2945,7 +2952,7 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
       rows.push({
         id: 'agent-pinned-heading',
         estimateSize: 32,
-        content: <div className="pl-4 pr-3.5 pt-2 pb-1 text-[15px] font-medium leading-5 text-foreground/45 select-none">置顶</div>,
+        content: <div className="pl-4 pr-3.5 pt-2 pb-1 text-[15px] font-medium leading-5 text-foreground/45 select-none">{t('appShell.pinnedHeading')}</div>,
       })
       for (const item of pinnedAgentSessionTrees) {
         pushSessionTreeRows(item, false, false, workspaceNameMap)
@@ -2959,29 +2966,29 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
       estimateSize: 40,
       content: (
         <div className="px-2 pt-2 pb-1 flex items-center justify-between">
-          <span className="px-2 text-[15px] font-medium leading-5 text-foreground/45 select-none">项目</span>
+          <span className="px-2 text-[15px] font-medium leading-5 text-foreground/45 select-none">{t('appShell.projectsHeading')}</span>
           <div className="flex items-center gap-0.5">
             <Tooltip>
               <TooltipTrigger asChild>
-                <button type="button" ref={projectSearchButtonRef} aria-label={projectSearch.open ? '收起项目搜索' : '搜索项目'}
+                <button type="button" ref={projectSearchButtonRef} aria-label={projectSearch.open ? t('appShell.collapseProjectSearch') : t('appShell.searchProjects')}
                   aria-expanded={projectSearch.open} aria-controls="agent-project-search-input"
                   onClick={() => dispatchProjectSearch({ type: 'toggle' })}
                   className={cn('size-7 flex items-center justify-center rounded-md text-foreground/35 hover:text-foreground/65 hover:bg-foreground/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring titlebar-no-drag', projectSearch.open && 'bg-foreground/[0.06] text-foreground/65')}>
                   <Search size={14} />
                 </button>
               </TooltipTrigger>
-              <TooltipContent side="top">{projectSearch.open ? '收起项目搜索' : '搜索项目'}</TooltipContent>
+              <TooltipContent side="top">{projectSearch.open ? t('appShell.collapseProjectSearch') : t('appShell.searchProjects')}</TooltipContent>
             </Tooltip>
             {hasArchivedProjects && (
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <button type="button" aria-label="展开或收起已归档项目" aria-expanded={showArchivedProjects}
+                  <button type="button" aria-label={t('appShell.toggleArchivedProjects')} aria-expanded={showArchivedProjects}
                     aria-controls="archived-projects-heading" onClick={() => setShowArchivedProjects((previous) => !previous)}
                     className={cn('size-7 flex items-center justify-center rounded-md text-foreground/35 hover:text-foreground/65 hover:bg-foreground/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring titlebar-no-drag', showArchivedProjects && 'bg-foreground/[0.06] text-foreground/65')}>
                     <Archive size={14} />
                   </button>
                 </TooltipTrigger>
-                <TooltipContent side="top">{showArchivedProjects ? '收起已归档项目' : '展开已归档项目'}</TooltipContent>
+                <TooltipContent side="top">{showArchivedProjects ? t('appShell.collapseArchivedProjects') : t('appShell.expandArchivedProjects')}</TooltipContent>
               </Tooltip>
             )}
             <Tooltip>
@@ -2997,12 +3004,12 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
                     })
                   }}
                   className="size-7 flex items-center justify-center rounded-md text-[hsl(var(--sidebar-primary-foreground)/0.65)] hover:bg-foreground/[0.06] hover:text-[hsl(var(--sidebar-primary-foreground))] transition-colors titlebar-no-drag disabled:opacity-30 disabled:pointer-events-none"
-                  aria-label="折叠所有项目"
+                  aria-label={t('appShell.collapseAllProjects')}
                 >
                   <ChevronsDownUp size={15} />
                 </button>
               </TooltipTrigger>
-              <TooltipContent side="top">折叠所有项目</TooltipContent>
+              <TooltipContent side="top">{t('appShell.collapseAllProjects')}</TooltipContent>
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -3010,12 +3017,12 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
                   type="button"
                   onClick={() => void handleCreateProjectFromFolder()}
                   className="size-7 flex items-center justify-center rounded-md text-[hsl(var(--sidebar-primary-foreground)/0.65)] hover:bg-foreground/[0.06] hover:text-[hsl(var(--sidebar-primary-foreground))] transition-colors titlebar-no-drag"
-                  aria-label="从本地文件夹创建项目"
+                  aria-label={t('appShell.createProjectFromFolder')}
                 >
                   <FolderInput size={15} />
                 </button>
               </TooltipTrigger>
-              <TooltipContent side="top">从本地文件夹创建项目</TooltipContent>
+              <TooltipContent side="top">{t('appShell.createProjectFromFolder')}</TooltipContent>
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -3023,12 +3030,12 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
                   type="button"
                   onClick={handleStartCreateProject}
                   className="size-7 flex items-center justify-center rounded-md text-[hsl(var(--sidebar-primary-foreground)/0.65)] hover:bg-foreground/[0.06] hover:text-[hsl(var(--sidebar-primary-foreground))] transition-colors titlebar-no-drag"
-                  aria-label="新建空白项目"
+                  aria-label={t('appShell.newBlankProject')}
                 >
                   <Plus size={15} />
                 </button>
               </TooltipTrigger>
-              <TooltipContent side="top">新建空白项目</TooltipContent>
+              <TooltipContent side="top">{t('appShell.newBlankProject')}</TooltipContent>
             </Tooltip>
           </div>
         </div>
@@ -3051,7 +3058,7 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
                 setCreatingProject(false)
                 setNewProjectName('')
               }}
-              placeholder="项目名称..."
+              placeholder={t('appShell.projectNamePlaceholder')}
               className="flex-1 min-w-0 bg-transparent text-[13px] text-foreground border-b border-primary/50 outline-none px-0.5"
               maxLength={50}
             />
@@ -3064,8 +3071,8 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
       id: 'agent-project-search', estimateSize: 44,
       content: (
         <div className="flex items-center gap-1 px-3 pb-2 titlebar-no-drag">
-          <Input id="agent-project-search-input" ref={projectSearchInputRef} type="search" aria-label="搜索项目"
-            placeholder="搜索项目名称或路径…" value={projectQuery}
+          <Input id="agent-project-search-input" ref={projectSearchInputRef} type="search" aria-label={t('appShell.searchProjects')}
+            placeholder={t('appShell.searchProjectsPlaceholder')} value={projectQuery}
             onChange={(event) => dispatchProjectSearch({ type: 'change', query: event.target.value })}
             onKeyDown={(event) => {
               if (event.key !== 'Escape') return
@@ -3080,7 +3087,7 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
     })
     if (displayProjectGroups.length === 0) rows.push({
       id: 'agent-project-no-results', estimateSize: 36,
-      content: <div role="status" className="px-5 py-2 text-xs text-muted-foreground">{projectQuery.trim() ? '未找到匹配的项目' : '暂无项目'}</div>,
+      content: <div role="status" className="px-5 py-2 text-xs text-muted-foreground">{projectQuery.trim() ? t('appShell.noMatchingProjects') : t('appShell.noProjects')}</div>,
     })
 
     let archivedHeadingAdded = false
@@ -3088,7 +3095,7 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
       if (group.workspace.archived && !archivedHeadingAdded) {
         archivedHeadingAdded = true
         rows.push({ id: 'archived-projects-heading', estimateSize: 32,
-          content: <div id="archived-projects-heading" className="px-4 pt-3 pb-1 text-xs text-muted-foreground">已归档项目</div> })
+          content: <div id="archived-projects-heading" className="px-4 pt-3 pb-1 text-xs text-muted-foreground">{t('appShell.archivedProjectsHeading')}</div> })
       }
       const isAuto = group.workspace.id === AUTOMATION_GROUP_ID
       const collapsed = Boolean(group.workspace.archived) || collapsedWorkspaceIds.has(group.workspace.id)
@@ -3159,7 +3166,7 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
           rows.push({
             id: `agent-project-empty-${group.workspace.id}`,
             estimateSize: 28,
-            content: <div className="ml-[38px] py-0.5 text-[12px] text-muted-foreground/75 select-none">暂无会话</div>,
+            content: <div className="ml-[38px] py-0.5 text-[12px] text-muted-foreground/75 select-none">{t('appShell.noSessions')}</div>,
           })
         } else {
           for (const item of visible.sessions) pushSessionTreeRows(item, isAuto, true, workspaceNameMap, group.workspace.id)
@@ -3174,14 +3181,14 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
                       <TooltipTrigger asChild>
                         <button
                           type="button"
-                          aria-label={`显示更多会话，还有 ${visible.hiddenCount} 个`}
+                          aria-label={t('appShell.showMoreSessionsAria', { n: visible.hiddenCount })}
                           onClick={() => handleShowMoreSessions(group.workspace.id)}
                           className="flex size-7 items-center justify-center rounded-md text-foreground/35 hover:bg-foreground/[0.04] hover:text-foreground/65 transition-colors titlebar-no-drag"
                         >
                           <ChevronDown size={14} />
                         </button>
                       </TooltipTrigger>
-                      <TooltipContent side="right">{`显示更多会话（还有 ${visible.hiddenCount} 个）`}</TooltipContent>
+                      <TooltipContent side="right">{t('appShell.showMoreSessions', { n: visible.hiddenCount })}</TooltipContent>
                     </Tooltip>
                   )}
                   {extraCount > 0 && (
@@ -3189,14 +3196,14 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
                       <TooltipTrigger asChild>
                         <button
                           type="button"
-                          aria-label="收起额外会话"
+                          aria-label={t('appShell.collapseExtraSessions')}
                           onClick={() => handleCollapseExtraSessions(group.workspace.id)}
                           className="flex size-7 items-center justify-center rounded-md text-foreground/35 hover:bg-foreground/[0.04] hover:text-foreground/65 transition-colors titlebar-no-drag"
                         >
                           <ChevronUp size={14} />
                         </button>
                       </TooltipTrigger>
-                      <TooltipContent side="right">收起额外会话</TooltipContent>
+                      <TooltipContent side="right">{t('appShell.collapseExtraSessions')}</TooltipContent>
                     </Tooltip>
                   )}
                 </div>
@@ -3209,7 +3216,7 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
 
     if (showArchivedProjects && !archivedHeadingAdded) rows.push({
       id: 'archived-projects-heading', estimateSize: 48,
-      content: <div id="archived-projects-heading" role="status" className="px-4 pt-3 pb-2 text-xs text-muted-foreground">已归档项目：未找到匹配的项目</div>,
+      content: <div id="archived-projects-heading" role="status" className="px-4 pt-3 pb-2 text-xs text-muted-foreground">{t('appShell.archivedProjectsNoMatch')}</div>,
     })
 
     return rows
@@ -3264,6 +3271,7 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
     workspaceNameMap,
     currentWorkspaceId,
     viewMode,
+    language,
   ])
 
   // ===== 折叠状态：精简图标视图 =====
@@ -3288,7 +3296,7 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
         onClick: () => handleOpenPlanningComponent("todos"),
       }] : []),
       ...(productivityTools.calendarEnabled ? [{
-        label: "日程",
+        label: t('appShell.calendar'),
         icon: <CalendarDays size={16} />,
         active: isWorkspaceComponentActive("calendar"),
         onClick: () => handleOpenPlanningComponent("calendar"),
@@ -3300,13 +3308,13 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
         onClick: handleOpenVault,
       }] : []),
       ...(mode === "agent" ? [{
-        label: "项目记忆",
+        label: t('appShell.projectMemory'),
         icon: <Brain size={16} />,
         active: isWorkspaceComponentActive("memory"),
         onClick: () => handleOpenCapabilityComponent("memory"),
       }] : []),
       {
-        label: "定时任务",
+        label: t('appShell.automationGroupName'),
         icon: <Clock size={16} />,
         active: isWorkspaceComponentActive("automations"),
         badge: automationCount > 0 ? formatAutomationCount(automationCount) : undefined,
@@ -3354,7 +3362,7 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
             <TooltipTrigger asChild>
               <button
                 type="button"
-                aria-label="展开侧边栏"
+                aria-label={t('appShell.expandSidebar')}
                 onClick={() => setSidebarCollapsed(false)}
                 className="group flex size-10 items-center justify-center p-1 titlebar-no-drag"
               >
@@ -3365,7 +3373,7 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
             </TooltipTrigger>
             <TooltipContent side="right">
               <span className="flex items-center gap-2">
-                <span>展开侧边栏</span>
+                <span>{t('appShell.expandSidebar')}</span>
                 <ShortcutKeycaps
                   shortcutId="toggle-sidebar"
                   keycapClassName="h-5 min-w-5 px-1 text-[11px]"
@@ -3381,7 +3389,7 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
           <CollapsedWorkspacePopover>
             <button
               type="button"
-              aria-label="切换到 Agent 模式（悬停查看项目）"
+              aria-label={t('appShell.switchToAgentMode')}
               onClick={() => handleRailModeSwitch("agent")}
               className="group relative flex size-10 items-center justify-center p-1 titlebar-no-drag"
             >
@@ -3402,7 +3410,7 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
             <TooltipTrigger asChild>
               <button
                 type="button"
-                aria-label="切换到 Chat 模式"
+                aria-label={t('appShell.switchToChatMode')}
                 onClick={() => handleRailModeSwitch("chat")}
                 className="group relative flex size-10 items-center justify-center p-1 titlebar-no-drag"
               >
@@ -3418,7 +3426,7 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
                 </span>
               </button>
             </TooltipTrigger>
-            <TooltipContent side="right">Chat 模式</TooltipContent>
+            <TooltipContent side="right">{t('appShell.chatMode')}</TooltipContent>
           </Tooltip>
 
           <div className="my-1 h-px w-6 bg-border/70" />
@@ -3428,7 +3436,7 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
               <button
                 type="button"
                 aria-label={
-                  mode === "agent" ? "新建 Agent 会话" : "新建 Chat 对话"
+                  mode === "agent" ? t('appShell.newAgentSessionAction') : t('appShell.newChatConversation')
                 }
                 onClick={() => {
                   void (mode === "agent"
@@ -3444,7 +3452,7 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
             </TooltipTrigger>
             <TooltipContent side="right">
               <span className="flex items-center gap-2">
-                <span>{mode === "agent" ? "新会话" : "新对话"}</span>
+                <span>{mode === "agent" ? t('appShell.newSessionShort') : t('appShell.newChat')}</span>
                 <ShortcutKeycaps
                   shortcutId="new-session"
                   keycapClassName="h-5 min-w-5 px-1 text-[11px]"
@@ -3458,7 +3466,7 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
             <TooltipTrigger asChild>
               <button
                 type="button"
-                aria-label="搜索"
+                aria-label={t('common.search')}
                 onClick={() => setSearchDialogOpen(true)}
                 className="group flex size-10 items-center justify-center p-1 titlebar-no-drag"
               >
@@ -3467,12 +3475,12 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
                 </span>
               </button>
             </TooltipTrigger>
-            <TooltipContent side="right">搜索</TooltipContent>
+            <TooltipContent side="right">{t('common.search')}</TooltipContent>
           </Tooltip>
           <CollapsedToolsPopover items={collapsedToolItems}>
             <button
               type="button"
-              aria-label="工作区工具"
+              aria-label={t('appShell.workspaceTools')}
               className="group relative flex size-10 items-center justify-center p-1 titlebar-no-drag focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <span
@@ -3525,7 +3533,7 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
             <TooltipTrigger asChild>
               <button
                 type="button"
-                aria-label="打开设置"
+                aria-label={t('appShell.openSettings')}
                 onClick={handleOpenSettings}
                 className="group relative flex size-10 items-center justify-center p-1 titlebar-no-drag"
               >
@@ -3537,7 +3545,7 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
                 )}
               </button>
             </TooltipTrigger>
-            <TooltipContent side="right">设置</TooltipContent>
+            <TooltipContent side="right">{t('appShell.settings')}</TooltipContent>
           </Tooltip>
         </div>
 
@@ -3588,7 +3596,7 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
           </TooltipTrigger>
           <TooltipContent side="right">
             <span className="flex items-center gap-2">
-              <span>收起侧边栏</span>
+              <span>{t('appShell.collapseSidebar')}</span>
               <ShortcutKeycaps
                 shortcutId="toggle-sidebar"
                 keycapClassName="h-5 min-w-5 px-1 text-[11px]"
@@ -3605,12 +3613,12 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
           <TooltipTrigger asChild>
             <button
               type="button"
-              aria-label={mode === 'agent' ? '新建任务' : '新建对话'}
+              aria-label={mode === 'agent' ? t('appShell.newTask') : t('appShell.newConversation')}
               onClick={() => { void (mode === 'agent' ? createAgentSessionInWorkspace() : createChat()) }}
               className="group flex h-9 min-w-0 flex-1 items-center gap-3 rounded-lg px-3 text-[13px] text-[hsl(var(--sidebar-primary-foreground))] transition-[background-color,color,transform] hover:bg-foreground/[0.055] hover:text-[hsl(var(--sidebar-primary-foreground))] active:scale-[0.96] titlebar-no-drag"
             >
               <CirclePlus size={16} className="shrink-0" />
-              <span>{mode === 'agent' ? '新建任务' : '新建对话'}</span>
+              <span>{mode === 'agent' ? t('appShell.newTask') : t('appShell.newConversation')}</span>
               <span className="ml-auto flex shrink-0 items-center opacity-70 group-hover:opacity-100">
                 <ShortcutKeycaps
                   shortcutId="new-session"
@@ -3622,7 +3630,7 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
           </TooltipTrigger>
           <TooltipContent side="bottom">
             <span className="flex items-center gap-2">
-              <span>{mode === 'agent' ? '新建任务' : '新建对话'}</span>
+              <span>{mode === 'agent' ? t('appShell.newTask') : t('appShell.newConversation')}</span>
               <ShortcutKeycaps shortcutId="new-session" keycapClassName="h-5 min-w-5 px-1 text-[11px]" separatorClassName="text-[10px]" />
             </span>
           </TooltipContent>
@@ -3632,7 +3640,7 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
             <button
               type="button"
               onClick={() => setSearchDialogOpen(true)}
-              aria-label="搜索"
+              aria-label={t('common.search')}
               className="inline-flex size-9 shrink-0 items-center justify-center rounded-lg text-[hsl(var(--sidebar-primary-foreground))] transition-[background-color,color,transform] hover:bg-foreground/[0.055] hover:text-[hsl(var(--sidebar-primary-foreground))] active:scale-[0.96] titlebar-no-drag"
             >
               <Search size={16} />
@@ -3640,7 +3648,7 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
           </TooltipTrigger>
           <TooltipContent side="bottom">
             <span className="flex items-center gap-2">
-              <span>搜索</span>
+              <span>{t('common.search')}</span>
               <ShortcutKeycaps
                 shortcutId="global-search"
                 keycapClassName="h-5 min-w-5 px-1 text-[11px]"
@@ -3663,7 +3671,7 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
         )}
         {productivityTools.calendarEnabled && (
           <WorkspaceComponentSidebarEntry
-            label="日程"
+            label={t('appShell.calendar')}
             icon={<CalendarDays size={16} />}
             active={isWorkspaceComponentActive('calendar')}
             onClick={() => handleOpenPlanningComponent('calendar')}
@@ -3682,7 +3690,7 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
       {mode === 'agent' && (
         <div className="px-3 pb-0.5">
           <WorkspaceComponentSidebarEntry
-            label="项目记忆"
+            label={t('appShell.projectMemory')}
             icon={<Brain size={16} />}
             active={isWorkspaceComponentActive('memory')}
             onClick={() => handleOpenCapabilityComponent('memory')}
@@ -3691,7 +3699,7 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
       )}
       <div className="space-y-0.5 px-3 pb-0.5">
         <WorkspaceComponentSidebarEntry
-          label="定时任务"
+          label={t('appShell.automationGroupName')}
           icon={<Clock size={16} />}
           active={isWorkspaceComponentActive('automations')}
           onClick={() => handleOpenPlanningComponent('automations')}
@@ -3739,7 +3747,7 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
           {viewMode === 'archived' && (
             <div className="px-6 pt-3 pb-1">
               <div className="text-[12px] font-medium text-foreground/40">
-                已归档{mode === 'agent' ? '会话' : '对话'}
+                {mode === 'agent' ? t('appShell.archivedSessions') : t('appShell.archivedChats')}
               </div>
             </div>
           )}
@@ -3777,7 +3785,7 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
                 className="w-full flex items-center gap-2 px-3 py-2 rounded-[10px] text-[12px] text-foreground/40 hover:bg-foreground/[0.04] hover:text-foreground/60 transition-colors titlebar-no-drag"
               >
                 <Archive size={13} className="text-foreground/30" />
-                <span>已归档 ({archivedConversationCount})</span>
+                <span>{t('appShell.archivedCount', { n: archivedConversationCount })}</span>
               </button>
             )}
             {mode === 'agent' && archivedAgentSessionCount > 0 && (
@@ -3786,7 +3794,7 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
                 className="w-full flex items-center gap-2 px-3 py-2 rounded-[10px] text-[12px] text-foreground/40 hover:bg-foreground/[0.04] hover:text-foreground/60 transition-colors titlebar-no-drag"
               >
                 <Archive size={13} className="text-foreground/30" />
-                <span>已归档 ({archivedAgentSessionCount})</span>
+                <span>{t('appShell.archivedCount', { n: archivedAgentSessionCount })}</span>
               </button>
             )}
           </>
@@ -3796,7 +3804,7 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
             className="w-full flex items-center gap-2 px-3 py-2 rounded-[10px] text-[12px] text-foreground/60 bg-foreground/[0.04] hover:bg-foreground/[0.07] hover:text-foreground/80 transition-colors titlebar-no-drag"
           >
             <ArrowLeft size={13} className="text-foreground/50" />
-            <span>返回活跃{mode === 'agent' ? '会话' : '对话'}</span>
+            <span>{mode === 'agent' ? t('appShell.backToActiveSessions') : t('appShell.backToActiveChats')}</span>
           </button>
         )}
       </div>
@@ -3824,7 +3832,7 @@ export function LeftSidebar({ width, noTransition }: LeftSidebarProps): React.Re
           )}
           <button
             type="button"
-            aria-label="打开设置"
+            aria-label={t('appShell.openSettings')}
             onClick={handleOpenSettings}
             className="relative flex size-7 flex-shrink-0 items-center justify-center rounded-[8px] text-foreground/40 transition-colors hover:bg-foreground/[0.05] hover:text-foreground/70"
           >
@@ -3947,6 +3955,7 @@ function SessionItemActions({
   menuItems,
   onMenuOpenChange,
 }: SessionItemActionsProps): React.ReactElement {
+  const t = useT()
   const [archiveConfirming, setArchiveConfirming] = React.useState(false)
   // 菜单打开时强制保持按钮可见：按钮始终保留布局，只切换透明度和 pointer-events。
   // 这样 Radix Popper 不会在 hover 切换瞬间读到 display:none 的 0 尺寸 trigger。
@@ -4003,7 +4012,7 @@ function SessionItemActions({
       onClick={(e) => e.stopPropagation()}
     >
       <span
-        title={`最后更新：${new Date(updatedAt).toLocaleString('zh-CN')}`}
+        title={t('appShell.lastUpdated', { time: new Date(updatedAt).toLocaleString('zh-CN') })}
         className={cn(
           'absolute inset-y-0 right-0 block w-full overflow-hidden whitespace-nowrap text-right text-[11px] leading-[22px] tabular-nums text-foreground/35 transition-opacity duration-100',
           actionsVisible ? 'opacity-0' : 'opacity-100 group-hover:opacity-0',
@@ -4020,12 +4029,12 @@ function SessionItemActions({
         )}
       >
         <SafeTooltip
-          content={archiveConfirming ? '再次点击确认归档' : archived ? '取消归档' : '归档'}
+          content={archiveConfirming ? t('appShell.archiveConfirmAgain') : archived ? t('appShell.unarchive') : t('appShell.archive')}
           side="top"
         >
           <button
             type="button"
-            aria-label={archiveConfirming ? '再次点击确认归档' : archived ? '取消归档' : '归档'}
+            aria-label={archiveConfirming ? t('appShell.archiveConfirmAgain') : archived ? t('appShell.unarchive') : t('appShell.archive')}
             className={cn(
               'flex size-[22px] items-center justify-center rounded-md transition-colors',
               archiveConfirming
@@ -4043,8 +4052,8 @@ function SessionItemActions({
           <DropdownMenuTrigger asChild>
             <button
               type="button"
-              aria-label="更多会话操作"
-              title="更多会话操作"
+              aria-label={t('appShell.moreSessionActions')}
+              title={t('appShell.moreSessionActions')}
               className={cn(
                 'flex size-[22px] items-center justify-center rounded-md text-foreground/35 transition-colors hover:bg-foreground/[0.08] hover:text-foreground/70',
                 'data-[state=open]:bg-foreground/[0.08] data-[state=open]:text-foreground/70',
@@ -4090,6 +4099,7 @@ const ConversationItem = React.memo(function ConversationItem({
   onTogglePin,
   onToggleArchive,
 }: ConversationItemProps): React.ReactElement {
+  const t = useT()
   const sessionHoverPreviewEnabled = useAtomValue(sessionHoverPreviewEnabledAtom)
   const [editing, setEditing] = React.useState(false)
   const [editTitle, setEditTitle] = React.useState('')
@@ -4144,20 +4154,20 @@ const ConversationItem = React.memo(function ConversationItem({
     <>
       <MenuItem className="text-xs py-1 [&>svg]:size-3.5" onSelect={() => onTogglePin(conversation.id)}>
         {isPinned ? <PinOff size={14} /> : <Pin size={14} />}
-        {isPinned ? '取消置顶' : '置顶对话'}
+        {isPinned ? t('appShell.unpin') : t('appShell.pinConversation')}
       </MenuItem>
       <MenuItem className="text-xs py-1 [&>svg]:size-3.5" onSelect={() => startEdit()}>
         <Pencil size={14} />
-        重命名
+        {t('common.rename')}
       </MenuItem>
       <MenuItem className="text-xs py-1 [&>svg]:size-3.5" onSelect={() => onToggleArchive(conversation.id)}>
         {conversation.archived ? <ArchiveRestore size={14} /> : <Archive size={14} />}
-        {conversation.archived ? '取消归档' : '归档'}
+        {conversation.archived ? t('appShell.unarchive') : t('appShell.archive')}
       </MenuItem>
       <MenuSeparator className="my-0.5" />
       <MenuItem className="text-xs py-1 [&>svg]:size-3.5 text-destructive" onSelect={() => onRequestDelete(conversation.id)}>
         <Trash2 size={14} />
-        删除对话
+        {t('appShell.deleteConversation')}
       </MenuItem>
     </>
   )
@@ -4327,6 +4337,7 @@ const AgentSessionItem = React.memo(function AgentSessionItem({
   onToggleStar,
   onToggleArchive,
 }: AgentSessionItemProps): React.ReactElement {
+  const t = useT()
   const [editing, setEditing] = React.useState(false)
   const [editTitle, setEditTitle] = React.useState('')
   const [menuOpen, setMenuOpen] = React.useState(false)
@@ -4371,13 +4382,13 @@ const AgentSessionItem = React.memo(function AgentSessionItem({
   const handleReferenceSession = (): void => {
     const targetSessionId = store.get(currentAgentSessionIdAtom)
     if (!targetSessionId) {
-      toast.info('请先打开一个 Agent 会话', {
-        description: '会话引用会插入当前 Agent 输入框。',
+      toast.info(t('appShell.sessionActions.openAgentSessionFirst'), {
+        description: t('appShell.sessionActions.sessionReferenceHint'),
       })
       return
     }
     if (targetSessionId === session.id) {
-      toast.warning('不能引用当前会话')
+      toast.warning(t('appShell.sessionActions.cannotReferenceCurrent'))
       return
     }
     const inserted = insertSessionReferenceMention(targetSessionId, {
@@ -4385,20 +4396,20 @@ const AgentSessionItem = React.memo(function AgentSessionItem({
       title: session.title,
     })
     if (!inserted) {
-      toast.warning('当前输入框不可编辑')
+      toast.warning(t('appShell.sessionActions.inputNotEditable'))
       return
     }
-    toast.success('已插入会话引用')
+    toast.success(t('appShell.sessionActions.sessionReferenceInserted'))
   }
 
   const canMove = indicatorStatus === 'idle' || indicatorStatus === 'completed'
 
   const childCount = delegationSummary?.total ?? 0
   const hasChildren = childCount > 0
-  const pinLabel = session.pinned ? '取消置顶' : '置顶会话'
+  const pinLabel = session.pinned ? t('appShell.unpin') : t('appShell.pinSession')
   const cascadePinLabel = session.pinned
-    ? `取消置顶(含 ${childCount} 个子会话)`
-    : `置顶会话(含 ${childCount} 个子会话)`
+    ? t('appShell.sessionActions.cascadeUnpinLabel', { n: childCount })
+    : t('appShell.sessionActions.cascadePinLabel', { n: childCount })
 
   const menuItems = (
     MenuItem: typeof ContextMenuItem | typeof DropdownMenuItem,
@@ -4410,12 +4421,12 @@ const AgentSessionItem = React.memo(function AgentSessionItem({
         onSelect={handleReferenceSession}
       >
         <MessageSquare size={14} />
-        <span className="min-w-0 flex-1">引用此会话</span>
+        <span className="min-w-0 flex-1">{t('appShell.sessionActions.referenceThisSession')}</span>
         <Tooltip delayDuration={300}>
           <TooltipTrigger asChild>
             <span
               role="img"
-              aria-label="引用此会话说明"
+              aria-label={t('appShell.sessionActions.referenceHintLabel')}
               className="inline-flex size-5 items-center justify-center rounded text-foreground/40 hover:bg-foreground/[0.08] hover:text-foreground/70"
               onPointerDown={(event) => event.stopPropagation()}
               onClick={(event) => {
@@ -4427,7 +4438,7 @@ const AgentSessionItem = React.memo(function AgentSessionItem({
             </span>
           </TooltipTrigger>
           <TooltipContent side="right" className="max-w-64">
-            将此会话插入当前 Agent 输入框作为引用；也可以直接把会话拖到输入框中。
+            {t('appShell.sessionActions.referenceHint')}
           </TooltipContent>
         </Tooltip>
       </MenuItem>
@@ -4436,7 +4447,7 @@ const AgentSessionItem = React.memo(function AgentSessionItem({
         <>
           <MenuItem className="text-xs py-1 [&>svg]:size-3.5" onSelect={() => onTogglePin(session.id, false)}>
             {session.pinned ? <PinOff size={14} /> : <Pin size={14} />}
-            仅{pinLabel}
+            {session.pinned ? t('appShell.sessionActions.unpinOnlyLabel') : t('appShell.sessionActions.pinOnlyLabel')}
           </MenuItem>
           <MenuItem className="text-xs py-1 [&>svg]:size-3.5" onSelect={() => onTogglePin(session.id, true)}>
             {session.pinned ? <PinOff size={14} /> : <Pin size={14} />}
@@ -4452,21 +4463,21 @@ const AgentSessionItem = React.memo(function AgentSessionItem({
       {canMove && (
         <MenuItem className="text-xs py-1 [&>svg]:size-3.5" onSelect={() => onRequestMove(session.id)}>
           <ArrowRightLeft size={14} />
-          迁移到其他项目
+          {t('appShell.sessionActions.moveToOtherProject')}
         </MenuItem>
       )}
       <MenuItem className="text-xs py-1 [&>svg]:size-3.5" onSelect={() => startEdit()}>
         <Pencil size={14} />
-        重命名
+        {t('common.rename')}
       </MenuItem>
       <MenuItem className="text-xs py-1 [&>svg]:size-3.5" onSelect={() => onToggleArchive(session.id)}>
         {session.archived ? <ArchiveRestore size={14} /> : <Archive size={14} />}
-        {session.archived ? '取消归档' : '归档'}
+        {session.archived ? t('appShell.unarchive') : t('appShell.archive')}
       </MenuItem>
       <MenuSeparator className="my-0.5" />
       <MenuItem className="text-xs py-1 [&>svg]:size-3.5 text-destructive" onSelect={() => onRequestDelete(session.id)}>
         <Trash2 size={14} />
-        删除会话
+        {t('appShell.deleteSession')}
       </MenuItem>
     </>
   )
@@ -4555,10 +4566,10 @@ const AgentSessionItem = React.memo(function AgentSessionItem({
                 >
                   {session.title}
                 </span>
-                <SafeTooltip content={session.starred ? '取消星标' : '添加星标'} side="top">
+                <SafeTooltip content={session.starred ? t('appShell.unstar') : t('appShell.star')} side="top">
                   <button
                     type="button"
-                    aria-label={session.starred ? '取消星标' : '添加星标'}
+                    aria-label={session.starred ? t('appShell.unstar') : t('appShell.star')}
                     aria-pressed={!!session.starred}
                     onMouseEnter={preview.closeNow}
                     onFocus={preview.closeNow}
@@ -4600,15 +4611,15 @@ const AgentSessionItem = React.memo(function AgentSessionItem({
               {delegationSummary && (
                 <div
                   className="flex shrink-0 items-center justify-end gap-1 text-[11px] leading-4 text-foreground/55"
-                  aria-label={`子会话：${delegationSummary.settled}/${delegationSummary.total}`}
+                  aria-label={t('appShell.delegationProgress', { settled: delegationSummary.settled, total: delegationSummary.total })}
                 >
                   <span className="shrink-0 tabular-nums">
                     {delegationSummary.settled}/{delegationSummary.total}
                   </span>
-                  <SafeTooltip content={delegationSummary.expanded ? '收起子会话' : '展开子会话'} side="top">
+                  <SafeTooltip content={delegationSummary.expanded ? t('appShell.collapseChildSessions') : t('appShell.expandChildSessions')} side="top">
                     <button
                       type="button"
-                      aria-label={`${delegationSummary.expanded ? '收起' : '展开'}子会话`}
+                      aria-label={delegationSummary.expanded ? t('appShell.collapseChildSessions') : t('appShell.expandChildSessions')}
                       onMouseEnter={preview.closeNow}
                       onFocus={preview.closeNow}
                       onMouseDown={(event) => {
@@ -4885,6 +4896,7 @@ const AgentProjectGroupItem = React.memo(function AgentProjectGroupItem({
   onToggleDelegationParent,
   hideSessions = false,
 }: AgentProjectGroupItemProps): React.ReactElement {
+  const t = useT()
   const isCurrent = group.workspace.id === currentWorkspaceId
   const sessionHoverPreviewEnabled = useAtomValue(sessionHoverPreviewEnabledAtom)
   const hasUnavailableProjectRoot = Boolean(
@@ -5020,7 +5032,7 @@ const AgentProjectGroupItem = React.memo(function AgentProjectGroupItem({
 
 
         {!isAutomationGroup && group.workspace.archived && (
-          <button type="button" aria-label={`恢复项目 ${group.workspace.name}`} title="恢复项目"
+          <button type="button" aria-label={t('appShell.project.restoreNamed', { name: group.workspace.name })} title={t('appShell.project.restore')}
             disabled={workspaceArchivePending} onClick={() => void onToggleWorkspaceArchive(group.workspace.id)}
             className="absolute right-0 top-1/2 flex size-5 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50">
             <ArchiveRestore size={13} />
@@ -5031,7 +5043,7 @@ const AgentProjectGroupItem = React.memo(function AgentProjectGroupItem({
           <TooltipTrigger asChild>
             <button
               type="button"
-              aria-label={`在「${group.workspace.name}」中新建会话`}
+              aria-label={t('appShell.project.newSessionIn', { name: group.workspace.name })}
               onClick={(e) => {
                 e.stopPropagation()
                 void onNewSession(group.workspace.id)
@@ -5043,7 +5055,7 @@ const AgentProjectGroupItem = React.memo(function AgentProjectGroupItem({
           </TooltipTrigger>
           <TooltipContent side="top">
             <span className="flex items-center gap-2">
-              <span>新建会话</span>
+              <span>{t('appShell.newSession')}</span>
               <ShortcutKeycaps shortcutId="new-session" keycapClassName="h-5 min-w-5 px-1 text-[11px]" separatorClassName="text-[10px]" />
             </span>
           </TooltipContent>
@@ -5055,7 +5067,7 @@ const AgentProjectGroupItem = React.memo(function AgentProjectGroupItem({
           <DropdownMenuTrigger asChild>
             <button
               type="button"
-              aria-label="项目菜单"
+              aria-label={t('appShell.project.menu')}
               className="absolute right-5 top-1/2 flex size-5 -translate-y-1/2 items-center justify-center rounded-md text-foreground/30 opacity-0 transition-colors hover:bg-foreground/[0.055] hover:text-foreground/60 group-hover/project:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100 titlebar-no-drag"
             >
               <MoreHorizontal size={13} />
@@ -5068,21 +5080,21 @@ const AgentProjectGroupItem = React.memo(function AgentProjectGroupItem({
               onSelect={() => onSelectProject(group.workspace.id)}
             >
               <FolderOpen size={14} />
-              设为当前项目
+              {t('appShell.project.setAsCurrent')}
             </DropdownMenuItem>
             <DropdownMenuItem
               className="text-xs py-1 [&>svg]:size-3.5"
               onSelect={handleStartWorkspaceRename}
             >
               <Pencil size={14} />
-              重命名
+              {t('common.rename')}
             </DropdownMenuItem>
             <DropdownMenuItem
               className="text-xs py-1 [&>svg]:size-3.5"
               onSelect={() => onConfigureProject(group.workspace.id)}
             >
               <Settings size={14} />
-              配置 MCP 与 Skills
+              {t('appShell.project.configureMcpSkills')}
             </DropdownMenuItem>
             <DropdownMenuItem
               disabled={group.workspace.slug === 'default' || workspaceArchivePending}
@@ -5090,7 +5102,7 @@ const AgentProjectGroupItem = React.memo(function AgentProjectGroupItem({
               onSelect={() => void onToggleWorkspaceArchive(group.workspace.id)}
             >
               {group.workspace.archived ? <ArchiveRestore size={14} /> : <Archive size={14} />}
-              {group.workspace.archived ? '恢复项目' : '归档项目'}
+              {group.workspace.archived ? t('appShell.project.restore') : t('appShell.project.archive')}
             </DropdownMenuItem>
             {hasUnavailableProjectRoot && (
               <>
@@ -5100,7 +5112,7 @@ const AgentProjectGroupItem = React.memo(function AgentProjectGroupItem({
                   onSelect={() => void onRelinkProjectRoot(group.workspace.id)}
                 >
                   <FolderInput size={14} />
-                  重新选择文件夹
+                  {t('appShell.project.reselectFolder')}
                 </DropdownMenuItem>
                 {group.workspace.projectRootStatus === 'missing' && (
                   <DropdownMenuItem
@@ -5108,7 +5120,7 @@ const AgentProjectGroupItem = React.memo(function AgentProjectGroupItem({
                     onSelect={() => onRequestRestoreProjectRoot(group.workspace.id)}
                   >
                     <FolderPlus size={14} />
-                    在原路径新建空文件夹
+                    {t('appShell.project.createEmptyFolderAtOrigin')}
                   </DropdownMenuItem>
                 )}
               </>
@@ -5123,7 +5135,7 @@ const AgentProjectGroupItem = React.memo(function AgentProjectGroupItem({
               onSelect={() => onRequestDeleteWorkspace(group.workspace.id)}
             >
               <Trash2 size={14} />
-              删除项目
+              {t('appShell.projectDeleteDialog.deleteButton')}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -5206,14 +5218,14 @@ const AgentProjectGroupItem = React.memo(function AgentProjectGroupItem({
                       <TooltipTrigger asChild>
                         <button
                           type="button"
-                          aria-label={`显示更多会话，还有 ${hiddenCount} 个`}
+                          aria-label={t('appShell.showMoreSessionsAria', { n: hiddenCount })}
                           onClick={() => onShowMore(group.workspace.id)}
                           className="flex size-7 items-center justify-center rounded-md text-foreground/35 hover:bg-foreground/[0.04] hover:text-foreground/65 transition-colors titlebar-no-drag"
                         >
                           <ChevronDown size={14} />
                         </button>
                       </TooltipTrigger>
-                      <TooltipContent side="right">{`显示更多会话（还有 ${hiddenCount} 个）`}</TooltipContent>
+                      <TooltipContent side="right">{t('appShell.showMoreSessions', { n: hiddenCount })}</TooltipContent>
                     </Tooltip>
                   )}
 
@@ -5222,14 +5234,14 @@ const AgentProjectGroupItem = React.memo(function AgentProjectGroupItem({
                       <TooltipTrigger asChild>
                         <button
                           type="button"
-                          aria-label="收起额外会话"
+                          aria-label={t('appShell.collapseExtraSessions')}
                           onClick={() => onCollapseExtra(group.workspace.id)}
                           className="flex size-7 items-center justify-center rounded-md text-foreground/35 hover:bg-foreground/[0.04] hover:text-foreground/65 transition-colors titlebar-no-drag"
                         >
                           <ChevronUp size={14} />
                         </button>
                       </TooltipTrigger>
-                      <TooltipContent side="right">收起额外会话</TooltipContent>
+                      <TooltipContent side="right">{t('appShell.collapseExtraSessions')}</TooltipContent>
                     </Tooltip>
                   )}
                 </div>
@@ -5237,7 +5249,7 @@ const AgentProjectGroupItem = React.memo(function AgentProjectGroupItem({
             </div>
           ) : (
             <div className="pl-2.5 py-0.5 text-[12px] text-muted-foreground/75 select-none">
-              暂无会话
+              {t('appShell.noSessions')}
             </div>
           )
         ) : null}

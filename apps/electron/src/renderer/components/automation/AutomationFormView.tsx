@@ -13,6 +13,7 @@ import { useAtom, useAtomValue, useSetAtom } from 'jotai'
 import { toast } from 'sonner'
 import { AlertTriangle, ArrowLeft, Bell, Check, Clock, Loader2, Pencil, Play, Settings, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { formatDate, getI18nLanguage, t, useT } from '@/i18n'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import {
@@ -50,9 +51,22 @@ import type {
 
 const NO_FEISHU_BINDING = '__none__'
 
+/** 星期名的 Intl 基准日：2024-01-07 是周日，按偏移天数生成各语言星期短名。 */
+const WEEKDAY_BASE = new Date(2024, 0, 7)
+
+/** 星期短名按当前语言用 Intl 生成，避免维护名称数组（与主进程调度器同一风格）。 */
+function weekdayName(day: number): string {
+  return formatDate(WEEKDAY_BASE.getTime() + day * 86_400_000, { weekday: 'short' })
+}
+
+/** 月视图日期网格顶部的单字星期头，从周一开始。 */
+function weekdayNarrowFromMonday(index: number): string {
+  return formatDate(WEEKDAY_BASE.getTime() + (index + 1) * 86_400_000, { weekday: 'narrow' })
+}
+
 function formatTime(ts?: number): string {
   if (!ts) return '—'
-  return new Date(ts).toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
+  return formatDate(ts, { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
 }
 
 /** 毫秒时间戳 → <input type="datetime-local"> 需要的本地 "YYYY-MM-DDTHH:MM" 字符串（无时区后缀） */
@@ -86,9 +100,9 @@ function getWeekdaysFromPreset(value: string, current?: number[]): number[] {
 }
 
 function formatRunStatus(status: AutomationRun['status']): string {
-  if (status === 'success') return '完成'
-  if (status === 'error') return '失败'
-  return '跳过'
+  if (status === 'success') return t('automation.notification.successStatus')
+  if (status === 'error') return t('automation.notification.failedStatus')
+  return t('automation.ui.statusSkipped')
 }
 
 function canPersistDraft(draft: AutomationDraft): boolean {
@@ -104,11 +118,16 @@ function isReadyToRun(draft: AutomationDraft): boolean {
 /** 列出当前还缺哪些必填项（用于"运行一次" Tooltip 与关闭时的 toast 提示） */
 function listMissingFields(draft: AutomationDraft): string[] {
   const missing: string[] = []
-  if (!draft.name.trim()) missing.push('任务名称')
-  if (!draft.prompt.trim()) missing.push('任务描述')
-  if (!draft.channelId) missing.push('模型')
-  if (!draft.workspaceId) missing.push('项目')
+  if (!draft.name.trim()) missing.push(t('automation.ui.fields.name'))
+  if (!draft.prompt.trim()) missing.push(t('automation.ui.fields.prompt'))
+  if (!draft.channelId) missing.push(t('automation.ui.fields.model'))
+  if (!draft.workspaceId) missing.push(t('automation.ui.fields.workspace'))
   return missing
+}
+
+/** 必填项列表的连接符随语言区分。 */
+function joinMissingFields(fields: string[]): string {
+  return fields.join(getI18nLanguage() === 'zh-CN' ? '、' : ', ')
 }
 
 function getDraftSignature(draft: AutomationDraft): string {
@@ -196,8 +215,8 @@ function getFeishuBindingValue(binding: FeishuChatBinding): string {
 
 function formatFeishuBinding(binding: FeishuChatBinding): string {
   const name = binding.chatType === 'group'
-    ? binding.groupName || '未命名群聊'
-    : '飞书单聊'
+    ? binding.groupName || t('automation.ui.unnamedGroup')
+    : t('automation.ui.directChat')
   return `${name} · ${binding.botId.slice(0, 8)}`
 }
 
@@ -212,20 +231,21 @@ function createFeishuTarget(binding: FeishuChatBinding): AutomationFeishuNotific
 }
 
 function AutomationPromptEmptyGuide(): React.ReactElement {
+  const t = useT()
   return (
     <div className="rounded-xl bg-foreground/[0.035] p-4 shadow-inner">
       <div className="flex flex-col gap-3">
         <div>
-          <div className="text-[13px] font-semibold text-foreground">推荐：让 Locus Agent 创建</div>
+          <div className="text-[13px] font-semibold text-foreground">{t('automation.ui.guideRecommendTitle')}</div>
           <div className="mt-1 text-xs leading-relaxed text-muted-foreground">
-            在左侧会话里说清目标，并明确表示要求创建定时任务，Locus Agent 会生成任务描述，并补全周期、项目和模型等配置，手动编辑更适合微调任务描述。
+            {t('automation.ui.guideRecommendBody')}
           </div>
         </div>
         <div className="h-px bg-border/50" />
         <div>
-          <div className="text-[13px] font-medium text-foreground/85">手动编写时，只写任务本身</div>
+          <div className="text-[13px] font-medium text-foreground/85">{t('automation.ui.guideManualTitle')}</div>
           <div className="mt-1 text-xs leading-relaxed text-muted-foreground">
-            例：检查 Locus 仓库新增 issue，主动回复问答类问题，不清楚的部分整理到项目级 Context 的 .context/issue-faq.md 文档；真正的 Bug 或请求罗列后发给我，不要记录任何重复的信息。
+            {t('automation.ui.guideManualBody')}
           </div>
         </div>
       </div>
@@ -242,6 +262,7 @@ function SaveStatusBadge({
   status: SaveStatus
   lastSavedAt: number | null
 }): React.ReactElement | null {
+  const t = useT()
   if (status === 'idle' && !lastSavedAt) return null
 
   let icon: React.ReactNode
@@ -250,21 +271,21 @@ function SaveStatusBadge({
 
   if (status === 'dirty') {
     icon = <span className="size-1.5 rounded-full bg-muted-foreground/50" />
-    text = '未保存'
+    text = t('automation.ui.statusDirty')
   } else if (status === 'saving') {
     icon = <Loader2 className="size-3 animate-spin" />
-    text = '保存中…'
+    text = t('common.saving')
   } else if (status === 'saved') {
     icon = <Check className="size-3 text-emerald-500" />
-    text = '已保存 · 刚刚'
+    text = t('automation.ui.statusSavedJustNow')
     tone = 'text-foreground/70'
   } else if (status === 'error') {
     icon = <AlertTriangle className="size-3" />
-    text = '保存失败'
+    text = t('automation.ui.statusSaveFailed')
     tone = 'text-red-500'
   } else {
     icon = <Check className="size-3 text-muted-foreground/50" />
-    text = '已保存'
+    text = t('automation.ui.statusSaved')
   }
 
   return (
@@ -283,6 +304,7 @@ function SaveStatusBadge({
 }
 
 export function AutomationFormView({ embedded = false }: { embedded?: boolean } = {}): React.ReactElement | null {
+  const t = useT()
   const [formState, setFormState] = useAtom(automationFormAtom)
   const setAutomations = useSetAtom(automationsAtom)
   const workspaces = useAtomValue(agentWorkspacesAtom)
@@ -392,7 +414,7 @@ export function AutomationFormView({ embedded = false }: { embedded?: boolean } 
         if (isMountedRef.current) setSaveStatus('saving')
         if (draftToSave.id) {
           const updated = await window.electronAPI.updateAutomation(draftToUpdateInput(draftToSave))
-          if (!updated) throw new Error('定时任务不存在')
+          if (!updated) throw new Error(t('automation.ui.automationMissing'))
           lastSavedSignatureRef.current = signature
           setAutomations((prev) => prev.map((a) => (a.id === updated.id ? updated : a)))
           setForm((prev) => (prev ? { ...prev, id: updated.id, name: updated.name } : prev))
@@ -417,7 +439,7 @@ export function AutomationFormView({ embedded = false }: { embedded?: boolean } 
         console.error('[定时任务] 自动保存失败:', err)
         if (isMountedRef.current) {
           setSaveStatus('error')
-          toast.error('自动保存失败')
+          toast.error(t('automation.ui.autosaveFailed'))
         }
         return null
       }
@@ -507,25 +529,27 @@ export function AutomationFormView({ embedded = false }: { embedded?: boolean } 
   const handleRunNow = async (): Promise<void> => {
     const latest = latestFormRef.current
     if (!latest || !isReadyToRun(latest)) {
-      const missing = latest ? listMissingFields(latest) : ['任务名称', '任务描述', '模型', '项目']
-      toast.error(`请先补全：${missing.join('、')}`)
+      const missing = latest
+        ? listMissingFields(latest)
+        : [t('automation.ui.fields.name'), t('automation.ui.fields.prompt'), t('automation.ui.fields.model'), t('automation.ui.fields.workspace')]
+      toast.error(t('automation.ui.missingFieldsToast', { fields: joinMissingFields(missing) }))
       return
     }
 
     setRunningNow(true)
-    toast.success('已开始运行定时任务', {
-      description: '本次任务会创建新的 Agent 会话，可在左侧会话列表查看',
+    toast.success(t('automation.ui.startedRunPlain'), {
+      description: t('automation.ui.runCreatedDescription'),
     })
     try {
       const automationId = await persistDraft(latest)
-      if (!automationId) throw new Error('任务尚未创建')
+      if (!automationId) throw new Error(t('automation.ui.draftNotCreated'))
       await window.electronAPI.runAutomationNow(automationId)
       await refreshAutomations()
       const sessions = await window.electronAPI.listActiveAgentSessions()
       setAgentSessions(sessions)
     } catch (err) {
       console.error('[定时任务] 立即运行失败:', err)
-      toast.error('立即运行失败')
+      toast.error(t('automation.ui.runFailed'))
     } finally {
       if (isMountedRef.current) setRunningNow(false)
     }
@@ -534,7 +558,7 @@ export function AutomationFormView({ embedded = false }: { embedded?: boolean } 
   /** 跳到运行历史中的某次子会话，先关掉表单 overlay 再 openSession */
   const handleOpenRunSession = async (run: AutomationRun): Promise<void> => {
     if (!run.sessionId) {
-      toast.error('这条记录没有可打开的会话')
+      toast.error(t('automation.ui.runNoSession'))
       return
     }
 
@@ -546,7 +570,7 @@ export function AutomationFormView({ embedded = false }: { embedded?: boolean } 
     }
 
     if (!session) {
-      toast.error('该会话已不存在')
+      toast.error(t('automation.ui.sessionGone'))
       return
     }
 
@@ -564,7 +588,7 @@ export function AutomationFormView({ embedded = false }: { embedded?: boolean } 
   const commitName = async (): Promise<void> => {
     const name = form.name.trim()
     if (!name) {
-      toast.error('任务名称不能为空')
+      toast.error(t('automation.ui.nameRequired'))
       nameInputRef.current?.focus()
       return
     }
@@ -604,10 +628,10 @@ export function AutomationFormView({ embedded = false }: { embedded?: boolean } 
             type="button"
             onClick={close}
             className="titlebar-no-drag mr-1 flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
-            aria-label="返回任务列表"
+            aria-label={t('automation.ui.backToListAria')}
           >
             <ArrowLeft className="size-3.5" />
-            <span>定时任务</span>
+            <span>{t('automation.ui.backToList')}</span>
           </button>
           <Clock className="size-4 text-primary flex-shrink-0" />
           {editingName ? (
@@ -618,7 +642,7 @@ export function AutomationFormView({ embedded = false }: { embedded?: boolean } 
                 onChange={(e) => update({ name: e.target.value })}
                 onKeyDown={handleNameKeyDown}
                 onBlur={() => { void commitName() }}
-                placeholder="未命名任务"
+                placeholder={t('automation.ui.namePlaceholder')}
                 className="flex-1 bg-transparent text-sm font-semibold text-foreground border-b border-primary/50 outline-none px-0 py-0.5 min-w-0"
                 maxLength={100}
               />
@@ -634,14 +658,14 @@ export function AutomationFormView({ embedded = false }: { embedded?: boolean } 
           ) : (
             <div className="titlebar-no-drag flex items-center gap-1.5 flex-1 min-w-0">
               <span className="truncate text-sm font-semibold text-foreground">
-                {form.name.trim() || (isEdit ? '未命名任务' : '新建定时任务')}
+                {form.name.trim() || (isEdit ? t('automation.ui.namePlaceholder') : t('automation.ui.newTitle'))}
               </span>
               <button
                 type="button"
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={startEditName}
                 className="p-1 text-muted-foreground hover:text-foreground transition-colors flex-shrink-0"
-                aria-label="重命名任务"
+                aria-label={t('automation.ui.renameAria')}
               >
                 <Pencil className="size-3.5" />
               </button>
@@ -652,7 +676,7 @@ export function AutomationFormView({ embedded = false }: { embedded?: boolean } 
         <div className="flex-1 min-h-0 px-6 pb-6 flex flex-col gap-3">
           <div className="flex items-center">
             <Label htmlFor="automation-prompt" className="text-xs font-medium text-muted-foreground">
-              任务编写
+              {t('automation.ui.promptLabel')}
             </Label>
           </div>
           <div className="min-h-0 flex-1">
@@ -675,7 +699,7 @@ export function AutomationFormView({ embedded = false }: { embedded?: boolean } 
       {/* 右栏：配置 sidebar */}
       <div className="w-[340px] flex-shrink-0 border-l border-border/50 flex flex-col bg-content-area">
         <div className="relative flex items-center justify-between gap-2 px-4 py-4 flex-shrink-0">
-          <span className="text-sm font-semibold text-foreground">配置</span>
+          <span className="text-sm font-semibold text-foreground">{t('automation.ui.configTitle')}</span>
           <button
             onClick={close}
             className="titlebar-no-drag p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-foreground/[0.06] transition-colors"
@@ -688,9 +712,9 @@ export function AutomationFormView({ embedded = false }: { embedded?: boolean } 
           {/* 启用开关（最上）：模型 / 工作区缺失时禁用，避免 UI 状态与持久化结果不一致 */}
           <div className="flex items-center justify-between">
             <div className="flex flex-col gap-0.5">
-              <Label htmlFor="auto-active">启用</Label>
+              <Label htmlFor="auto-active">{t('common.enable')}</Label>
               <span className="text-xs text-muted-foreground">
-                {isReadyToRun(form) ? '关闭后任务暂停调度' : `补全${listMissingFields(form).join('、')}后方可启用`}
+                {isReadyToRun(form) ? t('automation.ui.disableHint') : t('automation.ui.enableRequirement', { fields: joinMissingFields(listMissingFields(form)) })}
               </span>
             </div>
             <Switch
@@ -705,37 +729,36 @@ export function AutomationFormView({ embedded = false }: { embedded?: boolean } 
           {isEdit && (
             <div className="rounded-lg bg-foreground/[0.03] p-3 flex flex-col gap-1.5 text-xs">
               <div className="flex justify-between">
-                <span className="text-muted-foreground">上次运行</span>
+                <span className="text-muted-foreground">{t('automation.ui.lastRun')}</span>
                 <span className="text-foreground/80 tabular-nums">{formatTime(live?.lastRunAt)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">下次运行</span>
+                <span className="text-muted-foreground">{t('automation.ui.nextRun')}</span>
                 <span className="text-foreground/80 tabular-nums">
                   {live?.completedAt
-                    ? '已完成'
+                    ? t('automation.ui.statusCompleted')
                     : live?.active
                       ? formatTime(live?.nextRunAt)
-                      : '已暂停'}
+                      : t('automation.ui.statusPaused')}
                 </span>
               </div>
               {/* 已执行次数 / 上限：once 或设了 maxRuns 时才有展示意义 */}
               {(live?.scheduleType === 'once' || live?.maxRuns !== undefined || (live?.runCount ?? 0) > 0) && (
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">已执行</span>
+                  <span className="text-muted-foreground">{t('automation.ui.runCountLabel')}</span>
                   <span className="text-foreground/80 tabular-nums">
-                    {live?.runCount ?? 0}
                     {live?.scheduleType === 'once'
-                      ? ' / 1 次'
+                      ? t('automation.ui.runCountWithMax', { n: live?.runCount ?? 0, max: 1 })
                       : live?.maxRuns !== undefined
-                        ? ` / ${live.maxRuns} 次`
-                        : ' 次'}
+                        ? t('automation.ui.runCountWithMax', { n: live?.runCount ?? 0, max: live.maxRuns })
+                        : t('automation.ui.runCountPlain', { n: live?.runCount ?? 0 })}
                   </span>
                 </div>
               )}
               {live?.completedAt && (
                 <div className="flex items-center gap-1.5 pt-0.5 text-emerald-600 dark:text-emerald-400">
                   <Check className="size-3" />
-                  <span>任务已完成（重新启用可再跑一轮）</span>
+                  <span>{t('automation.ui.completedHint')}</span>
                 </div>
               )}
             </div>
@@ -743,7 +766,7 @@ export function AutomationFormView({ embedded = false }: { embedded?: boolean } 
 
           {/* 调度模式 */}
           <div className="flex flex-col gap-2">
-            <Label>运行频率</Label>
+            <Label>{t('automation.ui.frequencyLabel')}</Label>
             <Select
               value={form.scheduleType}
               onValueChange={(v) => {
@@ -805,11 +828,11 @@ export function AutomationFormView({ embedded = false }: { embedded?: boolean } 
             >
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="interval">每隔一段时间</SelectItem>
-                <SelectItem value="daily">每天定点</SelectItem>
-                <SelectItem value="weekly">每周定点</SelectItem>
-                <SelectItem value="monthly">每月定点</SelectItem>
-                <SelectItem value="once">仅运行一次</SelectItem>
+                <SelectItem value="interval">{t('automation.ui.frequencyInterval')}</SelectItem>
+                <SelectItem value="daily">{t('automation.ui.frequencyDaily')}</SelectItem>
+                <SelectItem value="weekly">{t('automation.ui.frequencyWeekly')}</SelectItem>
+                <SelectItem value="monthly">{t('automation.ui.frequencyMonthly')}</SelectItem>
+                <SelectItem value="once">{t('automation.ui.frequencyOnce')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -817,7 +840,7 @@ export function AutomationFormView({ embedded = false }: { embedded?: boolean } 
           {/* interval 模式：自定义分钟 */}
           {form.scheduleType === 'interval' && (
             <div className="flex flex-col gap-2">
-              <Label htmlFor="auto-interval">运行间隔（分钟）</Label>
+              <Label htmlFor="auto-interval">{t('automation.ui.intervalLabel')}</Label>
               <div className="flex items-center gap-2">
                 <input
                   id="auto-interval"
@@ -827,12 +850,12 @@ export function AutomationFormView({ embedded = false }: { embedded?: boolean } 
                   onChange={(e) => update({ intervalMinutes: Math.max(1, Number(e.target.value) || 1) })}
                   className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 />
-                <span className="text-xs text-muted-foreground shrink-0">分钟一次</span>
+                <span className="text-xs text-muted-foreground shrink-0">{t('automation.ui.intervalUnit')}</span>
               </div>
               <div className="flex items-center justify-between pt-1">
                 <div>
-                  <Label htmlFor="auto-window-enabled">仅在每日时段内运行</Label>
-                  <p className="mt-0.5 text-xs text-muted-foreground">留空则全天按间隔运行</p>
+                  <Label htmlFor="auto-window-enabled">{t('automation.ui.windowToggle')}</Label>
+                  <p className="mt-0.5 text-xs text-muted-foreground">{t('automation.ui.windowHint')}</p>
                 </div>
                 <Switch
                   id="auto-window-enabled"
@@ -845,15 +868,15 @@ export function AutomationFormView({ embedded = false }: { embedded?: boolean } 
               {form.activeWindowStart && form.activeWindowEnd && (
                 <div className="flex items-center gap-2 pt-1">
                   <input
-                    aria-label="每日运行开始时间"
+                    aria-label={t('automation.ui.windowStartAria')}
                     type="time"
                     value={form.activeWindowStart}
                     onChange={(e) => update({ activeWindowStart: e.target.value })}
                     className="flex h-9 min-w-0 flex-1 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                   />
-                  <span className="text-xs text-muted-foreground">至</span>
+                  <span className="text-xs text-muted-foreground">{t('automation.ui.to')}</span>
                   <input
-                    aria-label="每日运行结束时间"
+                    aria-label={t('automation.ui.windowEndAria')}
                     type="time"
                     value={form.activeWindowEnd}
                     onChange={(e) => update({ activeWindowEnd: e.target.value })}
@@ -862,7 +885,7 @@ export function AutomationFormView({ embedded = false }: { embedded?: boolean } 
                 </div>
               )}
               <div className="flex items-center justify-between pt-1">
-                <Label>运行日</Label>
+                <Label>{t('automation.ui.runDaysLabel')}</Label>
                 <Select
                   value={weekdayPresetOverride ?? getWeekdayPreset(form.activeWeekdays)}
                   onValueChange={(value) => {
@@ -873,10 +896,10 @@ export function AutomationFormView({ embedded = false }: { embedded?: boolean } 
                 >
                   <SelectTrigger className="h-9 w-[150px]"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="everyday">每天</SelectItem>
-                    <SelectItem value="weekdays">工作日（周一至周五）</SelectItem>
-                    <SelectItem value="weekends">周末（周六、周日）</SelectItem>
-                    <SelectItem value="custom">自定义</SelectItem>
+                    <SelectItem value="everyday">{t('automation.schedule.everyday')}</SelectItem>
+                    <SelectItem value="weekdays">{t('automation.ui.weekdaysPreset')}</SelectItem>
+                    <SelectItem value="weekends">{t('automation.ui.weekendsPreset')}</SelectItem>
+                    <SelectItem value="custom">{t('automation.ui.customPreset')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -893,7 +916,7 @@ export function AutomationFormView({ embedded = false }: { embedded?: boolean } 
                           : [...(form.activeWeekdays ?? []), option.value].sort((a, b) => a - b) })}
                         className={cn('rounded-md border px-2.5 py-1 text-xs transition-colors', selected ? 'border-primary bg-primary text-primary-foreground' : 'border-input text-muted-foreground hover:bg-foreground/[0.04]')}
                       >
-                        {option.label}
+                        {weekdayName(option.value)}
                       </button>
                     )
                   })}
@@ -905,7 +928,7 @@ export function AutomationFormView({ embedded = false }: { embedded?: boolean } 
           {/* daily 模式：时刻 */}
           {form.scheduleType === 'daily' && (
             <div className="flex flex-col gap-2">
-              <Label htmlFor="auto-time">时刻</Label>
+              <Label htmlFor="auto-time">{t('automation.ui.timeLabel')}</Label>
               <input
                 id="auto-time"
                 type="time"
@@ -919,7 +942,7 @@ export function AutomationFormView({ embedded = false }: { embedded?: boolean } 
           {/* weekly 模式：星期 + 时刻 同一行 */}
           {form.scheduleType === 'weekly' && (
             <div className="flex flex-col gap-2">
-              <Label>每周</Label>
+              <Label>{t('automation.ui.weeklyLabel')}</Label>
               <div className="flex items-center gap-2">
                 <Select
                   value={String(form.dayOfWeek ?? 1)}
@@ -928,7 +951,7 @@ export function AutomationFormView({ embedded = false }: { embedded?: boolean } 
                   <SelectTrigger className="flex-1"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {AUTOMATION_WEEKDAY_OPTIONS.map((opt) => (
-                      <SelectItem key={opt.value} value={String(opt.value)}>{opt.label}</SelectItem>
+                      <SelectItem key={opt.value} value={String(opt.value)}>{weekdayName(opt.value)}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -945,7 +968,7 @@ export function AutomationFormView({ embedded = false }: { embedded?: boolean } 
           {/* monthly 模式：日期网格 + 时刻 */}
           {form.scheduleType === 'monthly' && (
             <div className="flex flex-col gap-2">
-              <Label>每月</Label>
+              <Label>{t('automation.ui.monthlyLabel')}</Label>
               <div className="flex items-center gap-2">
                 <Popover open={dayPopoverOpen} onOpenChange={setDayPopoverOpen}>
                   <PopoverTrigger asChild>
@@ -953,14 +976,14 @@ export function AutomationFormView({ embedded = false }: { embedded?: boolean } 
                       type="button"
                       className="flex h-9 flex-1 items-center justify-between rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm hover:bg-foreground/[0.02] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                     >
-                      <span>{form.dayOfMonth ?? 1} 号</span>
+                      <span>{t('automation.ui.dayN', { n: form.dayOfMonth ?? 1 })}</span>
                     </button>
                   </PopoverTrigger>
                   <PopoverContent className="w-56 p-2" align="start">
                     <div className="grid grid-cols-7 gap-0.5">
-                      {['一', '二', '三', '四', '五', '六', '日'].map((d) => (
-                        <div key={d} className="flex h-7 items-center justify-center text-[11px] font-medium text-muted-foreground">
-                          {d}
+                      {Array.from({ length: 7 }, (_, i) => (
+                        <div key={i} className="flex h-7 items-center justify-center text-[11px] font-medium text-muted-foreground">
+                          {weekdayNarrowFromMonday(i)}
                         </div>
                       ))}
                       {Array.from({ length: 31 }, (_, i) => {
@@ -994,7 +1017,7 @@ export function AutomationFormView({ embedded = false }: { embedded?: boolean } 
               </div>
               {form.dayOfMonth !== undefined && form.dayOfMonth >= 29 && (
                 <span className="pl-2.5 text-xs text-muted-foreground leading-relaxed">
-                  如当月无 {form.dayOfMonth} 日，将在当月最后一天执行
+                  {t('automation.ui.shortMonthHint', { n: form.dayOfMonth })}
                 </span>
               )}
             </div>
@@ -1003,7 +1026,7 @@ export function AutomationFormView({ embedded = false }: { embedded?: boolean } 
           {/* once 模式：绝对日期 + 时刻（datetime-local） */}
           {form.scheduleType === 'once' && (
             <div className="flex flex-col gap-2">
-              <Label htmlFor="auto-once-at">运行时间</Label>
+              <Label htmlFor="auto-once-at">{t('automation.ui.onceTimeLabel')}</Label>
               <input
                 id="auto-once-at"
                 type="datetime-local"
@@ -1012,7 +1035,7 @@ export function AutomationFormView({ embedded = false }: { embedded?: boolean } 
                 className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               />
               <span className="pl-2.5 text-xs text-muted-foreground leading-relaxed">
-                任务将在该时刻运行一次后自动完成。适合"X 小时/天后跑一次"或某个具体时间点的一次性任务。
+                {t('automation.ui.onceHint')}
               </span>
             </div>
           )}
@@ -1020,13 +1043,13 @@ export function AutomationFormView({ embedded = false }: { embedded?: boolean } 
           {/* 运行次数上限（once 模式天然为 1 次，故不显示；其余循环模式可选叠加） */}
           {form.scheduleType !== 'once' && (
             <div className="flex flex-col gap-2">
-              <Label htmlFor="auto-max-runs">运行次数上限</Label>
+              <Label htmlFor="auto-max-runs">{t('automation.ui.maxRunsLabel')}</Label>
               <div className="flex items-center gap-2">
                 <input
                   id="auto-max-runs"
                   type="number"
                   min={1}
-                  placeholder="不限"
+                  placeholder={t('automation.ui.unlimitedPlaceholder')}
                   value={form.maxRuns ?? ''}
                   onChange={(e) => {
                     const v = Number(e.target.value)
@@ -1034,17 +1057,17 @@ export function AutomationFormView({ embedded = false }: { embedded?: boolean } 
                   }}
                   className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 />
-                <span className="text-xs text-muted-foreground shrink-0">次后停止</span>
+                <span className="text-xs text-muted-foreground shrink-0">{t('automation.ui.maxRunsUnit')}</span>
               </div>
               <span className="pl-2.5 text-xs text-muted-foreground leading-relaxed">
-                留空表示不限次。按实际执行次数计（成功 / 失败都算），达到上限后任务自动完成停用。
+                {t('automation.ui.maxRunsHint')}
               </span>
             </div>
           )}
 
           {/* Pi supports any enabled model channel. */}
           <div className="flex flex-col gap-2">
-            <Label>选择模型</Label>
+            <Label>{t('automation.ui.modelLabel')}</Label>
             <ModelSelector
               externalSelectedModel={selectedModel}
               showChannelInTrigger
@@ -1054,11 +1077,11 @@ export function AutomationFormView({ embedded = false }: { embedded?: boolean } 
 
           {/* 项目（必选，默认填入当前会话所在项目） */}
           <div className="flex flex-col gap-2">
-            <Label>项目</Label>
+            <Label>{t('automation.ui.workspaceLabel')}</Label>
             {workspaces.length === 0 ? (
               <div className="flex items-center gap-2 rounded-md border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/30 px-3 py-2 text-sm text-amber-700 dark:text-amber-400">
                 <Settings size={14} className="shrink-0" />
-                <span>尚未创建任何项目</span>
+                <span>{t('automation.ui.noWorkspacesYet')}</span>
                 <button
                   type="button"
                   className="ml-auto text-xs underline underline-offset-2 hover:text-foreground transition-colors"
@@ -1067,7 +1090,7 @@ export function AutomationFormView({ embedded = false }: { embedded?: boolean } 
                     setActiveView('agent-skills')
                   }}
                 >
-                  前往 MCP 管理
+                  {t('automation.ui.goToMcp')}
                 </button>
               </div>
             ) : (
@@ -1075,7 +1098,7 @@ export function AutomationFormView({ embedded = false }: { embedded?: boolean } 
                 value={form.workspaceId ?? ''}
                 onValueChange={(v) => update({ workspaceId: v })}
               >
-                <SelectTrigger><SelectValue placeholder="选择项目" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={t('automation.ui.chooseWorkspacePlaceholder')} /></SelectTrigger>
                 <SelectContent>
                   {workspaces.map((ws) => (
                     <SelectItem key={ws.id} value={ws.id}>
@@ -1099,9 +1122,9 @@ export function AutomationFormView({ embedded = false }: { embedded?: boolean } 
               <div className="flex items-start gap-2">
                 <Bell className="size-4 shrink-0 mt-0.5 text-primary" />
                 <div className="flex flex-col gap-0.5">
-                  <Label htmlFor="auto-feishu-notify">飞书通知</Label>
+                  <Label htmlFor="auto-feishu-notify">{t('automation.ui.feishuLabel')}</Label>
                   <span className="text-xs text-muted-foreground leading-relaxed">
-                    任务结束后把结果推送到已有飞书绑定
+                    {t('automation.ui.feishuHint')}
                   </span>
                 </div>
               </div>
@@ -1115,7 +1138,7 @@ export function AutomationFormView({ embedded = false }: { embedded?: boolean } 
                   }
                   const target = selectedFeishuBinding ?? feishuBindings[0]
                   if (!target) {
-                    toast.error('暂无飞书绑定，请先在飞书里向 Bot 发送一条消息')
+                    toast.error(t('automation.ui.noFeishuBinding'))
                     return
                   }
                   updateFeishuNotification(feishuTarget
@@ -1138,10 +1161,10 @@ export function AutomationFormView({ embedded = false }: { embedded?: boolean } 
                     })
                   }}
                 >
-                  <SelectTrigger><SelectValue placeholder="选择飞书聊天" /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder={t('automation.ui.chooseChat')} /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value={NO_FEISHU_BINDING} disabled>
-                      {feishuBindings.length === 0 ? '暂无飞书绑定' : '选择飞书聊天'}
+                      {feishuBindings.length === 0 ? t('automation.ui.noBindings') : t('automation.ui.chooseChat')}
                     </SelectItem>
                     {feishuBindings.map((binding) => (
                       <SelectItem key={getFeishuBindingValue(binding)} value={getFeishuBindingValue(binding)}>
@@ -1161,9 +1184,9 @@ export function AutomationFormView({ embedded = false }: { embedded?: boolean } 
                 >
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="always">成功或失败都通知</SelectItem>
-                    <SelectItem value="success">仅成功时通知</SelectItem>
-                    <SelectItem value="error">仅失败时通知</SelectItem>
+                    <SelectItem value="always">{t('automation.ui.notifyAlways')}</SelectItem>
+                    <SelectItem value="success">{t('automation.ui.notifySuccess')}</SelectItem>
+                    <SelectItem value="error">{t('automation.ui.notifyError')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -1175,15 +1198,15 @@ export function AutomationFormView({ embedded = false }: { embedded?: boolean } 
 
           <div className="flex gap-2 rounded-lg bg-amber-500/10 p-3 text-xs text-amber-700 dark:text-amber-400">
             <AlertTriangle className="size-4 shrink-0 mt-0.5" />
-            <span>此任务将以「完全权限」无人值守运行，可自主读写文件、执行命令。请确认任务内容安全可信。</span>
+            <span>{t('automation.ui.permissionWarning')}</span>
           </div>
 
           {/* 运行历史（编辑模式） */}
           {isEdit && live && (
             <div className="flex flex-col gap-1.5">
-              <Label>运行历史</Label>
+              <Label>{t('automation.ui.historyLabel')}</Label>
               {live.runHistory.length === 0 ? (
-                <div className="text-xs text-muted-foreground py-1">暂无运行记录</div>
+                <div className="text-xs text-muted-foreground py-1">{t('automation.ui.noHistory')}</div>
               ) : (
                 <div className="flex flex-col gap-1">
                   {live.runHistory.slice(0, 10).map((run, i) => {
@@ -1195,23 +1218,23 @@ export function AutomationFormView({ embedded = false }: { embedded?: boolean } 
                             type="button"
                             onClick={() => { void handleOpenRunSession(run) }}
                             disabled={!hasSessionId}
-                            title={hasSessionId ? undefined : '这条记录没有可打开的会话'}
+                            title={hasSessionId ? undefined : t('automation.ui.runNoSession')}
                             className="flex items-center gap-2 px-1.5 py-1 -mx-1.5 rounded-md text-[11px] text-foreground/60 text-left transition-colors enabled:hover:bg-foreground/[0.04] enabled:hover:text-foreground/80 disabled:cursor-not-allowed disabled:opacity-50"
                           >
                             <span className="tabular-nums">{formatTime(run.runAt)}</span>
                             {run.catchUp && (
-                              <span className="shrink-0 rounded-sm bg-primary/10 px-1 py-px text-[10px] leading-4 text-primary">补跑</span>
+                              <span className="shrink-0 rounded-sm bg-primary/10 px-1 py-px text-[10px] leading-4 text-primary">{t('automation.ui.catchUpBadge')}</span>
                             )}
                             <span className="shrink-0 text-foreground/45">{formatRunStatus(run.status)}</span>
                             <span className="text-foreground/35 truncate">
                               {run.status === 'success' && run.durationMs ? `${(run.durationMs / 1000).toFixed(1)}s` : ''}
-                              {run.status === 'error' ? (run.error ?? '失败') : ''}
-                              {run.status === 'skipped' ? (run.skipReason ?? '跳过') : ''}
+                              {run.status === 'error' ? (run.error ?? t('automation.notification.failedStatus')) : ''}
+                              {run.status === 'skipped' ? (run.skipReason ?? t('automation.ui.statusSkipped')) : ''}
                             </span>
                           </button>
                         </TooltipTrigger>
                         <TooltipContent side="left">
-                          {hasSessionId ? '点击以跳转到该次会话' : '这条记录没有可打开的会话'}
+                          {hasSessionId ? t('automation.ui.openRunSession') : t('automation.ui.runNoSession')}
                         </TooltipContent>
                       </Tooltip>
                     )
@@ -1233,13 +1256,13 @@ export function AutomationFormView({ embedded = false }: { embedded?: boolean } 
                   className="titlebar-no-drag w-full h-9 rounded-md text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50 transition-colors flex items-center justify-center gap-1.5 shadow-sm"
                 >
                   {runningNow ? <Loader2 className="size-3.5 animate-spin" /> : <Play className="size-3.5" />}
-                  <span>{runningNow ? '运行中' : '运行一次'}</span>
+                  <span>{runningNow ? t('automation.ui.running') : t('automation.ui.runOnce')}</span>
                 </button>
               </span>
             </TooltipTrigger>
             {!isReadyToRun(form) && !runningNow && (
               <TooltipContent side="top">
-                请先补全：{listMissingFields(form).join('、')}
+                {t('automation.ui.missingFieldsToast', { fields: joinMissingFields(listMissingFields(form)) })}
               </TooltipContent>
             )}
           </Tooltip>

@@ -4,6 +4,7 @@ import { CalendarDays, Clock3, CornerDownLeft, FileText, GripVertical, ListTodo,
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
+import { useT } from '@/i18n'
 import {
   getQueuedMessageDisplayParts,
   type AgentQueuedMessage,
@@ -30,6 +31,7 @@ export function AgentMessageQueue({
   onRemove,
   onMove,
 }: AgentMessageQueueProps): React.ReactElement | null {
+  const t = useT()
   const [draggingId, setDraggingId] = React.useState<string | null>(null)
   const [dropTarget, setDropTarget] = React.useState<{ id: string; placement: QueueDropPlacement } | null>(null)
 
@@ -76,7 +78,7 @@ export function AgentMessageQueue({
       <div className="flex items-center justify-between gap-2 px-1 pb-1 text-[12px] text-muted-foreground">
         <span className="inline-flex items-center gap-1.5">
           <Clock3 className="size-3.5" />
-          <span>队列</span>
+          <span>{t('agentMisc.queue')}</span>
         </span>
         <span className="tabular-nums">{items.length}</span>
       </div>
@@ -118,7 +120,7 @@ export function AgentMessageQueue({
                   <div className="mb-0.5 flex min-w-0 items-center gap-1 text-[11px] leading-4 text-muted-foreground">
                     <Quote className="size-3 shrink-0" />
                     <span className="truncate">
-                      引用：{item.quotedSelection.sourceLabel ?? item.quotedSelection.filePath}
+                      {t('agentMisc.quotePrefix')}{item.quotedSelection.sourceLabel ?? item.quotedSelection.filePath}
                     </span>
                   </div>
                 )}
@@ -128,7 +130,7 @@ export function AgentMessageQueue({
                     <span className="truncate">
                       {item.attachments.length === 1
                         ? item.attachments[0]?.filename
-                        : `${item.attachments.length} 个附件`}
+                        : t('agentMisc.attachmentCount', { n: item.attachments.length })}
                     </span>
                   </div>
                 )}
@@ -136,20 +138,20 @@ export function AgentMessageQueue({
               </div>
               <div className="flex shrink-0 items-center gap-0.5">
                 <QueueIconButton
-                  label={interruptsCurrentTurn ? '立即发送（打断当前执行）' : '立即发送'}
+                  label={interruptsCurrentTurn ? t('agentMisc.sendNowInterrupt') : t('agentMisc.sendNow')}
                   disabled={!canSendNow}
                   onClick={() => onSendNow(item.id)}
                 >
                   <CornerDownLeft className="size-3.5" />
                 </QueueIconButton>
                 <QueueIconButton
-                  label="撤回到输入框"
+                  label={t('agentMisc.recallToComposer')}
                   onClick={() => onRecall(item.id)}
                 >
                   <Undo2 className="size-3.5" />
                 </QueueIconButton>
                 <QueueIconButton
-                  label="删除"
+                  label={t('common.delete')}
                   onClick={() => onRemove(item.id)}
                   danger
                 >
@@ -175,8 +177,9 @@ const QUEUED_REFERENCE_STYLES = {
 } as const
 
 function QueuedMessagePreview({ text }: { text: string }): React.ReactElement {
+  const t = useT()
   const skillNames = useSkillMentionNames()
-  if (!text) return <div className="line-clamp-2">仅附件</div>
+  if (!text) return <div className="line-clamp-2">{t('agentMisc.attachmentsOnly')}</div>
 
   return (
     <div className="line-clamp-2 whitespace-pre-wrap">

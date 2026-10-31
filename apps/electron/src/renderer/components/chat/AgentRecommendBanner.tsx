@@ -31,8 +31,10 @@ import {
 import { activeViewAtom } from '@/atoms/active-view'
 import { appModeAtom } from '@/atoms/app-mode'
 import { tabsAtom, activeTabIdAtom, openTab } from '@/atoms/tab-atoms'
+import { useT } from '@/i18n'
 
 export function AgentRecommendBanner(): React.ReactElement | null {
+  const t = useT()
   const [recommendation, setRecommendation] = useAtom(pendingAgentRecommendationAtom)
   const store = useStore()
   const [migrating, setMigrating] = React.useState(false)
@@ -48,7 +50,7 @@ export function AgentRecommendBanner(): React.ReactElement | null {
 
     const agentChannelId = store.get(agentChannelIdAtom)
     if (!agentChannelId) {
-      toast.error('请先在设置中配置 Agent 渠道')
+      toast.error(t('chat.agentMode.channelNotConfigured'))
       return
     }
 
@@ -89,7 +91,7 @@ export function AgentRecommendBanner(): React.ReactElement | null {
       store.set(activeViewAtom, 'conversations')
 
       // 6. 打开 Agent 会话 Tab 并激活
-      const sessionTitle = session.title ?? '新 Agent 会话'
+      const sessionTitle = session.title ?? t('chat.agentMode.newSessionTitle')
       const tabs = store.get(tabsAtom)
       const result = openTab(tabs, {
         type: 'agent',
@@ -108,12 +110,12 @@ export function AgentRecommendBanner(): React.ReactElement | null {
       })
 
       // 8. 通知用户
-      toast.success('已切换到 Agent 模式', {
-        description: '对话历史已迁移到新的 Agent 会话',
+      toast.success(t('chat.agentMode.switchedTitle'), {
+        description: t('chat.agentMode.switchedDescription'),
       })
     } catch (error) {
       console.error('[AgentRecommendBanner] 迁移失败:', error)
-      toast.error('切换到 Agent 模式失败')
+      toast.error(t('chat.agentMode.switchFailed'))
     } finally {
       setMigrating(false)
     }
@@ -126,7 +128,7 @@ export function AgentRecommendBanner(): React.ReactElement | null {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Sparkles className="size-4 text-primary" />
-            <span className="text-sm font-medium text-foreground">推荐使用 Agent 模式</span>
+            <span className="text-sm font-medium text-foreground">{t('chat.agentMode.recommendTitle')}</span>
           </div>
           <button
             type="button"
@@ -154,7 +156,7 @@ export function AgentRecommendBanner(): React.ReactElement | null {
           disabled={migrating}
           className="h-7 px-3 text-xs"
         >
-          {migrating ? '切换中...' : '切换到 Agent 模式'}
+          {migrating ? t('chat.agentMode.switching') : t('chat.agentMode.switchAction')}
           {!migrating && <ArrowRight className="size-3 ml-1" />}
         </Button>
       </div>

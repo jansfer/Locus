@@ -8,6 +8,7 @@ import * as React from 'react'
 import { useAtomValue, useSetAtom, useStore } from 'jotai'
 import { PanelRight } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { useT } from '@/i18n'
 import {
   agentSessionPathMapAtom,
 } from '@/atoms/agent-atoms'
@@ -26,6 +27,7 @@ import { getDefaultAppTargetPath, getPreviewFileAccess } from './preview-open-pa
 
 /** 切换为侧边分屏的小按钮 — 与拖拽 Tab 出 TabBar 触发的 tear-off 等价 */
 function TearOffButton({ sessionId }: { sessionId: string }): React.ReactElement {
+  const t = useT()
   const store = useStore()
   const onClick = React.useCallback(() => {
     tearOffPreviewToSplit(store, createPreviewTabId(sessionId))
@@ -37,13 +39,13 @@ function TearOffButton({ sessionId }: { sessionId: string }): React.ReactElement
           type="button"
           onClick={onClick}
           className="flex items-center justify-center size-7 shrink-0 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded transition-colors"
-          aria-label="切换为侧边分屏"
+          aria-label={t('diff.previewTab.tearOff')}
         >
           <PanelRight className="size-3.5" />
         </button>
       </TooltipTrigger>
       <TooltipContent side="bottom">
-        <p>切换为侧边分屏（保留会话 Tab，文件预览移到右侧）</p>
+        <p>{t('diff.previewTab.tearOffHint')}</p>
       </TooltipContent>
     </Tooltip>
   )
@@ -59,13 +61,14 @@ function getFallbackDirPath(filePath: string, sessionPath: string): string {
 }
 
 export function PreviewTabContent({ sessionId }: PreviewTabContentProps): React.ReactElement {
+  const t = useT()
   const fileMap = useAtomValue(previewFileMapAtom)
   const sessionPathMap = useAtomValue(agentSessionPathMapAtom)
   const setTabs = useSetAtom(tabsAtom)
 
   const currentFile = fileMap.get(sessionId) ?? null
   const sessionPath = sessionPathMap.get(sessionId) ?? ''
-  const fileName = currentFile ? getFileBaseName(currentFile.filePath) : '文件预览'
+  const fileName = currentFile ? getFileBaseName(currentFile.filePath) : t('diff.previewTab.titleFallback')
 
   React.useEffect(() => {
     const previewTabId = createPreviewTabId(sessionId)
@@ -86,11 +89,11 @@ export function PreviewTabContent({ sessionId }: PreviewTabContentProps): React.
       <div className="flex h-full flex-col overflow-hidden bg-content-area">
         <div className="flex h-11 shrink-0 items-center gap-2 border-b border-border/30 px-3">
           <div className="min-w-0 flex-1 text-xs font-medium text-muted-foreground">
-            预览已关闭
+            {t('diff.previewTab.closed')}
           </div>
         </div>
         <div className="flex flex-1 items-center justify-center text-xs text-muted-foreground">
-          当前会话没有可预览的文件
+          {t('diff.previewTab.nothingToPreview')}
         </div>
       </div>
     )

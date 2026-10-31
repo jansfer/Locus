@@ -1,6 +1,7 @@
 import * as React from 'react'
 import { ChevronDown, ChevronUp, Search, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useT } from '@/i18n'
 import type { LiveMarkdownEditorHandle, LiveMarkdownFindOptions } from '@/components/markdown/LiveMarkdownEditor'
 
 interface PreviewFindBarProps {
@@ -192,6 +193,7 @@ function setActiveMatch(marks: HTMLElement[], activeIndex: number): void {
 }
 
 export function PreviewFindBar({ open, rootRef, contentKey, unsupportedReason, markdownEditorRef, onOpenChange }: PreviewFindBarProps): React.ReactElement | null {
+  const t = useT()
   const [query, setQuery] = React.useState('')
   const [caseSensitive, setCaseSensitive] = React.useState(false)
   const [wholeWord, setWholeWord] = React.useState(false)
@@ -392,18 +394,18 @@ export function PreviewFindBar({ open, rootRef, contentKey, unsupportedReason, m
   const statusText = unsupportedReason
     ? unsupportedReason
     : regexInvalid
-    ? '表达式无效'
+    ? t('diff.find.invalidExpression')
     : query.trim()
       ? matchCount > 0
         ? `${activeIndex + 1}/${matchCount}`
-        : '无结果'
+        : t('diff.find.noResults')
       : ''
 
   return (
     <div
       data-proma-find-ignore
       role="search"
-      aria-label="文件内查找"
+      aria-label={t('diff.find.inFileAria')}
       className="absolute right-3 top-2 z-30 flex max-w-[min(390px,calc(100%-24px))] items-center gap-0.5 rounded-lg bg-popover/95 px-1.5 py-1 text-popover-foreground shadow-lg ring-1 ring-border/40 backdrop-blur"
     >
       <Search className="size-3 shrink-0 text-muted-foreground" aria-hidden="true" />
@@ -412,8 +414,8 @@ export function PreviewFindBar({ open, rootRef, contentKey, unsupportedReason, m
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         onKeyDown={handleKeyDown}
-        placeholder="查找"
-        aria-label="查找关键词"
+        placeholder={t('diff.find.placeholder')}
+        aria-label={t('diff.find.keywordAria')}
         disabled={Boolean(unsupportedReason)}
         spellCheck={false}
         className="h-5 w-[145px] min-w-0 bg-transparent text-[13px] outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
@@ -423,8 +425,8 @@ export function PreviewFindBar({ open, rootRef, contentKey, unsupportedReason, m
         onClick={() => setCaseSensitive((v) => !v)}
         disabled={Boolean(unsupportedReason)}
         className={cn('h-5 rounded px-1 text-[11px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground', caseSensitive && 'bg-primary/15 text-primary')}
-        title="区分大小写"
-        aria-label="区分大小写"
+        title={t('diff.find.matchCase')}
+        aria-label={t('diff.find.matchCase')}
         aria-pressed={caseSensitive}
       >
         Aa
@@ -434,8 +436,8 @@ export function PreviewFindBar({ open, rootRef, contentKey, unsupportedReason, m
         onClick={() => setWholeWord((v) => !v)}
         disabled={Boolean(unsupportedReason)}
         className={cn('h-5 rounded px-1 text-[11px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground', wholeWord && 'bg-primary/15 text-primary')}
-        title="全词匹配"
-        aria-label="全词匹配"
+        title={t('diff.find.wholeWord')}
+        aria-label={t('diff.find.wholeWord')}
         aria-pressed={wholeWord}
       >
         ab
@@ -445,8 +447,8 @@ export function PreviewFindBar({ open, rootRef, contentKey, unsupportedReason, m
         onClick={() => setRegex((v) => !v)}
         disabled={Boolean(unsupportedReason)}
         className={cn('h-5 rounded px-1 text-[11px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground', regex && 'bg-primary/15 text-primary')}
-        title="使用正则表达式"
-        aria-label="使用正则表达式"
+        title={t('diff.find.useRegex')}
+        aria-label={t('diff.find.useRegex')}
         aria-pressed={regex}
       >
         .*
@@ -463,8 +465,8 @@ export function PreviewFindBar({ open, rootRef, contentKey, unsupportedReason, m
         onClick={goToPrevious}
         disabled={Boolean(unsupportedReason) || matchCount === 0}
         className="flex size-5 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-35"
-        title="上一个匹配"
-        aria-label="上一个匹配"
+        title={t('diff.find.previous')}
+        aria-label={t('diff.find.previous')}
       >
         <ChevronUp className="size-3.5" aria-hidden="true" />
       </button>
@@ -473,8 +475,8 @@ export function PreviewFindBar({ open, rootRef, contentKey, unsupportedReason, m
         onClick={goToNext}
         disabled={Boolean(unsupportedReason) || matchCount === 0}
         className="flex size-5 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-35"
-        title="下一个匹配"
-        aria-label="下一个匹配"
+        title={t('diff.find.next')}
+        aria-label={t('diff.find.next')}
       >
         <ChevronDown className="size-3.5" aria-hidden="true" />
       </button>
@@ -482,8 +484,8 @@ export function PreviewFindBar({ open, rootRef, contentKey, unsupportedReason, m
         type="button"
         onClick={close}
         className="flex size-5 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground"
-        title="关闭查找"
-        aria-label="关闭查找"
+        title={t('diff.find.close')}
+        aria-label={t('diff.find.close')}
       >
         <X className="size-3.5" aria-hidden="true" />
       </button>

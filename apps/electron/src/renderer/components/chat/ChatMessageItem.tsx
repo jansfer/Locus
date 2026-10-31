@@ -41,6 +41,7 @@ import type { ChatMessage } from '@proma/shared'
 import type { InlineEditSubmitPayload } from './InlineEditForm'
 import { ChatToolActivityIndicator } from './ChatToolActivityIndicator'
 import { parseQuotedSelectionRefs } from '@/lib/quoted-selection'
+import { useT } from '@/i18n'
 
 // 重导出供外部使用
 export type { InlineEditSubmitPayload } from './InlineEditForm'
@@ -131,6 +132,7 @@ export const ChatMessageItem = React.memo(function ChatMessageItem({
   isParallelMode = false,
   onImageEditComplete,
 }: ChatMessageItemProps): React.ReactElement {
+  const t = useT()
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false)
   const [isDeleting, setIsDeleting] = React.useState(false)
   const userProfile = useAtomValue(userProfileAtom)
@@ -221,7 +223,7 @@ export const ChatMessageItem = React.memo(function ChatMessageItem({
               ) : message.error ? (
                 <div className="flex items-center gap-1.5 text-sm text-destructive mt-2">
                   <AlertCircle className="size-3.5 shrink-0" />
-                  <span>生成失败</span>
+                  <span>{t('chat.message.generateFailed')}</span>
                 </div>
               ) : message.stopped ? (
                 <MessageStopped />
@@ -275,7 +277,7 @@ export const ChatMessageItem = React.memo(function ChatMessageItem({
             )}
             {message.role === 'user' && onResendMessage && (
               <MessageAction
-                tooltip="重新发送"
+                tooltip={t('chat.message.resend')}
                 onClick={() => { void onResendMessage(message) }}
               >
                 <RotateCcw className="size-3.5" />
@@ -283,7 +285,7 @@ export const ChatMessageItem = React.memo(function ChatMessageItem({
             )}
             {message.role === 'user' && onStartInlineEdit && (
               <MessageAction
-                tooltip="编辑后重发"
+                tooltip={t('chat.message.editAndResend')}
                 onClick={() => onStartInlineEdit(message)}
               >
                 <Pencil className="size-3.5" />
@@ -291,7 +293,7 @@ export const ChatMessageItem = React.memo(function ChatMessageItem({
             )}
             {onDeleteMessage && (
               <MessageAction
-                tooltip="删除"
+                tooltip={t('common.delete')}
                 onClick={() => setDeleteDialogOpen(true)}
               >
                 <Trash2 className="size-3.5" />
@@ -300,11 +302,11 @@ export const ChatMessageItem = React.memo(function ChatMessageItem({
             {message.role === 'assistant' && message.error && (
               <span className="text-[11px] text-destructive ml-1 flex items-center gap-0.5">
                 <AlertCircle className="size-3" />
-                生成失败
+                {t('chat.message.generateFailed')}
               </span>
             )}
             {message.role === 'assistant' && message.stopped && !message.error && (
-              <span className="text-[11px] text-foreground/40 ml-1">（已中止）</span>
+              <span className="text-[11px] text-foreground/40 ml-1">{t('chat.message.stopped')}</span>
             )}
           </MessageActions>
         )}

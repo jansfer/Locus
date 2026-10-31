@@ -17,6 +17,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { ChevronRight, ChevronLeft, ChevronsRight, Check } from 'lucide-react'
+import { useT } from '@/i18n'
 import { Button } from '@/components/ui/button'
 import { CURRENT_ONBOARDING_VERSION } from '../../../types'
 import hopperSeasideWhiteHouse from '@/assets/onboarding/hopper-seaside-white-house.png'
@@ -189,12 +190,13 @@ function ChapterMarker({ children }: { children: React.ReactNode }) {
 }
 
 function GuideNavigation({ nextLabel, onNext, onBack }: { nextLabel: string; onNext: () => void; onBack?: () => void }) {
+  const t = useT()
   return (
     <div className="flex w-full items-center justify-between border-t border-[#1b3f2d]/20 pt-6">
       {onBack ? (
         <Button variant="ghost" size="sm" onClick={onBack} className="text-neutral-500">
           <ChevronLeft className="mr-1 h-4 w-4" />
-          上一个
+          {t('onboarding.nav.previous')}
         </Button>
       ) : (
         <span />
@@ -214,6 +216,7 @@ function GuideNavigation({ nextLabel, onNext, onBack }: { nextLabel: string; onN
  * 引导科普页：左侧显示界面截图，从锚点画绿色指针指向右侧讲解区。
  */
 function GuideFeatureStep({ anchor, title, highlight, paragraphs, nextLabel, onNext, onBack, imageSrc = guideVisual, arrowMode = 'none', magnifierOffsetX = 0, magnifierImageOffset = {}, imageRightCrop = 0, magnifierScale = 1, showNavigation = true, onScrollHint }: GuideFeatureStepProps) {
+  const t = useT()
   const imgRef = useRef<HTMLImageElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const [imgRect, setImgRect] = useState<{ x: number; y: number; w: number; h: number } | null>(null)
@@ -261,7 +264,7 @@ function GuideFeatureStep({ anchor, title, highlight, paragraphs, nextLabel, onN
         <img
           ref={imgRef}
           src={imageSrc}
-          alt="Locus 界面"
+          alt={t('onboarding.guide.screenshotAlt')}
           className="max-h-full max-w-full rounded-lg border border-[#d7ddd5] bg-[#f6f8f3] object-contain shadow-[0_14px_30px_rgba(27,63,45,0.12)]"
           style={imageRightCrop > 0 ? { clipPath: `inset(0 ${imageRightCrop}px 0 0)` } : undefined}
         />
@@ -367,7 +370,7 @@ function GuideFeatureStep({ anchor, title, highlight, paragraphs, nextLabel, onN
               onClick={onScrollHint}
               className="text-left text-sm leading-6 text-neutral-500 transition-colors hover:text-[#1b3f2d]"
             >
-              继续向下滚动，查看这一步的真实示例
+              {t('onboarding.guide.scrollHint')}
             </button>
           </div>
         )}
@@ -421,6 +424,7 @@ function GuideExamplesPage({ intro, nextLabel, onNext, onBack, children, showScr
 
 /** Agent / Chat 首章：保留模式说明，并在同页继续展示真实工作流。 */
 function AgentChatGuidePage({ onNext, onBack }: { onNext: () => void; onBack: () => void }) {
+  const t = useT()
   return (
     <GuideExamplesPage
       showScrollHint
@@ -429,21 +433,19 @@ function AgentChatGuidePage({ onNext, onBack }: { onNext: () => void; onBack: ()
         arrowMode: 'magnifier',
         magnifierOffsetX: 70,
         magnifierImageOffset: { x: 0.09, y: 0.33 },
-        highlight: '入门篇 · 第 1 步',
-        title: 'Agent 和 Chat 模式的区别',
+        highlight: t('onboarding.chapters.beginner1'),
+        title: t('onboarding.guide.agentChat.title'),
         paragraphs: [
-          <>左边栏顶部是 Locus 的<b className="font-medium text-neutral-900">模式切换</b>：Agent 与 Chat。</>,
+          <>{t('onboarding.guide.agentChat.p1a')}<b className="font-medium text-neutral-900">{t('onboarding.guide.agentChat.p1b')}</b>{t('onboarding.guide.agentChat.p1c')}</>,
           <>
-            <b className="font-medium text-neutral-900">Chat</b> 是一问一答的对话——快速提问、不涉及任何对电脑的操作，
-            核心偏向满足好奇心和完成简单的文字工作。
+            <b className="font-medium text-neutral-900">Chat</b>{t('onboarding.guide.agentChat.p2b')}
           </>,
           <>
-            <b className="font-medium text-neutral-900">Agent</b> 则能自主规划做调研、操作电脑、写代码、PPT 和文档，
-            为你的想法赋形。
+            <b className="font-medium text-neutral-900">Agent</b>{t('onboarding.guide.agentChat.p3b')}
           </>,
         ],
       }}
-      nextLabel="下一个"
+      nextLabel={t('onboarding.nav.next')}
       onNext={onNext}
       onBack={onBack}
     >
@@ -451,37 +453,37 @@ function AgentChatGuidePage({ onNext, onBack }: { onNext: () => void; onBack: ()
         <div className="space-y-16 md:space-y-20">
           <article className="grid gap-10 border-t border-[#1b3f2d]/15 pt-10 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-center">
             <figure className="overflow-hidden rounded-lg bg-[#f6f8f3] shadow-[0_14px_30px_rgba(27,63,45,0.12)]">
-              <img src={guideChatExample} alt="Chat 解释 RAG 搜索原理的示例" className="block h-auto w-full" />
+              <img src={guideChatExample} alt={t('onboarding.pages.agentChat.image1Alt')} className="block h-auto w-full" />
             </figure>
             <div>
-              <div className="text-xs font-medium uppercase tracking-[0.18em] text-[#1b3f2d]">示例 01 · Chat</div>
-              <h3 className="mt-3 text-2xl font-medium text-neutral-900 md:text-3xl">快速厘清一个概念用 Chat</h3>
+              <div className="text-xs font-medium uppercase tracking-[0.18em] text-[#1b3f2d]">{t('onboarding.pages.agentChat.example1Label')}</div>
+              <h3 className="mt-3 text-2xl font-medium text-neutral-900 md:text-3xl">{t('onboarding.pages.agentChat.example1Title')}</h3>
               <p className="mt-4 text-base leading-[1.7] text-neutral-600 md:text-lg">
-                AI 最常见的场景，随意询问一件事，得到简单快速的解释。Chat 专注对话和文字回答，不会有任何产出。
+                {t('onboarding.pages.agentChat.example1Desc')}
               </p>
               <div className="mt-5 border-l-2 border-[#1b3f2d]/35 pl-4">
-                <div className="text-base font-medium leading-7 text-[#1b3f2d]">你可以这样说</div>
-                <p className="mt-1 text-base leading-7 text-neutral-500">“用通俗的话帮我解释一下 RAG 的搜索原理。”</p>
+                <div className="text-base font-medium leading-7 text-[#1b3f2d]">{t('onboarding.examples.sayHint')}</div>
+                <p className="mt-1 text-base leading-7 text-neutral-500">{t('onboarding.pages.agentChat.example1Quote')}</p>
               </div>
             </div>
           </article>
 
           <article className="grid gap-10 border-t border-[#1b3f2d]/15 pt-10 lg:grid-cols-[22rem_minmax(0,1fr)] lg:items-center">
             <div className="lg:order-1">
-              <div className="text-xs font-medium uppercase tracking-[0.18em] text-[#1b3f2d]">示例 02 · Agent</div>
+              <div className="text-xs font-medium uppercase tracking-[0.18em] text-[#1b3f2d]">{t('onboarding.pages.agentChat.example2Label')}</div>
               <h3 className="mt-3 text-2xl font-medium text-neutral-900 md:text-3xl">
-                复杂<b className="font-medium text-neutral-900">调研/写代码/做PPT</b>等需要产出成果时用 Agent
+                {t('onboarding.pages.agentChat.example2TitleA')}<b className="font-medium text-neutral-900">{t('onboarding.pages.agentChat.example2TitleB')}</b>{t('onboarding.pages.agentChat.example2TitleC')}
               </h3>
               <p className="mt-4 text-base leading-[1.7] text-neutral-600 md:text-lg">
-                例如，请它研究一个概念或者行业并将结论做成 PPT/文档。Agent 会拆解任务、调用工具、持续推进，再把成果保留在当前工作区。
+                {t('onboarding.pages.agentChat.example2Desc')}
               </p>
               <div className="mt-5 border-l-2 border-[#1b3f2d]/35 pl-4">
-                <div className="text-base font-medium leading-7 text-[#1b3f2d]">这样告诉 Agent</div>
-                <p className="mt-1 text-base leading-7 text-neutral-500">“帮我研究一下什么是 RAG，然后把研究结果写成一个文件/PPT放到会话文件里。”</p>
+                <div className="text-base font-medium leading-7 text-[#1b3f2d]">{t('onboarding.examples.promptHint')}</div>
+                <p className="mt-1 text-base leading-7 text-neutral-500">{t('onboarding.pages.agentChat.example2Quote')}</p>
               </div>
             </div>
             <figure className="overflow-hidden rounded-lg bg-[#f6f8f3] shadow-[0_14px_30px_rgba(27,63,45,0.12)] lg:order-2">
-              <img src={guideAgentExample} alt="Agent 研究 RAG 并写入会话文件的示例" className="block h-auto w-full" />
+              <img src={guideAgentExample} alt={t('onboarding.pages.agentChat.image2Alt')} className="block h-auto w-full" />
             </figure>
           </article>
         </div>
@@ -496,6 +498,7 @@ function AgentChatGuidePage({ onNext, onBack }: { onNext: () => void; onBack: ()
  * FAQ 页面：左侧可点击目录地图 + 右侧按主题展开全部问题。
  */
 function FaqPage({ nextLabel, onNext, onBack, highlight }: { nextLabel: string; onNext: () => void; onBack?: () => void; highlight?: React.ReactNode }) {
+  const t = useT()
   const scrollRef = useRef<HTMLDivElement>(null)
 
   const scrollToGroup = (topic: string) => {
@@ -510,16 +513,16 @@ function FaqPage({ nextLabel, onNext, onBack, highlight }: { nextLabel: string; 
     <div className="flex h-full w-full items-stretch">
       {/* 左侧：本页目录地图（垂直居中，整体上移 20px） */}
       <div className="hidden w-56 shrink-0 border-r border-neutral-200/80 px-4 py-4 md:flex md:flex-col md:justify-center -translate-y-5">
-        <div className="text-center text-[11px] uppercase tracking-[0.2em] text-neutral-400">本页目录</div>
+        <div className="text-center text-[11px] uppercase tracking-[0.2em] text-neutral-400">{t('onboarding.faqPage.toc')}</div>
         <nav className="mt-4 space-y-1">
           {FAQ_GROUPS.map((group) => (
             <button
-              key={group.topic}
-              onClick={() => scrollToGroup(group.topic)}
+              key={group.slug}
+              onClick={() => scrollToGroup(group.slug)}
               className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-left text-sm text-neutral-600 transition-colors hover:bg-[#1b3f2d]/5 hover:text-[#1b3f2d]"
             >
               <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#1b3f2d]/40" />
-              {group.topic}
+              {t(group.topic)}
             </button>
           ))}
         </nav>
@@ -530,30 +533,30 @@ function FaqPage({ nextLabel, onNext, onBack, highlight }: { nextLabel: string; 
         <div className="m-auto w-full max-w-4xl py-10">
           {highlight && <ChapterMarker>{highlight}</ChapterMarker>}
           <div className="flex items-baseline gap-3">
-            <h2 className="text-3xl font-light tracking-tight text-neutral-900 md:text-4xl">常见问题</h2>
+            <h2 className="text-3xl font-light tracking-tight text-neutral-900 md:text-4xl">{t('onboarding.faqPage.title')}</h2>
             <span className="text-2xl font-light tracking-[0.3em] text-[#1b3f2d]/60 md:text-3xl">FAQ</span>
           </div>
           <p className="mt-3 text-base leading-relaxed text-neutral-500">
-            常见问题已经全部展开，方便你快速浏览和搜索。点击左侧目录可跳转到对应主题。
+            {t('onboarding.faqPage.intro')}
           </p>
 
           <div className="mt-10 space-y-10">
             {FAQ_GROUPS.map((group, groupIndex) => (
-              <section key={group.topic} aria-labelledby={`faq-${group.topic}`}>
+              <section key={group.slug} aria-labelledby={`faq-${group.slug}`}>
                 <div className="flex items-end gap-3 border-b border-neutral-300 pb-3">
                   <span className="text-xs font-medium tracking-[0.16em] text-[#1b3f2d]">
                     {String(groupIndex + 1).padStart(2, '0')}
                   </span>
-                  <h3 id={`faq-${group.topic}`} className="text-lg font-medium text-neutral-900">
-                    {group.topic}
+                  <h3 id={`faq-${group.slug}`} className="text-lg font-medium text-neutral-900">
+                    {t(group.topic)}
                   </h3>
                 </div>
 
                 <div className="divide-y divide-neutral-200/80">
                   {group.items.map((item) => (
                     <article key={item.q} className="border-l-2 border-[#1b3f2d]/25 py-4 pl-4">
-                      <h4 className="text-sm font-semibold tracking-wide text-[#1b3f2d]">{item.q}</h4>
-                      <p className="mt-2 max-w-3xl text-[15px] leading-7 text-neutral-600">{item.a}</p>
+                      <h4 className="text-sm font-semibold tracking-wide text-[#1b3f2d]">{t(item.q)}</h4>
+                      <p className="mt-2 max-w-3xl text-[15px] leading-7 text-neutral-600">{t(item.a)}</p>
                     </article>
                 ))}
               </div>
@@ -565,7 +568,7 @@ function FaqPage({ nextLabel, onNext, onBack, highlight }: { nextLabel: string; 
           {onBack ? (
             <Button variant="ghost" size="sm" onClick={onBack} className="text-neutral-500">
               <ChevronLeft className="mr-1 h-4 w-4" />
-              上一个
+              {t('onboarding.nav.previous')}
             </Button>
           ) : (
             <span />
@@ -584,16 +587,16 @@ function FaqPage({ nextLabel, onNext, onBack, highlight }: { nextLabel: string; 
   )
 }
 
-/** 引导步骤标题（欢迎页独立，不在地图中显示） */
-const STEP_LABELS: Array<{ step: Exclude<OnboardingStep, 'welcome'>; label: string }> = [
-  { step: 'guide', label: 'Agent / Chat' },
-  { step: 'project', label: '项目' },
-  { step: 'files', label: '文件' },
-  { step: 'subagent', label: '子会话' },
-  { step: 'automation', label: '自动任务' },
-  { step: 'memory', label: '记忆' },
-  { step: 'sideanswer', label: '侧边回答' },
-  { step: 'faq', label: 'FAQ' },
+/** 引导步骤标题（欢迎页独立，不在地图中显示）；labelKey 走 onboarding.steps.* 词典键。 */
+const STEP_LABELS: Array<{ step: Exclude<OnboardingStep, 'welcome'>; labelKey: 'onboarding.steps.agentChat' | 'onboarding.steps.project' | 'onboarding.steps.files' | 'onboarding.steps.subagent' | 'onboarding.steps.automation' | 'onboarding.steps.memory' | 'onboarding.steps.sideAnswer' | 'onboarding.steps.faq' }> = [
+  { step: 'guide', labelKey: 'onboarding.steps.agentChat' },
+  { step: 'project', labelKey: 'onboarding.steps.project' },
+  { step: 'files', labelKey: 'onboarding.steps.files' },
+  { step: 'subagent', labelKey: 'onboarding.steps.subagent' },
+  { step: 'automation', labelKey: 'onboarding.steps.automation' },
+  { step: 'memory', labelKey: 'onboarding.steps.memory' },
+  { step: 'sideanswer', labelKey: 'onboarding.steps.sideAnswer' },
+  { step: 'faq', labelKey: 'onboarding.steps.faq' },
 ]
 
 const BEGINNER_STEP_LABELS = STEP_LABELS.slice(0, 3)
@@ -603,6 +606,7 @@ const ADVANCED_STEP_LABELS = STEP_LABELS.slice(3)
  * 底部进度地图：仅显示当前章节的步骤，并保持章节内的宽松间距。
  */
 function ProgressMap({ current }: { current: Exclude<OnboardingStep, 'welcome'> }) {
+  const t = useT()
   const isBeginner = BEGINNER_STEP_LABELS.some((step) => step.step === current)
   const visibleSteps = isBeginner ? BEGINNER_STEP_LABELS : ADVANCED_STEP_LABELS
   const activeIdx = visibleSteps.findIndex((step) => step.step === current)
@@ -625,7 +629,7 @@ function ProgressMap({ current }: { current: Exclude<OnboardingStep, 'welcome'> 
                         : 'text-neutral-400'
                   }`}
                 >
-                  {item.label}
+                  {t(item.labelKey)}
                 </span>
                 <div className="mt-1.5 flex h-3 w-full items-center">
                   <div
@@ -666,6 +670,7 @@ function ProgressMap({ current }: { current: Exclude<OnboardingStep, 'welcome'> 
 }
 
 export function OnboardingView({ onComplete, initialStep = 'welcome' }: OnboardingViewProps) {
+  const t = useT()
   const [step, setStep] = useState<OnboardingStep>(initialStep)
   const [flash, setFlash] = useState(false)
   const [fading, setFading] = useState(false)
@@ -725,7 +730,7 @@ export function OnboardingView({ onComplete, initialStep = 'welcome' }: Onboardi
         <div className="relative h-56 shrink-0 overflow-hidden bg-[#d9e0e4] md:h-auto md:w-[calc(58%+100px)]">
           <img
             src={hopperSeasideWhiteHouse}
-            alt="海边的白色小屋画作"
+            alt={t('onboarding.welcome.artworkAlt')}
             className="absolute inset-0 h-full w-full object-cover object-center"
           />
           {/* 光感渐变遮罩 */}
@@ -744,7 +749,7 @@ export function OnboardingView({ onComplete, initialStep = 'welcome' }: Onboardi
           {/* 左下角标语（呼应画作气质） */}
           <div className="absolute bottom-6 left-6 right-6 md:bottom-10 md:left-10 md:right-10">
             <p className="text-lg font-light leading-snug text-white md:text-2xl">
-              让协作自然发生，让想法流动成形。
+              {t('onboarding.welcome.tagline')}
             </p>
             <p className="mt-2 text-[11px] uppercase tracking-[0.3em] text-white/70 md:text-xs">
               FOR PROFESSIONALS
@@ -774,14 +779,14 @@ export function OnboardingView({ onComplete, initialStep = 'welcome' }: Onboardi
               <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#26583d] text-white">
                 <Check size={13} strokeWidth={3} />
               </span>
-              <span className="text-sm font-medium text-neutral-500">准备就绪</span>
+              <span className="text-sm font-medium text-neutral-500">{t('onboarding.welcome.ready')}</span>
             </div>
 
             <h1 className="text-3xl font-light tracking-tight text-neutral-900 md:text-4xl">
-              欢迎使用 Locus
+              {t('onboarding.welcome.title')}
             </h1>
             <p className="mt-3 text-base leading-relaxed text-neutral-500 md:text-lg">
-              为专业用户打造的通用 Agent
+              {t('onboarding.welcome.subtitle')}
             </p>
 
             {/* 主操作 */}
@@ -790,7 +795,7 @@ export function OnboardingView({ onComplete, initialStep = 'welcome' }: Onboardi
                 onClick={handleEnterGuide}
                 className="flex h-12 w-full items-center justify-center gap-1.5 rounded-sm bg-[#1b3f2d] text-base font-medium text-white transition-all hover:bg-[#27513a] active:translate-y-0.5 active:shadow-none"
               >
-                进入引导界面
+                {t('onboarding.welcome.enterGuide')}
                 <ChevronRight className="h-4 w-4" />
               </button>
             </div>
@@ -810,20 +815,19 @@ export function OnboardingView({ onComplete, initialStep = 'welcome' }: Onboardi
               anchor: { x: 0.91, y: 0.07 },
               arrowMode: 'magnifier',
               magnifierOffsetX: -40,
-              highlight: '入门篇 · 第 3 步',
-              title: '会话文件和项目文件',
+              highlight: t('onboarding.chapters.beginner3'),
+              title: t('onboarding.guide.files.title'),
               paragraphs: [
-                <>右侧预览面板顶部有<b className="font-medium text-neutral-900">会话文件</b>和<b className="font-medium text-neutral-900">项目文件</b>两个页签。</>,
+                <>{t('onboarding.guide.files.p1a')}<b className="font-medium text-neutral-900">{t('onboarding.guide.files.p1b')}</b>{t('onboarding.guide.files.p1c')}<b className="font-medium text-neutral-900">{t('onboarding.guide.files.p1d')}</b>{t('onboarding.guide.files.p1e')}</>,
                 <>
-                  <b className="font-medium text-neutral-900">会话文件</b>属于这一次对话——附件、截图、临时引用等。
+                  <b className="font-medium text-neutral-900">{t('onboarding.guide.files.p2a')}</b>{t('onboarding.guide.files.p2b')}
                 </>,
                 <>
-                  <b className="font-medium text-neutral-900">项目文件</b>属于整个项目——所有项目内的会话共享这些文件，
-                  是团队/长期项目真正的工作台。
+                  <b className="font-medium text-neutral-900">{t('onboarding.guide.files.p3a')}</b>{t('onboarding.guide.files.p3b')}
                 </>,
               ],
             }}
-            nextLabel="开始进阶篇"
+            nextLabel={t('onboarding.guide.nextToAdvanced')}
             onNext={handleNextFromFiles}
             onBack={() => transitionTo('project')}
           >
@@ -839,19 +843,18 @@ export function OnboardingView({ onComplete, initialStep = 'welcome' }: Onboardi
             arrowMode="magnifier"
             magnifierOffsetX={130}
             magnifierImageOffset={{ x: 0.08, y: 0.05 }}
-            highlight="入门篇 · 第 2 步"
-            title="项目的概念"
+            highlight={t('onboarding.chapters.beginner2')}
+            title={t('onboarding.guide.project.title')}
             paragraphs={[
-              <>左侧边栏的<b className="font-medium text-neutral-900">项目</b>是你为特定工作建立的独立空间。</>,
+              <>{t('onboarding.guide.project.p1a')}<b className="font-medium text-neutral-900">{t('onboarding.guide.project.p1b')}</b>{t('onboarding.guide.project.p1c')}</>,
               <>
-                每个项目有自己的<b className="font-medium text-neutral-900">项目文件</b>、
-                <b className="font-medium text-neutral-900">上下文、Skills/MCP 与记忆</b>，互不干扰。
+                {t('onboarding.guide.project.p2a')}<b className="font-medium text-neutral-900">{t('onboarding.guide.project.p2b')}</b>{t('onboarding.guide.project.p2c')}
               </>,
               <>
-                比如图中的「广告投放项目」「代码分析」，都各是一个独立的项目工作区，用于做完全不同的事。
+                {t('onboarding.guide.project.p3')}
               </>,
             ]}
-            nextLabel="下一个"
+            nextLabel={t('onboarding.nav.next')}
             onNext={handleNextFromProject}
             onBack={() => transitionTo('guide')}
           />
@@ -865,24 +868,21 @@ export function OnboardingView({ onComplete, initialStep = 'welcome' }: Onboardi
               magnifierOffsetX: 80,
               magnifierImageOffset: { x: 0.075 },
               imageSrc: guideSubagent,
-              highlight: '进阶指南 · 第 1 步',
-              title: '子会话功能',
+              highlight: t('onboarding.chapters.advanced1'),
+              title: t('onboarding.guide.subagent.title'),
               paragraphs: [
                 <>
-                  子会话（Collaboration）是 Agent 派生的<b className="font-medium text-neutral-900">独立研究小分队</b>——
-                  你用一句自然语言就能启动，比如「启动 3 个子会话研究躺平现象」。
+                  {t('onboarding.guide.subagent.p1a')}<b className="font-medium text-neutral-900">{t('onboarding.guide.subagent.p1b')}</b>{t('onboarding.guide.subagent.p1c')}
                 </>,
                 <>
-                  每个子会话可以用自然语言<b className="font-medium text-neutral-900">指定不同模型</b>（如 GLM、DeepSeek），
-                  拥有<b className="font-medium text-neutral-900">独立的上下文</b>，各自专注一个方向并行研究。
+                  {t('onboarding.guide.subagent.p2a')}<b className="font-medium text-neutral-900">{t('onboarding.guide.subagent.p2b')}</b>{t('onboarding.guide.subagent.p2c')}<b className="font-medium text-neutral-900">{t('onboarding.guide.subagent.p2d')}</b>{t('onboarding.guide.subagent.p2e')}
                 </>,
                 <>
-                  结果再汇回父会话——
-                  <b className="font-medium text-neutral-900">既节省父会话的上下文，又能省时并行干更多的活</b>。
+                  {t('onboarding.guide.subagent.p3a')}<b className="font-medium text-neutral-900">{t('onboarding.guide.subagent.p3b')}</b>{t('onboarding.guide.subagent.p3c')}
                 </>,
               ],
             }}
-            nextLabel="下一个"
+            nextLabel={t('onboarding.nav.next')}
             onNext={handleNextFromSubagent}
             onBack={() => transitionTo('files')}
           >
@@ -897,18 +897,15 @@ export function OnboardingView({ onComplete, initialStep = 'welcome' }: Onboardi
               arrowMode: 'none',
               imageSrc: guideAutomation,
               imageRightCrop: 2,
-              highlight: '进阶指南 · 第 2 步',
-              title: '自动任务功能',
+              highlight: t('onboarding.chapters.advanced2'),
+              title: t('onboarding.guide.automation.title'),
               paragraphs: [
                 <>
-                  打开<b className="font-medium text-neutral-900">自动任务</b>，你可以让 Locus 定时自动执行一件事。
-                  在任务描述里用自然语言写清楚「做什么、什么时候做」，再配置频率与模型，
-                  <b className="font-medium text-neutral-900">无人值守</b>也能完成。
-                  你也可以用自然语言直接让 Agent 帮你创建自动任务。
+                  {t('onboarding.guide.automation.p1a')}<b className="font-medium text-neutral-900">{t('onboarding.guide.automation.p1b')}</b>{t('onboarding.guide.automation.p1c')}<b className="font-medium text-neutral-900">{t('onboarding.guide.automation.p1d')}</b>{t('onboarding.guide.automation.p1e')}
                 </>,
               ],
             }}
-            nextLabel="下一个"
+            nextLabel={t('onboarding.nav.next')}
             onNext={handleNextFromAutomation}
             onBack={() => transitionTo('subagent')}
           >
@@ -924,15 +921,15 @@ export function OnboardingView({ onComplete, initialStep = 'welcome' }: Onboardi
               anchor: { x: 0.49, y: 0.18 },
               arrowMode: 'none',
               imageSrc: guideMemory,
-              highlight: '进阶指南 · 第 3 步',
-              title: '建立项目地图与协作记忆',
+              highlight: t('onboarding.chapters.advanced3'),
+              title: t('onboarding.guide.memory.title'),
               paragraphs: [
                 <>
-                  <b className="font-medium text-neutral-900">项目地图</b>放在两层 AGENTS.md，减少重复探索；<b className="font-medium text-neutral-900">协作记忆</b>只保留你的稳定偏好与避免重犯的经验。
+                  <b className="font-medium text-neutral-900">{t('onboarding.guide.memory.p1a')}</b>{t('onboarding.guide.memory.p1b')}<b className="font-medium text-neutral-900">{t('onboarding.guide.memory.p1c')}</b>{t('onboarding.guide.memory.p1d')}
                 </>,
               ],
             }}
-            nextLabel="下一个"
+            nextLabel={t('onboarding.nav.next')}
             onNext={handleNextFromMemory}
             onBack={() => transitionTo('automation')}
           >
@@ -947,17 +944,16 @@ export function OnboardingView({ onComplete, initialStep = 'welcome' }: Onboardi
             anchor={{ x: 0.66, y: 0.044 }}
             arrowMode="none"
             imageSrc={guideSideAnswer}
-            highlight="进阶指南 · 第 4 步"
-            title="侧边回答"
+            highlight={t('onboarding.chapters.advanced4')}
+            title={t('onboarding.guide.sideAnswer.title')}
             paragraphs={[
-              <>在 Agent 对话中，可以选中一段文字，然后打开侧边回答。</>,
-              <>这会打开<b className="font-medium text-neutral-900">右侧问答面板</b>，
-                围绕你选中的内容讲解，不打断主对话也不占用上下文。
+              <>{t('onboarding.guide.sideAnswer.p1')}</>,
+              <>{t('onboarding.guide.sideAnswer.p2a')}<b className="font-medium text-neutral-900">{t('onboarding.guide.sideAnswer.p2b')}</b>{t('onboarding.guide.sideAnswer.p2c')}
               </>,
-              <>适合查词、解释概念、拆解长文。
+              <>{t('onboarding.guide.sideAnswer.p3')}
               </>,
             ]}
-            nextLabel="下一个"
+            nextLabel={t('onboarding.nav.next')}
             onNext={handleNextFromSideAnswer}
             onBack={() => transitionTo('memory')}
           />
@@ -965,8 +961,8 @@ export function OnboardingView({ onComplete, initialStep = 'welcome' }: Onboardi
 
         {step === 'faq' && (
           <FaqPage
-            highlight="进阶指南 · 第 5 步"
-            nextLabel="开始使用"
+            highlight={t('onboarding.chapters.advanced5')}
+            nextLabel={t('onboarding.guide.nextStart')}
             onNext={handleNextFromFaq}
             onBack={() => transitionTo(faqBackStep)}
           />
@@ -981,7 +977,7 @@ export function OnboardingView({ onComplete, initialStep = 'welcome' }: Onboardi
           onClick={handleJumpToFaq}
           className="absolute bottom-5 right-[30px] z-30 flex h-8 items-center gap-1 px-2 text-sm text-neutral-500 transition-colors hover:text-[#1b3f2d]"
         >
-          跳到 FAQ
+          {t('onboarding.nav.jumpToFaq')}
           <ChevronsRight className="h-4 w-4" />
         </button>
       )}

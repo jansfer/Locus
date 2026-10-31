@@ -7,6 +7,7 @@
 
 import * as React from 'react'
 import { ArrowLeft, CheckCircle2, CircleDashed, Plug, XCircle } from 'lucide-react'
+import { useT } from '@/i18n'
 import { Button } from '@/components/ui/button'
 import { McpServerForm } from '@/components/settings/McpServerForm'
 import { cn } from '@/lib/utils'
@@ -29,6 +30,7 @@ export function McpDetailView({
   onBack,
   onChanged,
 }: McpDetailViewProps): React.ReactElement {
+  const t = useT()
   const test = entry.lastTestResult
   const [closeRequestId, setCloseRequestId] = React.useState(0)
   const handleBack = React.useCallback(async (): Promise<void> => {
@@ -42,9 +44,9 @@ export function McpDetailView({
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="sm" className="h-10 gap-1.5 px-2" type="button" onClick={() => setCloseRequestId((value) => value + 1)}>
             <ArrowLeft size={16} />
-            返回 MCP
+            {t('skills.mcpDetail.backToMcp')}
           </Button>
-          <h3 className="text-lg font-medium text-foreground">MCP 详情</h3>
+          <h3 className="text-lg font-medium text-foreground">{t('skills.mcpDetail.title')}</h3>
         </div>
 
         <div className="mt-4 flex items-start gap-3">
@@ -55,10 +57,10 @@ export function McpDetailView({
             <div className="flex items-center gap-2">
               <h4 className="truncate text-base font-semibold text-foreground">{name}</h4>
               <span className="shrink-0 rounded-md bg-muted px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground">
-                {entry.isBuiltin ? '内置' : (TRANSPORT_LABELS[entry.type] ?? entry.type ?? '未知')}
+                {entry.isBuiltin ? t('skills.mcpCard.builtinBadge') : (TRANSPORT_LABELS[entry.type] ?? entry.type ?? t('common.unknown'))}
               </span>
             </div>
-            <div className="mt-0.5 text-xs text-muted-foreground">{entry.enabled ? '已启用' : '已关闭'} · 配置变更会自动保存</div>
+            <div className="mt-0.5 text-xs text-muted-foreground">{entry.enabled ? t('skills.mcpDetail.enabledStatus') : t('skills.mcpDetail.closedStatus')} · {t('skills.mcpDetail.autoSaveHint')}</div>
           </div>
         </div>
 
@@ -72,7 +74,7 @@ export function McpDetailView({
               : 'bg-muted text-muted-foreground',
           )}>
             {test ? test.success ? <CheckCircle2 size={12} /> : <XCircle size={12} /> : <CircleDashed size={12} />}
-            {test ? test.success ? '连接正常' : '连接失败' : '尚未测试'}
+            {test ? test.success ? t('skills.mcpCard.testOk') : t('skills.mcpCard.testFailed') : t('skills.mcpDetail.notTested')}
           </span>
         </div>
       </div>

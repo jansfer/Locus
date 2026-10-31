@@ -9,6 +9,8 @@ import * as React from 'react'
 import { useAtomValue } from 'jotai'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { cn } from '@/lib/utils'
+import { useT } from '@/i18n'
+import type { MessageKey } from '@/i18n'
 import { feishuBotStatesAtom } from '@/atoms/feishu-atoms'
 import { dingtalkBotStatesAtom } from '@/atoms/dingtalk-atoms'
 import { slackBotStatesAtom } from '@/atoms/slack-atoms'
@@ -31,7 +33,8 @@ type BotPlatformId = 'feishu' | 'slack' | 'dingtalk' | 'wechat' | 'defaults' | '
 
 interface BotPlatformDef {
   id: BotPlatformId
-  name: string
+  /** 平台名称的文案键，渲染处用 t() 翻译 */
+  name: MessageKey
   /** Logo 图片 src（有图片时使用） */
   iconSrc?: string
   /** 无图片时显示的字符 */
@@ -45,38 +48,38 @@ interface BotPlatformDef {
 const PLATFORMS: readonly BotPlatformDef[] = [
   {
     id: 'feishu',
-    name: '飞书',
+    name: 'settings.bots.platformFeishu',
     iconSrc: feishuLogo,
     iconBgClass: 'bg-blue-500/15',
   },
   {
     id: 'slack',
-    name: 'Slack',
+    name: 'settings.bots.platformSlack',
     iconSrc: slackLogo,
     iconBgClass: 'bg-violet-500/15',
   },
   {
     id: 'wechat',
-    name: '微信',
+    name: 'settings.bots.platformWechat',
     iconSrc: wechatLogo,
     iconBgClass: 'bg-green-500/15',
   },
   {
     id: 'dingtalk',
-    name: '钉钉',
+    name: 'settings.bots.platformDingtalk',
     iconSrc: dingtalkLogo,
     iconBgClass: 'bg-orange-500/15',
   },
   {
     id: 'defaults',
-    name: '用法',
+    name: 'settings.bots.platformDefaults',
     iconChar: '⚙',
     iconBgClass: 'bg-muted',
     iconTextClass: 'text-muted-foreground',
   },
   {
     id: 'logos',
-    name: '品牌素材',
+    name: 'settings.bots.platformLogos',
     iconSrc: promaLogo,
     iconBgClass: 'bg-muted',
   },
@@ -133,6 +136,7 @@ function PlatformSidebarItem({
   isActive: boolean
   onClick: () => void
 }): React.ReactElement {
+  const t = useT()
   return (
     <button
       type="button"
@@ -147,7 +151,7 @@ function PlatformSidebarItem({
       {/* 平台图标 */}
       {platform.iconSrc ? (
         <div className="flex items-center justify-center w-8 h-8 flex-shrink-0">
-          <img src={platform.iconSrc} alt={platform.name} className="w-8 h-8 rounded-lg object-contain" />
+          <img src={platform.iconSrc} alt={t(platform.name)} className="w-8 h-8 rounded-lg object-contain" />
         </div>
       ) : (
         <div className={cn(
@@ -161,7 +165,7 @@ function PlatformSidebarItem({
 
       {/* 名称 */}
       <span className="text-sm flex-1 min-w-0 truncate">
-        {platform.name}
+        {t(platform.name)}
       </span>
 
       {/* 状态点 */}

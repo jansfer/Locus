@@ -15,13 +15,16 @@ import { userProfileAtom } from '@/atoms/user-profile'
 import { appModeAtom, type AppMode } from '@/atoms/app-mode'
 import { themeStyleAtom } from '@/atoms/theme'
 import { getRandomTip, getPlatform, type Tip } from '@/lib/tips'
+import { useT } from '@/i18n'
 
-/** 根据小时返回时段问候 */
-function getGreeting(hour: number): string {
-  if (hour < 6) return '夜深了'
-  if (hour < 12) return '早上好'
-  if (hour < 18) return '下午好'
-  return '晚上好'
+/** 返回时段问候的词典键；具体文案随界面语言在渲染时解析。 */
+type GreetingKey = 'welcome.greeting.night' | 'welcome.greeting.morning' | 'welcome.greeting.afternoon' | 'welcome.greeting.evening'
+
+function getGreetingKey(hour: number): GreetingKey {
+  if (hour < 6) return 'welcome.greeting.night'
+  if (hour < 12) return 'welcome.greeting.morning'
+  if (hour < 18) return 'welcome.greeting.afternoon'
+  return 'welcome.greeting.evening'
 }
 
 /** 模式配置 */
@@ -31,6 +34,7 @@ const MODE_CONFIG: Record<AppMode, { icon: React.ReactNode; label: string }> = {
 }
 
 export function WelcomeEmptyState(): React.ReactElement {
+  const t = useT()
   const userProfile = useAtomValue(userProfileAtom)
   const [mode, setMode] = useAtom(appModeAtom)
   const themeStyle = useAtomValue(themeStyleAtom)
@@ -39,8 +43,8 @@ export function WelcomeEmptyState(): React.ReactElement {
   const [tip] = React.useState<Tip>(() => getRandomTip(getPlatform()))
 
   const hour = new Date().getHours()
-  const greeting = getGreeting(hour)
-  const displayName = userProfile.userName || '用户'
+  const displayName = userProfile.userName || t('welcome.fallbackName')
+  const greeting = t(getGreetingKey(hour), { name: displayName })
 
   // 森息晨光主题下选中按钮使用主色
   const selectedColor = themeStyle === 'forest-light' ? '#4a7858' : undefined
@@ -55,13 +59,13 @@ export function WelcomeEmptyState(): React.ReactElement {
     <div className="welcome-empty-state flex h-full flex-col items-center justify-center gap-6 px-4">
       {/* 问候语 */}
       <h1 className="text-[26px] font-semibold tracking-tight text-foreground">
-        {displayName}，{greeting}
+        {greeting}
       </h1>
 
       {/* Tips */}
       <div className="flex items-center gap-2.5 rounded-full bg-muted/50 px-4 py-2 text-[13px] text-muted-foreground">
         <Lightbulb size={14} className="flex-shrink-0 text-amber-500/80" />
-        <span>{tip.text}</span>
+        <span>{t(tip.messageKey)}</span>
       </div>
 
       {/* 模式切换 Tab */}

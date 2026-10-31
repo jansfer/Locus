@@ -22,12 +22,14 @@ import { Button } from '@/components/ui/button'
 import { useOpenPreview } from '@/components/diff/preview-opener'
 import { allPendingExitPlanRequestsAtom, agentStreamingStatesAtom } from '@/atoms/agent-atoms'
 import type { ExitPlanModeAction, ExitPlanAllowedPrompt } from '@proma/shared'
+import type { MessageKey } from '@/i18n'
+import { useT } from '@/i18n'
 
-/** 选项定义 */
+/** 选项定义（label/description 存词典键，渲染处经 t() 求值） */
 interface PlanOption {
   action: ExitPlanModeAction
-  label: string
-  description: string
+  labelKey: MessageKey
+  descriptionKey: MessageKey
   icon: React.ReactNode
   variant: 'default' | 'secondary' | 'destructive'
 }
@@ -35,22 +37,22 @@ interface PlanOption {
 const PLAN_OPTIONS: PlanOption[] = [
   {
     action: 'approve_bypass',
-    label: '批准并完全自动执行',
-    description: '后续工具调用全部自动允许',
+    labelKey: 'agentMisc.planOptions.approveBypass.label',
+    descriptionKey: 'agentMisc.planOptions.approveBypass.description',
     icon: <Check className="size-3.5" />,
     variant: 'default',
   },
   {
     action: 'deny',
-    label: '拒绝计划',
-    description: '直接拒绝，Agent 不会执行计划',
+    labelKey: 'agentMisc.planOptions.deny.label',
+    descriptionKey: 'agentMisc.planOptions.deny.description',
     icon: <X className="size-3.5" />,
     variant: 'destructive',
   },
   {
     action: 'feedback',
-    label: '提供修改意见',
-    description: '告诉 Agent 需要调整什么',
+    labelKey: 'agentMisc.planOptions.feedback.label',
+    descriptionKey: 'agentMisc.planOptions.feedback.description',
     icon: <MessageSquare className="size-3.5" />,
     variant: 'secondary',
   },
@@ -61,6 +63,7 @@ interface ExitPlanModeBannerProps {
 }
 
 export function ExitPlanModeBanner({ sessionId }: ExitPlanModeBannerProps): React.ReactElement | null {
+  const t = useT()
   const [allRequests, setAllRequests] = useAtom(allPendingExitPlanRequestsAtom)
   const setStreamingStates = useSetAtom(agentStreamingStatesAtom)
   const openPreview = useOpenPreview()
@@ -208,29 +211,29 @@ export function ExitPlanModeBanner({ sessionId }: ExitPlanModeBannerProps): Reac
       <div className="px-4 pt-3 pb-2">
         <div className="flex items-center gap-2 mb-1">
           <FileText className="size-4 text-primary" />
-          <span className="text-sm font-medium text-foreground flex-1">Agent 计划待审批</span>
+          <span className="text-sm font-medium text-foreground flex-1">{t('agentMisc.planPendingTitle')}</span>
           {request.planDocument && (
             <button
               type="button"
               className="flex h-7 items-center gap-1.5 rounded-md px-2 text-xs text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
               onClick={handleOpenPlanDocument}
-              title={`在右侧查看 ${request.planDocument.displayName}`}
+              title={t('agentMisc.viewPlanInSidePanel', { name: request.planDocument.displayName })}
             >
               <FileText className="size-3.5" />
-              查看计划
+              {t('agentMisc.viewPlan')}
             </button>
           )}
           <button
             type="button"
             className="size-5 flex items-center justify-center rounded-md text-muted-foreground/50 hover:text-foreground hover:bg-muted/60 transition-colors"
             onClick={handleDismiss}
-            title="关闭并终止 Agent"
+            title={t('agentMisc.dismissAndStopAgent')}
           >
             <X className="size-3.5" />
           </button>
         </div>
         <p className="text-xs text-muted-foreground">
-          Agent 已完成计划，请选择如何继续
+          {t('agentMisc.planCompletedPrompt')}
         </p>
       </div>
 
@@ -270,8 +273,8 @@ export function ExitPlanModeBanner({ sessionId }: ExitPlanModeBannerProps): Reac
                 </span>
                 <span className="shrink-0 text-muted-foreground/70">{option.icon}</span>
                 <div className="flex flex-col min-w-0">
-                  <span className="font-medium">{option.label}</span>
-                  <span className="text-[11px] text-muted-foreground">{option.description}</span>
+                  <span className="font-medium">{t(option.labelKey)}</span>
+                  <span className="text-[11px] text-muted-foreground">{t(option.descriptionKey)}</span>
                 </div>
               </button>
             )
@@ -286,7 +289,7 @@ export function ExitPlanModeBanner({ sessionId }: ExitPlanModeBannerProps): Reac
             <input
               type="text"
               className="flex-1 px-3 py-2 rounded-lg text-xs bg-muted/40 focus:bg-muted/60 focus:outline-none focus:ring-2 focus:ring-primary/30 placeholder:text-muted-foreground/40 transition-colors"
-              placeholder="输入修改意见..."
+              placeholder={t('agentMisc.feedbackPlaceholder')}
               value={feedbackText}
               onChange={(e) => setFeedbackText(e.target.value)}
               onKeyDown={(e) => {
@@ -309,7 +312,7 @@ export function ExitPlanModeBanner({ sessionId }: ExitPlanModeBannerProps): Reac
               className="h-8 px-3 text-xs shrink-0"
             >
               <Send className="size-3 mr-1" />
-              发送
+              {t('agentMisc.send')}
             </Button>
           </div>
         </div>
@@ -318,7 +321,7 @@ export function ExitPlanModeBanner({ sessionId }: ExitPlanModeBannerProps): Reac
       {/* 底部提示 */}
       <div className="flex items-center px-4 pb-3">
         <span className="text-[10px] text-muted-foreground/40">
-          点击选择 · ↑↓ Enter 确认 · 1-3 快速选择
+          {t('agentMisc.planKeyboardHint')}
         </span>
       </div>
     </div>
@@ -327,9 +330,10 @@ export function ExitPlanModeBanner({ sessionId }: ExitPlanModeBannerProps): Reac
 
 /** allowedPrompts 展示列表 */
 function AllowedPromptsList({ prompts }: { prompts: ExitPlanAllowedPrompt[] }): React.ReactElement {
+  const t = useT()
   return (
     <div className="px-4 pb-2">
-      <p className="text-[11px] text-muted-foreground mb-1">计划需要的权限：</p>
+      <p className="text-[11px] text-muted-foreground mb-1">{t('agentMisc.planRequiredPermissions')}</p>
       <div className="flex flex-wrap gap-1">
         {prompts.map((p, idx) => (
           <span

@@ -58,6 +58,7 @@ import {
   canBeSticky,
 } from './tree-row-layout'
 import { setFilePanelDragData, dispatchInsertFileMention } from '@/lib/file-panel-drag'
+import { useT } from '@/i18n'
 import { getFileBrowserRootsFromKey, getFileBrowserRootsKey } from './file-browser-roots'
 import { isCurrentFileBrowserLoadRequest, shouldShowFileBrowserEmptyState } from './file-browser-load-state'
 import type { FileBrowserRoot, FileScope } from './file-browser-roots'
@@ -139,6 +140,7 @@ function getFileBrowserStateKey(sessionId: string | null, roots: readonly FileBr
 }
 
 export function FileBrowser({ rootPath, roots, hideToolbar, embedded, hideEmpty, access, projectRootPath, showSessionBadge = true, onAddToChat, onFilePreview, onOpenDirectoryTerminal }: FileBrowserProps): React.ReactElement {
+  const t = useT()
   const rootsKey = getFileBrowserRootsKey(roots)
   const browserRoots = React.useMemo<FileBrowserRoot[]>(
     () => getFileBrowserRootsFromKey(rootsKey, rootPath),
@@ -255,7 +257,7 @@ export function FileBrowser({ rootPath, roots, hideToolbar, embedded, hideEmpty,
       setLoadedRootsKey(requestRootsKey)
     } catch (err) {
       if (!isCurrentRequest()) return
-      const msg = err instanceof Error ? err.message : '加载失败'
+      const msg = err instanceof Error ? err.message : t('files.loadFailed')
       setError(msg)
       setErrorRootsKey(requestRootsKey)
       setEntries([])
@@ -333,7 +335,7 @@ export function FileBrowser({ rootPath, roots, hideToolbar, embedded, hideEmpty,
       const siblings = await window.electronAPI.listDirectory(parentDir, access)
       const conflict = siblings.some((s) => s.name === newName && s.path !== filePath)
       if (conflict) {
-        return '同名文件已存在'
+        return t('files.renameConflict')
       }
     } catch {
       // 无法列出目录，跳过检查
@@ -346,7 +348,7 @@ export function FileBrowser({ rootPath, roots, hideToolbar, embedded, hideEmpty,
       setSelectedPaths(new Set())
       return null
     } catch (err) {
-      return err instanceof Error ? err.message : '重命名失败'
+      return err instanceof Error ? err.message : t('files.renameFailed')
     }
   }, [loadRoot, access])
 
@@ -409,8 +411,8 @@ export function FileBrowser({ rootPath, roots, hideToolbar, embedded, hideEmpty,
       await loadRoot()
     } catch (err) {
       console.error('[FileBrowser] 移入项目失败:', err)
-      toast.error('移入项目失败', {
-        description: err instanceof Error ? err.message : '无法移动文件',
+      toast.error(t('files.menu.promoteToProjectFailed'), {
+        description: err instanceof Error ? err.message : t('files.menu.moveFailedDescription'),
       })
     } finally {
       setMoving(false)
@@ -440,7 +442,7 @@ export function FileBrowser({ rootPath, roots, hideToolbar, embedded, hideEmpty,
         hideEmpty,
       }) ? null : (
         <div className="px-3 py-4 text-xs text-muted-foreground text-center">
-          目录为空
+          {t('files.emptyDirectory')}
         </div>
       )}
       {visibleEntries.map((entry) => (
@@ -496,7 +498,7 @@ export function FileBrowser({ rootPath, roots, hideToolbar, embedded, hideEmpty,
               const path = browserRoots[0]?.path
               if (path) window.electronAPI.openFile(path, access).catch(console.error)
             }}
-            title="在 Finder 中打开"
+            title={t('files.openInFinder')}
           >
             <ExternalLink className="size-3.5" />
           </Button>
@@ -524,23 +526,23 @@ export function FileBrowser({ rootPath, roots, hideToolbar, embedded, hideEmpty,
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null) }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>确认删除</AlertDialogTitle>
+            <AlertDialogTitle>{t('files.deleteConfirm.title')}</AlertDialogTitle>
             <AlertDialogDescription>
               {deleteCount > 1 ? (
-                <>确定要删除选中的 <strong>{deleteCount}</strong> 个项目吗？</>
+                <>{t('files.deleteConfirm.multiPrefix')}<strong>{deleteCount}</strong>{t('files.deleteConfirm.multiSuffix')}</>
               ) : (
                 <>
-                  确定要删除 <strong>{deleteTarget?.name}</strong> 吗？
-                  {deleteTarget?.isDirectory && '（包含所有子文件）'}
+                  {t('files.deleteConfirm.singlePrefix')}<strong>{deleteTarget?.name}</strong>{t('files.deleteConfirm.singleSuffix')}
+                  {deleteTarget?.isDirectory && t('files.deleteConfirm.directoryHint')}
                 </>
               )}
-              此操作不可撤销。
+              {t('files.deleteConfirm.irreversible')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              删除
+              {t('common.delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -617,6 +619,7 @@ function FileTreeItem({
   onAddToChat,
   onFilePreview,
 }: FileTreeItemProps): React.ReactElement {
+  const t = useT()
   const [expanded, setExpanded] = useFileTreeExpanded(expandedStateKey, entry.path)
   const [children, setChildren] = React.useState<ScopedFileEntry[]>([])
   const [childrenLoaded, setChildrenLoaded] = React.useState(false)
@@ -879,7 +882,7 @@ function FileTreeItem({
         {isSticky && <AncestorGuides depth={depth} isSelected={isSelected} />}
         {recentlyModifiedSet.has(entry.path) && (
           <span
-            aria-label="最近被 Agent 修改"
+            aria-label={t('files.recentlyModifiedAria')}
             className="absolute top-1/2 z-10 h-1.5 w-1.5 -translate-y-1/2 rounded-full bg-primary/80"
             style={{ left: paddingLeft - 6 }}
           />
@@ -931,7 +934,7 @@ function FileTreeItem({
             <span className="relative z-10 truncate text-xs flex-1">{entry.name}</span>
             {showSessionBadge && entry.scope === 'session' && (
               <span className="relative z-10 flex-shrink-0 rounded-md bg-muted px-1.5 py-0.5 text-[10px] leading-none text-muted-foreground">
-                会话文件
+                {t('files.sessionFileBadge')}
               </span>
             )}
           </>
@@ -942,8 +945,8 @@ function FileTreeItem({
             <TooltipTrigger asChild>
               <button
                 type="button"
-                aria-label={`在 ${entry.name} 打开终端`}
-                title={`在 ${entry.name} 打开终端`}
+                aria-label={t('files.tree.openTerminalIn', { name: entry.name })}
+                title={t('files.tree.openTerminalIn', { name: entry.name })}
                 className="relative z-10 flex size-6 shrink-0 items-center justify-center rounded text-muted-foreground opacity-0 transition-[background-color,color,opacity,transform] hover:bg-accent/70 hover:text-foreground group-hover:opacity-100 focus-visible:opacity-100 active:scale-[0.96]"
                 onClick={(event) => {
                   event.stopPropagation()
@@ -953,7 +956,7 @@ function FileTreeItem({
                 <Terminal className="size-3.5" />
               </button>
             </TooltipTrigger>
-            <TooltipContent side="left">在右侧标签中打开终端</TooltipContent>
+            <TooltipContent side="left">{t('files.tree.openTerminalTooltip')}</TooltipContent>
           </Tooltip>
         )}
 
@@ -974,8 +977,8 @@ function FileTreeItem({
                   'h-6 w-6 rounded flex items-center justify-center hover:bg-accent/70 text-muted-foreground hover:text-foreground',
                   !isSelected && 'invisible group-hover:visible focus-visible:visible data-[state=open]:visible',
                 )}
-                title="更多操作"
-                aria-label="更多操作"
+                title={t('files.menu.moreActions')}
+                aria-label={t('files.menu.moreActions')}
                 onClick={(e) => {
                   if (!isSelected) onSelect(entry, e)
                 }}
@@ -995,7 +998,7 @@ function FileTreeItem({
                     }])}
                   >
                     <MessageSquarePlus />
-                    引用到 Agent
+                    {t('files.menu.referenceToAgent')}
                   </DropdownMenuItem>
                 )}
                 {onAddToChat && !entry.isDirectory && menuSelectedCount === 1 && (
@@ -1004,7 +1007,7 @@ function FileTreeItem({
                     onSelect={() => onAddToChat(entry)}
                   >
                     <MessageSquarePlus />
-                    添加到聊天
+                    {t('files.menu.addToChat')}
                   </DropdownMenuItem>
                 )}
                 {menuSelectedCount === 1 && (
@@ -1013,7 +1016,7 @@ function FileTreeItem({
                     onSelect={() => onShowInFolder(entry)}
                   >
                     <FolderSearch />
-                    在文件夹中显示
+                    {t('files.menu.showInFolder')}
                   </DropdownMenuItem>
                 )}
                 {supportsTerminalFolderOpen && menuSelectedCount === 1 && entry.isDirectory && (
@@ -1022,7 +1025,7 @@ function FileTreeItem({
                     onSelect={() => onOpenInTerminal(entry)}
                   >
                     <Terminal />
-                    在终端中打开此文件夹
+                    {t('files.menu.openFolderInTerminal')}
                   </DropdownMenuItem>
                 )}
                 {menuSelectedCount === 1 && !entry.isDirectory && (
@@ -1041,11 +1044,11 @@ function FileTreeItem({
                         onSelect={() => { void onPromoteToProject(entry) }}
                       >
                         <FolderInput />
-                        移入项目
+                        {t('files.menu.promoteToProject')}
                       </DropdownMenuItem>
                     </TooltipTrigger>
                     <TooltipContent side="left">
-                      <p>移动到项目根目录，其他会话也可访问</p>
+                      <p>{t('files.menu.promoteToProjectTooltip')}</p>
                     </TooltipContent>
                   </Tooltip>
                 )}
@@ -1055,7 +1058,7 @@ function FileTreeItem({
                   onSelect={() => { void onMove(entry) }}
                 >
                   <FolderInput />
-                  {menuSelectedCount > 1 ? `移动选中 (${menuSelectedCount})` : '移动到...'}
+                  {menuSelectedCount > 1 ? t('files.menu.moveSelected', { count: menuSelectedCount }) : t('files.menu.moveTo')}
                 </DropdownMenuItem>
                 {menuSelectedCount === 1 && (
                   <DropdownMenuItem
@@ -1063,7 +1066,7 @@ function FileTreeItem({
                     onSelect={() => onStartRename(entry)}
                   >
                     <Pencil />
-                    重命名
+                    {t('common.rename')}
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuSeparator className="my-0.5" />
@@ -1072,7 +1075,7 @@ function FileTreeItem({
                   onSelect={() => onDelete(entry)}
                 >
                   <Trash2 />
-                  {menuSelectedCount > 1 ? `删除选中 (${menuSelectedCount})` : '删除'}
+                  {menuSelectedCount > 1 ? t('files.menu.deleteSelected', { count: menuSelectedCount }) : t('common.delete')}
                 </DropdownMenuItem>
               </DropdownMenuContent>
           </DropdownMenu>
@@ -1093,7 +1096,7 @@ function FileTreeItem({
               className="text-[11px] text-muted-foreground/50 py-1"
               style={{ paddingLeft: paddingLeft + 24 }}
             >
-              空文件夹
+              {t('files.tree.emptyFolder')}
             </div>
           )}
           {children.map((child) => (

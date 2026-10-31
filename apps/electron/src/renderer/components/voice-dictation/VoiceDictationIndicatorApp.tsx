@@ -2,8 +2,10 @@
 
 import * as React from 'react'
 import { Loader2, Mic } from 'lucide-react'
+import { useT } from '@/i18n'
 
 export function VoiceDictationIndicatorApp(): React.ReactElement {
+  const t = useT()
   const [state, setState] = React.useState<'preparing' | 'recording' | 'stopping'>('preparing')
   const [volume, setVolume] = React.useState(0)
   const [transcript, setTranscript] = React.useState('')
@@ -56,7 +58,7 @@ export function VoiceDictationIndicatorApp(): React.ReactElement {
             </span>
           )}
         </span>
-        <span>{preparing ? '准备麦克风' : stopping ? '正在整理语音' : '正在听写'}</span>
+        <span>{preparing ? t('voice.status.preparingMicShort') : stopping ? t('voice.status.tidyingUp') : t('voice.status.listening')}</span>
         <Mic className="size-3.5 text-muted-foreground" aria-hidden="true" />
       </div>
 
@@ -74,7 +76,7 @@ export function VoiceDictationIndicatorApp(): React.ReactElement {
             ))}
           </div>
         ) : (
-          <p className="text-muted-foreground/60">{preparing ? '准备麦克风...' : '请开始说话'}</p>
+          <p className="text-muted-foreground/60">{preparing ? t('voice.status.preparingMic') : t('voice.status.pleaseSpeak')}</p>
         )}
       </div>
     </div>

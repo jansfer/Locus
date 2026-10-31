@@ -5,6 +5,7 @@
 import * as React from 'react'
 import { Globe } from 'lucide-react'
 import { CollapsibleResult } from './collapsible-result'
+import { useT } from '@/i18n'
 
 interface WebSearchResultRendererProps {
   result: string
@@ -60,6 +61,7 @@ function parseSearchResults(text: string): SearchResult[] | null {
 }
 
 export function WebSearchResultRenderer({ result, isError }: WebSearchResultRendererProps): React.ReactElement {
+  const t = useT()
   if (isError) {
     return (
       <pre className="rounded-md p-3 text-[12px] font-mono text-destructive/80 bg-destructive/5 whitespace-pre-wrap break-all overflow-x-auto">
@@ -87,7 +89,7 @@ export function WebSearchResultRenderer({ result, isError }: WebSearchResultRend
   return (
     <div className="space-y-2">
       <div className="text-[11px] text-muted-foreground/60">
-        {searchResults.length} 条结果
+        {t('agentMisc.toolResult.resultCount', { n: searchResults.length })}
       </div>
       {searchResults.map((item, i) => (
         <div key={i} className="rounded-md bg-muted/20 p-2.5 space-y-1">

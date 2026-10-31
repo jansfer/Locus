@@ -1,6 +1,7 @@
 import * as React from 'react'
 import { createPortal } from 'react-dom'
 import { Bot, MessageSquarePlus } from 'lucide-react'
+import { useT } from '@/i18n'
 
 interface SelectionActionPopoverProps {
   x: number
@@ -22,6 +23,7 @@ export function SelectionActionPopover({
   onOpenTemporaryAgent,
   onOpenChat,
 }: SelectionActionPopoverProps): React.ReactElement {
+  const t = useT()
   const openSideAssistant = onOpenExplorationBranch ?? onOpenTemporaryAgent ?? onOpenChat
   // 顶部选区若仍向上展开，浮窗会被窗口边缘裁掉；此时改为在选区下方展示。
   const openBelow = y < 72
@@ -47,7 +49,7 @@ export function SelectionActionPopover({
           onClick={onAddToAgent}
         >
           <Bot className="size-4" />
-          为 Agent 引用
+          {t('appShell.selection.referenceForAgent')}
         </button>
         {openSideAssistant && (
           <button
@@ -58,7 +60,11 @@ export function SelectionActionPopover({
             }}
           >
             <MessageSquarePlus className="size-4" />
-            {onOpenExplorationBranch ? '探索此分支' : onOpenTemporaryAgent ? '打开临时 Agent' : '打开右侧问答'}
+            {onOpenExplorationBranch
+              ? t('appShell.selection.exploreBranch')
+              : onOpenTemporaryAgent
+                ? t('appShell.selection.openTemporaryAgent')
+                : t('appShell.selection.openSideChat')}
           </button>
         )}
       </div>

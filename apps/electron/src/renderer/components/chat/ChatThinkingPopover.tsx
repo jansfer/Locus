@@ -7,12 +7,14 @@ import { Switch } from '@/components/ui/switch'
 import { inputToolbarActiveButtonClass, inputToolbarButtonClass } from '@/components/ai-elements/input-toolbar-styles'
 import { useConversationThinkingEnabled, useConversationThinkingLevel } from '@/hooks/useConversationSettings'
 import { cn } from '@/lib/utils'
+import { useT } from '@/i18n'
 
-const THINKING_LEVEL_LABELS: Record<GeminiThinkingLevel, string> = {
-  minimal: '最小',
-  low: '低',
-  medium: '中',
-  high: '高',
+/** 思考深度 → 词典键片段（显式字面量联合，保证模板串能收窄为 MessageKey） */
+const THINKING_LEVEL_KEY_SUFFIX: Record<GeminiThinkingLevel, 'levelMinimal' | 'levelLow' | 'levelMedium' | 'levelHigh'> = {
+  minimal: 'levelMinimal',
+  low: 'levelLow',
+  medium: 'levelMedium',
+  high: 'levelHigh',
 }
 
 interface ChatThinkingPopoverProps {
@@ -24,6 +26,7 @@ interface ChatThinkingPopoverProps {
  * 设置只写入当前对话 atom，不订阅流式内容或增加 IPC。
  */
 export function ChatThinkingPopover({ modelId }: ChatThinkingPopoverProps): React.ReactElement {
+  const t = useT()
   const [open, setOpen] = React.useState(false)
   const [thinkingEnabled, setThinkingEnabled] = useConversationThinkingEnabled()
   const [thinkingLevel, setThinkingLevel] = useConversationThinkingLevel()
@@ -40,7 +43,7 @@ export function ChatThinkingPopover({ modelId }: ChatThinkingPopoverProps): Reac
           variant="ghost"
           size="icon"
           className={cn(inputToolbarButtonClass, thinkingEnabled && inputToolbarActiveButtonClass)}
-          aria-label="思考设置"
+          aria-label={t('chat.thinking.ariaLabel')}
         >
           <Brain className="size-5" />
         </Button>
@@ -48,14 +51,14 @@ export function ChatThinkingPopover({ modelId }: ChatThinkingPopoverProps): Reac
       <PopoverContent side="top" align="center" sideOffset={8} className="w-56 space-y-3 p-3">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="text-sm font-medium">思考模式</p>
-            <p className="text-xs text-muted-foreground">{thinkingEnabled ? '已启用' : '已关闭'}</p>
+            <p className="text-sm font-medium">{t('chat.thinking.mode')}</p>
+            <p className="text-xs text-muted-foreground">{thinkingEnabled ? t('common.enabled') : t('chat.thinking.off')}</p>
           </div>
-          <Switch checked={thinkingEnabled} onCheckedChange={setThinkingEnabled} aria-label="启用思考模式" />
+          <Switch checked={thinkingEnabled} onCheckedChange={setThinkingEnabled} aria-label={t('chat.thinking.toggleAria')} />
         </div>
         {capability && (
           <div className="space-y-2 border-t pt-3">
-            <p className="text-xs font-medium text-muted-foreground">Gemini 思考深度</p>
+            <p className="text-xs font-medium text-muted-foreground">{t('chat.thinking.geminiDepth')}</p>
             <div className="grid grid-cols-2 gap-1">
               {capability.thinkingLevels.map((level) => (
                 <Button
@@ -67,12 +70,12 @@ export function ChatThinkingPopover({ modelId }: ChatThinkingPopoverProps): Reac
                   disabled={!thinkingEnabled}
                   onClick={() => setThinkingLevel(level)}
                 >
-                  {THINKING_LEVEL_LABELS[level]}
+                  {t(`chat.thinking.${THINKING_LEVEL_KEY_SUFFIX[level]}`)}
                 </Button>
               ))}
             </div>
             <p className="text-[11px] leading-relaxed text-muted-foreground">
-              当前模型默认：{THINKING_LEVEL_LABELS[capability.defaultThinkingLevel]}
+              {t('chat.thinking.defaultLevel', { level: t(`chat.thinking.${THINKING_LEVEL_KEY_SUFFIX[capability.defaultThinkingLevel]}`) })}
             </p>
           </div>
         )}

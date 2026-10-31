@@ -26,6 +26,7 @@ import {
 } from '@/components/ui/context-menu'
 import { agentDiffUnseenChangesAtom, currentAgentSessionIdAtom } from '@/atoms/agent-atoms'
 import type { AgentSidePanelTab, SessionIndicatorStatus, WorkspaceComponentTab } from '@/atoms/agent-atoms'
+import { useT } from '@/i18n'
 import { groupRightWorkspaceTabs, type RightWorkspacePane } from '@/lib/right-workspace-split'
 import { getDelegationStatusIconClass } from '@/lib/agent-session-list'
 import type { ProductivityToolsSettings } from '@/types/settings'
@@ -92,6 +93,7 @@ export function DiffPanelTabBar({
   onCollapseSplit,
   onClose,
 }: DiffPanelTabBarProps): React.ReactElement {
+  const t = useT()
   const unseenMap = useAtomValue(agentDiffUnseenChangesAtom)
   const setUnseenMap = useSetAtom(agentDiffUnseenChangesAtom)
   const currentSessionId = useAtomValue(currentAgentSessionIdAtom)
@@ -319,7 +321,7 @@ export function DiffPanelTabBar({
       <div className="pointer-events-none absolute inset-0 titlebar-drag-region" />
       <div className="relative flex h-full min-w-0 flex-1 items-center titlebar-no-drag">
         <div className="relative flex min-w-0 flex-1 self-stretch">
-          <div ref={tabListRef} className="flex h-9 min-w-0 flex-1 items-center gap-1.5 overflow-x-auto overscroll-x-contain px-2 pt-1.5 pb-0.5 scrollbar-none" role="tablist" aria-label="右侧工作区">
+          <div ref={tabListRef} className="flex h-9 min-w-0 flex-1 items-center gap-1.5 overflow-x-auto overscroll-x-contain px-2 pt-1.5 pb-0.5 scrollbar-none" role="tablist" aria-label={t('diff.tabBar.workspaceAria')}>
           {orderedTabs.map((tab) => {
             const selected = activeTab === tab.id
             const isSplitView = visibleTabs?.left !== undefined && visibleTabs.right !== undefined
@@ -360,13 +362,13 @@ export function DiffPanelTabBar({
                   type="button"
                   role="tab"
                   aria-selected={selected}
-                  aria-description={visiblePane ? `显示在${visiblePane === 'left' ? '左侧' : '右侧'} Pane` : undefined}
+                  aria-description={visiblePane ? (visiblePane === 'left' ? t('diff.tabBar.paneLeft') : t('diff.tabBar.paneRight')) : undefined}
                   onClick={() => selectTab(tab.id)}
                   onPointerDown={(event) => beginTabDrag(tab.id, event)}
                   className="flex min-w-0 flex-1 items-center gap-2 self-stretch px-3 text-left text-[13px] outline-none"
                 >
                   {tab.activity || (isChangesTab && unseenChanges && !selected) ? (
-                    <span className="size-1.5 shrink-0 rounded-full bg-primary" aria-label="有未查看更新" />
+                    <span className="size-1.5 shrink-0 rounded-full bg-primary" aria-label={t('diff.tabBar.unseen')} />
                   ) : (
                     <span className={cn(
                       'shrink-0',
@@ -391,7 +393,7 @@ export function DiffPanelTabBar({
                             ? 'mr-1 w-7 opacity-60 hover:opacity-100'
                             : 'mr-0 w-0 opacity-0 group-hover:mr-1 group-hover:w-7 group-hover:opacity-60 group-hover:hover:opacity-100'),
                     )}
-                    aria-label={isSharedSplitClose ? '退出并排，保留两个标签' : `关闭 ${tab.label}`}
+                    aria-label={isSharedSplitClose ? t('diff.tabBar.exitSplitKeepBoth') : t('diff.tabBar.closeNamed', { name: tab.label })}
                   >
                     <X className="size-3" />
                   </button>
@@ -404,18 +406,18 @@ export function DiffPanelTabBar({
                   <TooltipTrigger asChild>
                     <ContextMenuTrigger asChild>{tabNode}</ContextMenuTrigger>
                   </TooltipTrigger>
-                  <TooltipContent side="bottom">向下拖拽以并排查看</TooltipContent>
+                  <TooltipContent side="bottom">{t('diff.tabBar.dragToSplit')}</TooltipContent>
                 </Tooltip>
                 <ContextMenuContent className="min-w-40">
                   <ContextMenuItem disabled={tab.id === activeTab && !visibleTabs} onSelect={() => onSplitTab(tab.id, 'left')}>
-                    在左侧并排
+                    {t('diff.tabBar.splitLeft')}
                   </ContextMenuItem>
                   <ContextMenuItem disabled={tab.id === activeTab && !visibleTabs} onSelect={() => onSplitTab(tab.id, 'right')}>
-                    在右侧并排
+                    {t('diff.tabBar.splitRight')}
                   </ContextMenuItem>
                   {visibleTabs?.left && visibleTabs.right && onCollapseSplit && (
                     <ContextMenuItem onSelect={onCollapseSplit}>
-                      退出并排，保留当前标签
+                      {t('diff.tabBar.exitSplitKeepCurrent')}
                     </ContextMenuItem>
                   )}
                 </ContextMenuContent>
@@ -441,13 +443,13 @@ export function DiffPanelTabBar({
                 type="button"
                 className="mr-1 inline-flex h-7 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-foreground/[0.06] px-2 text-foreground transition-[background-color,color,transform] hover:bg-muted active:scale-[0.96]"
                 onClick={onCollapseSplit}
-                aria-label="退出并排，保留当前标签"
+                aria-label={t('diff.tabBar.exitSplitKeepCurrent')}
               >
                 <Columns2 className="size-3.5" />
-                <span className="text-[11px]">退出并排</span>
+                <span className="text-[11px]">{t('diff.tabBar.exitSplit')}</span>
               </button>
             </TooltipTrigger>
-            <TooltipContent side="bottom">退出并排，保留当前标签</TooltipContent>
+            <TooltipContent side="bottom">{t('diff.tabBar.exitSplitKeepCurrent')}</TooltipContent>
           </Tooltip>
         )}
         <DropdownMenu open={isAddTabMenuOpen} onOpenChange={handleAddTabMenuOpenChange}>
@@ -457,13 +459,13 @@ export function DiffPanelTabBar({
                 <button
                   type="button"
                   className="mr-1 inline-flex size-7 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-[background-color,color,transform] hover:bg-muted hover:text-foreground active:scale-[0.96]"
-                  aria-label="添加右侧工作区标签"
+                  aria-label={t('diff.tabBar.addWorkspaceTab')}
                 >
                   <Plus className="size-4" />
                 </button>
               </DropdownMenuTrigger>
             </TooltipTrigger>
-            <TooltipContent side="bottom">添加标签</TooltipContent>
+            <TooltipContent side="bottom">{t('diff.tabBar.addTab')}</TooltipContent>
           </Tooltip>
           <DropdownMenuContent
             align="end"
@@ -477,16 +479,16 @@ export function DiffPanelTabBar({
           >
             <DropdownMenuItem onSelect={onOpenBrowser}>
               <Globe className="size-3.5" />
-              新建浏览器标签
+              {t('diff.tabBar.newBrowserTab')}
             </DropdownMenuItem>
             <DropdownMenuItem onSelect={onOpenFile}>
               <FolderOpen className="size-3.5" />
-              打开文件
+              {t('diff.tabBar.openFile')}
             </DropdownMenuItem>
             {onOpenTerminal && (
               <DropdownMenuItem onSelect={onOpenTerminal}>
                 <SquareTerminal className="size-3.5" />
-                新建终端
+                {t('diff.tabBar.newTerminal')}
               </DropdownMenuItem>
             )}
             {onOpenWorkspaceComponent && (
@@ -495,26 +497,26 @@ export function DiffPanelTabBar({
                 {productivityTools.todosEnabled && (
                   <DropdownMenuItem onSelect={() => onOpenWorkspaceComponent('todos')}>
                     <ListTodo className="size-3.5" />
-                    打开 Todo
+                    {t('diff.tabBar.openTodos')}
                   </DropdownMenuItem>
                 )}
                 {productivityTools.calendarEnabled && (
                   <DropdownMenuItem onSelect={() => onOpenWorkspaceComponent('calendar')}>
                     <CalendarDays className="size-3.5" />
-                    打开日程
+                    {t('diff.tabBar.openCalendar')}
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuItem onSelect={() => onOpenWorkspaceComponent('skills')}>
                   <Blocks className="size-3.5" />
-                  打开 Skills
+                  {t('diff.tabBar.openSkills')}
                 </DropdownMenuItem>
                 <DropdownMenuItem onSelect={() => onOpenWorkspaceComponent('mcp')}>
                   <ServerCog className="size-3.5" />
-                  打开 MCP
+                  {t('diff.tabBar.openMcp')}
                 </DropdownMenuItem>
                 <DropdownMenuItem onSelect={() => onOpenWorkspaceComponent('memory')}>
                   <Brain className="size-3.5" />
-                  打开项目记忆
+                  {t('diff.tabBar.openProjectMemory')}
                 </DropdownMenuItem>
               </>
             )}
@@ -523,20 +525,20 @@ export function DiffPanelTabBar({
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onSelect={onOpenChat}>
                   <MessageCircle className="size-3.5" />
-                  打开问答
+                  {t('diff.tabBar.openChat')}
                 </DropdownMenuItem>
               </>
             )}
             {onOpenWorkspaceComponent && (
               <DropdownMenuItem onSelect={() => onOpenWorkspaceComponent('automations')}>
                 <Clock className="size-3.5" />
-                打开定时任务
+                {t('diff.tabBar.openAutomations')}
               </DropdownMenuItem>
             )}
             {onOpenVault && (
               <DropdownMenuItem onSelect={onOpenVault}>
                 <ObsidianIcon className="size-3.5" />
-                打开 {OBSIDIAN_NAME}
+                {t('diff.tabBar.openVault', { name: OBSIDIAN_NAME })}
               </DropdownMenuItem>
             )}
           </DropdownMenuContent>
@@ -548,12 +550,12 @@ export function DiffPanelTabBar({
                 type="button"
                 onClick={onClose}
                 className="mr-2 inline-flex size-7 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-[background-color,color,transform] hover:bg-muted hover:text-foreground active:scale-[0.96]"
-                aria-label="折叠右侧工作区"
+                aria-label={t('diff.tabBar.collapse')}
               >
                 <PanelRight className="size-4" />
               </button>
             </TooltipTrigger>
-            <TooltipContent side="bottom">折叠右侧工作区 ({navigator.platform.includes('Mac') ? '⌘⇧B' : 'Ctrl+Shift+B'})</TooltipContent>
+            <TooltipContent side="bottom">{t('diff.tabBar.collapseWithShortcut', { shortcut: navigator.platform.includes('Mac') ? '⌘⇧B' : 'Ctrl+Shift+B' })}</TooltipContent>
           </Tooltip>
         )}
       </div>

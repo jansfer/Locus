@@ -9,6 +9,7 @@ import { Loader2, MicIcon } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { useT } from '@/i18n'
 import {
   Tooltip,
   TooltipContent,
@@ -45,6 +46,7 @@ export function SpeechButton({
   className,
   voiceInputId,
 }: SpeechButtonProps): React.ReactElement {
+  const t = useT()
   const [voiceStatus, setVoiceStatus] = useState<InlineVoiceStatus>(IDLE_VOICE_STATUS)
   const isRecording = voiceStatus.status === 'recording'
   const isPreparing = voiceStatus.status === 'connecting'
@@ -76,7 +78,7 @@ export function SpeechButton({
       try {
         const settings = await window.electronAPI.getVoiceDictationSettings()
         if (!settings.enabled) {
-          toast.info('请先在设置中打开语音输入开关')
+          toast.info(t('aiElementsMisc.speechButton.voiceDisabledHint'))
           return
         }
 
@@ -85,7 +87,7 @@ export function SpeechButton({
         await window.electronAPI.toggleVoiceDictation({ sourceInputId: voiceInputId })
       } catch (error) {
         console.error('[语音输入] 切换听写状态失败:', error)
-        toast.error('切换语音输入失败')
+        toast.error(t('aiElementsMisc.speechButton.voiceToggleFailed'))
       }
     })()
   }, [voiceInputId])
@@ -105,7 +107,7 @@ export function SpeechButton({
             )}
             onClick={handleClick}
             disabled={disabled}
-            aria-label={isActive ? '停止语音输入' : '开始语音输入'}
+            aria-label={isActive ? t('aiElementsMisc.speechButton.stopVoiceInput') : t('aiElementsMisc.speechButton.startVoiceInput')}
           >
             {isPreparing || isStopping ? (
               <Loader2 className="size-4 animate-spin" />
@@ -125,13 +127,17 @@ export function SpeechButton({
           </Button>
           {isActive && (
             <span className="max-w-20 truncate text-xs text-primary" role="status">
-              {isPreparing ? '准备麦克风' : isStopping ? '收尾中' : '正在听写'}
+              {isPreparing
+                ? t('aiElementsMisc.speechButton.preparingMic')
+                : isStopping
+                  ? t('aiElementsMisc.speechButton.finishingUp')
+                  : t('aiElementsMisc.speechButton.listening')}
             </span>
           )}
         </span>
       </TooltipTrigger>
       <TooltipContent side="top">
-        <p>{isActive ? voiceStatus.message || '正在听写' : '语音输入'}</p>
+        <p>{isActive ? voiceStatus.message || t('aiElementsMisc.speechButton.listening') : t('aiElementsMisc.speechButton.voiceInput')}</p>
       </TooltipContent>
     </Tooltip>
   )

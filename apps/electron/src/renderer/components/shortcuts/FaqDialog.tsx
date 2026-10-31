@@ -9,12 +9,14 @@ import * as React from 'react'
 import { useAtomValue, useSetAtom } from 'jotai'
 import * as DialogPrimitive from '@radix-ui/react-dialog'
 import { HelpCircle, X } from 'lucide-react'
+import { useT } from '@/i18n'
 import { faqDialogOpenAtom } from '@/atoms/faq-dialog'
 import { FAQ_GROUPS } from '@/components/onboarding/faq-content'
 import { iconButtonNoRingFocusClass } from '@/components/ui/icon-button-styles'
 import { cn } from '@/lib/utils'
 
 export function FaqDialog(): React.ReactElement {
+  const t = useT()
   const open = useAtomValue(faqDialogOpenAtom)
   const setOpen = useSetAtom(faqDialogOpenAtom)
   const scrollRef = React.useRef<HTMLDivElement>(null)
@@ -40,7 +42,7 @@ export function FaqDialog(): React.ReactElement {
           <div className="flex items-center justify-between border-b border-neutral-200 px-5 py-3.5 dark:border-neutral-800">
             <div className="flex items-center gap-2.5">
               <HelpCircle className="size-4 text-[#1b3f2d]" />
-              <h2 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">常见问题</h2>
+              <h2 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">{t('onboarding.faqPage.title')}</h2>
             </div>
             <DialogPrimitive.Close asChild>
               <button
@@ -53,7 +55,7 @@ export function FaqDialog(): React.ReactElement {
                 )}
               >
                 <X className="size-4" />
-                <span className="sr-only">关闭</span>
+                <span className="sr-only">{t('common.close')}</span>
               </button>
             </DialogPrimitive.Close>
           </div>
@@ -65,12 +67,12 @@ export function FaqDialog(): React.ReactElement {
               <nav className="space-y-0.5">
                 {FAQ_GROUPS.map((group) => (
                   <button
-                    key={group.topic}
-                    onClick={() => scrollToGroup(group.topic)}
+                    key={group.slug}
+                    onClick={() => scrollToGroup(group.slug)}
                     className="flex w-full items-center gap-2 rounded-sm px-2.5 py-2 text-left text-[13px] text-neutral-600 transition-colors hover:bg-[#1b3f2d]/5 hover:text-[#1b3f2d] dark:text-neutral-400 dark:hover:text-[#27513a]"
                   >
                     <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#1b3f2d]/40" />
-                    {group.topic}
+                    {t(group.topic)}
                   </button>
                 ))}
               </nav>
@@ -80,23 +82,23 @@ export function FaqDialog(): React.ReactElement {
             <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
               <div className="space-y-8">
                 {FAQ_GROUPS.map((group) => (
-                  <section key={group.topic} aria-labelledby={`faq-dialog-${group.topic}`}>
+                  <section key={group.slug} aria-labelledby={`faq-dialog-${group.slug}`}>
                     <div className="flex items-end gap-2 border-b border-neutral-200 pb-2 dark:border-neutral-800">
                       <h3
-                        id={`faq-dialog-${group.topic}`}
+                        id={`faq-dialog-${group.slug}`}
                         className="text-base font-semibold text-neutral-900 dark:text-neutral-100"
                       >
-                        {group.topic}
+                        {t(group.topic)}
                       </h3>
                     </div>
                     <div className="divide-y divide-neutral-100 dark:divide-neutral-800">
                       {group.items.map((item) => (
                         <article key={item.q} className="py-3">
                           <h4 className="text-[13px] font-semibold leading-snug text-[#1b3f2d] dark:text-[#27513a]">
-                            {item.q}
+                            {t(item.q)}
                           </h4>
                           <p className="mt-1.5 text-[13px] leading-6 text-neutral-600 dark:text-neutral-400">
-                            {item.a}
+                            {t(item.a)}
                           </p>
                         </article>
                       ))}

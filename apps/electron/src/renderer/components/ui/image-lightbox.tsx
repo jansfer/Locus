@@ -16,6 +16,7 @@ import { ChevronLeft, ChevronRight, Download, Pencil, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { iconButtonNoRingFocusClass } from '@/components/ui/icon-button-styles'
 import { ImageEditor } from '@/components/ui/image-editor'
+import { useT } from '@/i18n'
 
 /** 单张图片描述（多图导航时使用） */
 export interface LightboxImage {
@@ -64,6 +65,7 @@ export function ImageLightbox({
   onIndexChange,
   initialMode = 'preview',
 }: ImageLightboxProps): React.ReactElement | null {
+  const t = useT()
   const [mode, setMode] = React.useState<'preview' | 'editing'>('preview')
 
   const hasImages = Array.isArray(images) && images.length > 0
@@ -150,20 +152,20 @@ export function ImageLightbox({
           }}
         >
           <DialogPrimitive.Title className="sr-only">
-            {current.alt || '图片预览'}
+            {current.alt || t('uiCommon.lightbox.previewAlt')}
           </DialogPrimitive.Title>
           <DialogPrimitive.Description className="sr-only">
-            预览图片：{current.alt || '图片'}
+            {t('uiCommon.lightbox.previewImage', { alt: current.alt || t('uiCommon.lightbox.untitledImage') })}
           </DialogPrimitive.Description>
 
           {/* 翻页按钮（多图，预览模式） */}
           {showNav && (
             <>
-              <button type="button" onClick={goPrev} className={cn(navBtn, 'left-4')} title="上一张">
-                <ChevronLeft className="size-6" /><span className="sr-only">上一张</span>
+              <button type="button" onClick={goPrev} className={cn(navBtn, 'left-4')} title={t('uiCommon.lightbox.prev')}>
+                <ChevronLeft className="size-6" /><span className="sr-only">{t('uiCommon.lightbox.prev')}</span>
               </button>
-              <button type="button" onClick={goNext} className={cn(navBtn, 'right-4')} title="下一张">
-                <ChevronRight className="size-6" /><span className="sr-only">下一张</span>
+              <button type="button" onClick={goNext} className={cn(navBtn, 'right-4')} title={t('uiCommon.lightbox.next')}>
+                <ChevronRight className="size-6" /><span className="sr-only">{t('uiCommon.lightbox.next')}</span>
               </button>
               <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 rounded-full bg-black/50 px-3 py-1 text-xs text-white/90 backdrop-blur-md">
                 {safeIndex + 1} / {total}
@@ -188,10 +190,10 @@ export function ImageLightbox({
                 'px-3 py-2.5'
               )}>
                 <DialogPrimitive.Close className={cn('rounded-full p-1.5 text-white/80 transition-colors duration-150', 'hover:bg-white/15 hover:text-white focus-visible:bg-white/15 focus-visible:text-white', iconButtonNoRingFocusClass)}>
-                  <X className="size-5" /><span className="sr-only">关闭</span>
+                  <X className="size-5" /><span className="sr-only">{t('common.close')}</span>
                 </DialogPrimitive.Close>
-                {showEdit && (<><div className="mx-1.5 h-5 w-px bg-white/20" aria-hidden /><button type="button" onClick={() => setMode('editing')} className={cn('rounded-full p-1.5 text-white/80 transition-colors duration-150', 'hover:bg-white/15 hover:text-white focus-visible:bg-white/15 focus-visible:text-white', iconButtonNoRingFocusClass)} title="编辑图片"><Pencil className="size-5" /></button></>)}
-                {current.onSave && (<><div className="mx-1.5 h-5 w-px bg-white/20" aria-hidden /><button type="button" onClick={current.onSave} className={cn('rounded-full p-1.5 text-white/80 transition-colors duration-150', 'hover:bg-white/15 hover:text-white focus-visible:bg-white/15 focus-visible:text-white', iconButtonNoRingFocusClass)} title="保存图片"><Download className="size-5" /></button></>)}
+                {showEdit && (<><div className="mx-1.5 h-5 w-px bg-white/20" aria-hidden /><button type="button" onClick={() => setMode('editing')} className={cn('rounded-full p-1.5 text-white/80 transition-colors duration-150', 'hover:bg-white/15 hover:text-white focus-visible:bg-white/15 focus-visible:text-white', iconButtonNoRingFocusClass)} title={t('uiCommon.lightbox.editImage')}><Pencil className="size-5" /></button></>)}
+                {current.onSave && (<><div className="mx-1.5 h-5 w-px bg-white/20" aria-hidden /><button type="button" onClick={current.onSave} className={cn('rounded-full p-1.5 text-white/80 transition-colors duration-150', 'hover:bg-white/15 hover:text-white focus-visible:bg-white/15 focus-visible:text-white', iconButtonNoRingFocusClass)} title={t('uiCommon.lightbox.saveImage')}><Download className="size-5" /></button></>)}
               </div>
               </div>
             </div>

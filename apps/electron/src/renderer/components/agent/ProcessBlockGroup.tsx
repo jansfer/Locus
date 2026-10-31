@@ -1,6 +1,7 @@
 import * as React from 'react'
 import { ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { t, getI18nLanguage, useT } from '@/i18n'
 import { getToolDisplayName, getToolIcon } from './tool-utils'
 import type {
   SDKContentBlock,
@@ -130,10 +131,12 @@ function buildProcessGroupSummary(blocks: SDKContentBlock[]): string {
   }
 
   const parts: string[] = []
-  if (toolCount > 0) parts.push(`${toolCount} 次工具调用`)
-  if (messageCount > 0) parts.push(`${messageCount} 条消息`)
-  const summary = parts.join('，') || '过程'
-  return `执行过程：${summary}`
+  if (toolCount > 0) parts.push(t('agentMisc.toolCallCount', { n: toolCount }))
+  if (messageCount > 0) parts.push(t('agentMisc.messageCount', { n: messageCount }))
+  // 列表连接符按语言选择：中文用全角逗号，英文用半角逗号
+  const listSeparator = getI18nLanguage() === 'zh-CN' ? '，' : ', '
+  const summary = parts.join(listSeparator) || t('agentMisc.processFallback')
+  return t('agentMisc.processGroupSummary', { summary })
 }
 
 export function buildProcessGroupToolNames(blocks: SDKContentBlock[]): string[] {
@@ -193,6 +196,7 @@ const StableProcessChild = React.memo(
 )
 
 export function ProcessBlockGroup({ blocks, isStreaming, renderChildren, isMessageTail = false }: ProcessBlockGroupProps): React.ReactElement {
+  const t = useT()
   const initialDisplayMode: ProcessGroupDisplayMode = !isStreaming
     ? 'collapsed'
     : 'expanded'
@@ -385,8 +389,9 @@ export function ProcessBlockGroup({ blocks, isStreaming, renderChildren, isMessa
   }, [isContentExpanded])
 
   const summary = React.useMemo(
+    // 语言变化时 getI18nLanguage() 返回新值，触发 useMemo 重算（t 是稳定引用）
     () => buildProcessGroupSummary(blocks),
-    [blocks],
+    [blocks, getI18nLanguage()],
   )
   const toolNames = React.useMemo(() => buildProcessGroupToolNames(blocks), [blocks])
   const visibleToolNames = toolNames.slice(0, MAX_PROCESS_GROUP_ICONS)
@@ -451,7 +456,7 @@ export function ProcessBlockGroup({ blocks, isStreaming, renderChildren, isMessa
         <span className="min-w-0 truncate text-[14px] text-muted-foreground">{summary}</span>
         {collapseCountdown !== null && (
           <span className="shrink-0 text-[12px] tabular-nums text-muted-foreground/50">
-            （{collapseCountdown}）
+            {t('agentMisc.collapseCountdown', { seconds: collapseCountdown })}
           </span>
         )}
         {visibleToolNames.length > 0 && (

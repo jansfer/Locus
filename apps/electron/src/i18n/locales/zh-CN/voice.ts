@@ -1,4 +1,36 @@
 /** voice 域文案（简体中文）。迁移时按功能补充键；叶子必须是 string。 */
 export const voice = {
-
+  status: {
+    initial: '按快捷键开始语音输入',
+    noSpeech: '没有识别到语音内容',
+    outputting: '正在输出文本...',
+    finalizing: '正在收尾识别...',
+    cancelled: '已取消语音输入',
+    listening: '正在听写',
+    preparingMic: '准备麦克风...',
+    preparingMicShort: '准备麦克风',
+    tidyingUp: '正在整理语音',
+    pleaseSpeak: '请开始说话',
+    startHint: '等待 Ctrl+～ 唤起',
+    disabled: '请先在设置中启用语音输入',
+    micBlockedSettings: '麦克风权限已被系统阻止，请在系统设置中允许 Locus 访问麦克风',
+    micNeeded: '需要麦克风权限才能使用语音输入',
+    appTitle: 'Locus 语音输入',
+    hintBar: 'Ctrl+～ 停止 · 外部写入光标 · Locus 激活时写入 Chat / Agent',
+    unknownError: '未知错误',
+    outputFailed: '输出失败: {message}',
+  },
+  errors: {
+    micUnsupported: '当前环境不支持麦克风采集',
+    audioUnsupported: '当前环境不支持音频处理',
+    micNotReady: '麦克风未就绪，请检查系统麦克风权限与设备连接',
+    permissionBlockedWin: '麦克风权限被系统阻止，请在 Windows 设置 > 隐私和安全性 > 麦克风中允许 Locus 访问',
+    noMicrophone: '没有检测到可用麦克风，请检查输入设备是否已连接并启用',
+    micBusy: '麦克风当前无法读取，可能被其他应用占用或被系统隐私设置阻止',
+    micParamsUnsupported: '当前麦克风不支持请求的采集参数，请切换输入设备后重试',
+    windowBlocked: '当前窗口被系统阻止访问麦克风，请检查应用权限设置',
+    unknownMicError: '未知麦克风错误',
+    audioStartFailed: '音频处理启动失败，请重新触发语音输入或检查系统音频权限',
+    audioClosed: '音频处理已关闭，请重新触发语音输入',
+  },
 } as const

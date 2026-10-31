@@ -11,6 +11,7 @@ import { Send, X } from 'lucide-react'
 import Markdown, { defaultUrlTransform } from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { Button } from '@/components/ui/button'
+import { useT } from '@/i18n'
 import { SpeechButton } from '@/components/ai-elements/speech-button'
 import {
   VOICE_DICTATION_CLEAR_PREVIEW_EVENT,
@@ -44,6 +45,7 @@ interface AskUserBannerProps {
 }
 
 export function AskUserBanner({ sessionId }: AskUserBannerProps): React.ReactElement | null {
+  const t = useT()
   const [allRequests, setAllRequests] = useAtom(allPendingAskUserRequestsAtom)
   const [drafts, setDrafts] = useAtom(askUserDraftsAtom)
   const setStreamingStates = useSetAtom(agentStreamingStatesAtom)
@@ -282,7 +284,7 @@ export function AskUserBanner({ sessionId }: AskUserBannerProps): React.ReactEle
       {/* 头部 + Tab 栏 */}
       <div className="px-4 pt-3 pb-2">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-medium text-foreground">Locus Agent 需要你的输入</span>
+          <span className="text-sm font-medium text-foreground">{t('agentMessages.askUser.title')}</span>
           <div className="flex items-center gap-1.5">
             {requests.length > 1 && (
               <span className="text-xs text-muted-foreground">(+{requests.length - 1})</span>
@@ -291,7 +293,7 @@ export function AskUserBanner({ sessionId }: AskUserBannerProps): React.ReactEle
               type="button"
               className="size-5 flex items-center justify-center rounded-md text-muted-foreground/50 hover:text-foreground hover:bg-muted/60 transition-colors"
               onClick={handleDismiss}
-              title="关闭并终止 Agent"
+              title={t('agentMessages.askUser.dismissTitle')}
             >
               <X className="size-3.5" />
             </button>
@@ -305,6 +307,7 @@ export function AskUserBanner({ sessionId }: AskUserBannerProps): React.ReactEle
               const isActive = idx === activeTab
               const hasAnswer = getAnswer(idx).selected.length > 0
                 || (getAnswer(idx).showCustom && getAnswer(idx).customText.trim().length > 0)
+              const tabHeader = q.header || t('agentMessages.askUser.questionFallback', { n: idx + 1 })
               return (
                 <button
                   key={idx}
@@ -320,7 +323,9 @@ export function AskUserBanner({ sessionId }: AskUserBannerProps): React.ReactEle
                   `}
                   onClick={() => setActiveTabByState(idx)}
                 >
-                  {`${idx + 1}-${q.multiSelect ? '多选' : '单选'}：${q.header || `问题 ${idx + 1}`}`}
+                  {q.multiSelect
+                    ? t('agentMessages.askUser.tabMulti', { n: idx + 1, header: tabHeader })
+                    : t('agentMessages.askUser.tabSingle', { n: idx + 1, header: tabHeader })}
                 </button>
               )
             })}
@@ -360,7 +365,7 @@ export function AskUserBanner({ sessionId }: AskUserBannerProps): React.ReactEle
       {/* 底部 */}
       <div className="flex items-center justify-end gap-1.5 px-4 pb-3">
         <span className="text-[10px] text-muted-foreground/40 mr-auto">
-          ↑↓ 选择 · Enter {isLastTab ? '确认' : '下一个'}
+          {isLastTab ? t('agentMessages.askUser.hintConfirm') : t('agentMessages.askUser.hintNext')}
         </span>
         {isLastTab && (
           <Button
@@ -371,7 +376,7 @@ export function AskUserBanner({ sessionId }: AskUserBannerProps): React.ReactEle
             className="h-7 px-3 text-xs"
           >
             <Send className="size-3 mr-1" />
-            确认
+            {t('common.confirm')}
           </Button>
         )}
       </div>
@@ -422,6 +427,7 @@ function QuestionCard({
   onCustomTextChange: (text: string) => void
   onSubmit: () => void
 }): React.ReactElement {
+  const t = useT()
   const customInputRef = React.useRef<HTMLInputElement | null>(null)
   const voiceInputIdRef = React.useRef(`ask-user-custom-${Math.random().toString(36).slice(2)}`)
   const customTextRef = React.useRef(answer.customText)
@@ -534,7 +540,13 @@ function QuestionCard({
       <div className="space-y-1">
         {showBadge && (
           <span className="shrink-0 inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-primary text-primary-foreground shadow-sm">
-            {`${questionIndex + 1}-${question.multiSelect ? '多选' : '单选'}${question.header ? `：${question.header}` : ''}`}
+            {question.multiSelect
+              ? (question.header
+                ? t('agentMessages.askUser.badgeMultiWithHeader', { n: questionIndex + 1, header: question.header })
+                : t('agentMessages.askUser.badgeMulti', { n: questionIndex + 1 }))
+              : (question.header
+                ? t('agentMessages.askUser.badgeSingleWithHeader', { n: questionIndex + 1, header: question.header })
+                : t('agentMessages.askUser.badgeSingle', { n: questionIndex + 1 }))}
           </span>
         )}
         <p className="text-sm text-foreground">{question.question}</p>
@@ -588,7 +600,7 @@ function QuestionCard({
           <span className={`text-[10px] shrink-0 ${answer.showCustom ? 'text-primary-foreground/60' : 'text-muted-foreground/50'}`}>
             {optionCount + 1}
           </span>
-          <span className="font-medium">其他...</span>
+          <span className="font-medium">{t('agentMessages.askUser.customOption')}</span>
         </button>
       </div>
 
@@ -599,7 +611,7 @@ function QuestionCard({
             ref={customInputRef}
             type="text"
             className="w-full px-3 py-2 pr-9 rounded-lg text-xs bg-muted/40 focus:bg-muted/60 focus:outline-none focus:ring-2 focus:ring-primary/30 placeholder:text-muted-foreground/40 transition-colors"
-            placeholder="输入自定义答案..."
+            placeholder={t('agentMessages.askUser.customPlaceholder')}
             value={answer.customText}
             onChange={(e) => onCustomTextChange(e.target.value)}
             onFocus={() => setLastFocusedVoiceInputId(voiceInputIdRef.current)}

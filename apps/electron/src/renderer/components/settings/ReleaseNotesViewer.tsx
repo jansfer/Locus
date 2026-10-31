@@ -13,6 +13,8 @@ import { ExternalLink } from 'lucide-react'
 import { CodeBlock } from '@proma/ui'
 import { cn } from '@/lib/utils'
 import { copyTextToClipboard } from '@/lib/clipboard'
+import { useT, currentLocaleTag } from '@/i18n'
+import type { TranslateFn } from '@/i18n'
 
 interface ReleaseNotesViewerProps {
   /** Release 数据 */
@@ -24,21 +26,21 @@ interface ReleaseNotesViewerProps {
 }
 
 /**
- * 格式化发布日期
+ * 格式化发布日期；相对时间文案由调用方传入 t 以响应语言切换。
  */
-function formatReleaseDate(dateString: string): string {
+function formatReleaseDate(dateString: string, t: TranslateFn): string {
   const date = new Date(dateString)
   const now = new Date()
   const diffMs = now.getTime() - date.getTime()
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
 
-  if (diffDays === 0) return '今天发布'
-  if (diffDays === 1) return '昨天发布'
-  if (diffDays < 7) return `${diffDays} 天前发布`
-  if (diffDays < 30) return `${Math.floor(diffDays / 7)} 周前发布`
+  if (diffDays === 0) return t('settingsMisc.releaseNotes.publishedToday')
+  if (diffDays === 1) return t('settingsMisc.releaseNotes.publishedYesterday')
+  if (diffDays < 7) return t('settingsMisc.releaseNotes.publishedDaysAgo', { days: diffDays })
+  if (diffDays < 30) return t('settingsMisc.releaseNotes.publishedWeeksAgo', { weeks: Math.floor(diffDays / 7) })
 
-  // 超过 30 天，显示完整日期
-  return date.toLocaleDateString('zh-CN', {
+  // 超过 30 天，显示完整日期（locale 跟随当前界面语言）
+  return date.toLocaleDateString(currentLocaleTag(), {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
@@ -53,6 +55,7 @@ export function ReleaseNotesViewer({
   showHeader = true,
   compact = false,
 }: ReleaseNotesViewerProps): React.ReactElement {
+  const t = useT()
   const releaseName = release.name || release.tag_name
 
   return (
@@ -67,12 +70,12 @@ export function ReleaseNotesViewer({
               </h3>
               {release.prerelease && (
                 <Badge variant="secondary" className="text-xs">
-                  预发布
+                  {t('settingsMisc.releaseNotes.prerelease')}
                 </Badge>
               )}
             </div>
             <p className="text-xs text-muted-foreground mt-0.5">
-              {formatReleaseDate(release.published_at)}
+              {formatReleaseDate(release.published_at, t)}
             </p>
           </div>
 
@@ -82,7 +85,7 @@ export function ReleaseNotesViewer({
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors shrink-0"
-            title="在 GitHub 上查看"
+            title={t('settingsMisc.releaseNotes.viewOnGithub')}
           >
             <ExternalLink className="h-3 w-3" />
             GitHub
@@ -124,7 +127,7 @@ export function ReleaseNotesViewer({
             {release.body}
           </Markdown>
         ) : (
-          <p className="text-muted-foreground italic">暂无发布说明</p>
+          <p className="text-muted-foreground italic">{t('settingsMisc.releaseNotes.noNotes')}</p>
         )}
       </div>
     </div>

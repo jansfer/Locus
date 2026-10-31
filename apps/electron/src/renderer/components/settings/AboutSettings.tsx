@@ -9,6 +9,7 @@ import * as React from 'react'
 import { useAtomValue, useSetAtom } from 'jotai'
 import { RefreshCw, Loader2, CheckCircle2, AlertCircle, Info, Terminal, ChevronDown, ChevronUp, ExternalLink, RotateCw } from 'lucide-react'
 import type { EnvironmentCheckResult, RuntimeStatus, WindowsShellPreference } from '@proma/shared'
+import { useT } from '@/i18n'
 import {
   SettingsSection,
   SettingsCard,
@@ -31,6 +32,7 @@ const GITHUB_RELEASES_URL = 'https://github.com/jansfer/Locus/releases'
 
 /** 更新状态卡片 */
 function UpdateCard(): React.ReactElement | null {
+  const t = useT()
   const available = useAtomValue(updaterAvailableAtom)
   const status = useAtomValue(updateStatusAtom)
   const [checking, setChecking] = React.useState(false)
@@ -88,7 +90,7 @@ function UpdateCard(): React.ReactElement | null {
 
   return (
     <SettingsCard>
-      <SettingsRow label="软件更新">
+      <SettingsRow label={t('settingsMisc.about.softwareUpdate')}>
         <div className="flex items-center gap-3">
           {/* 状态文字 */}
           <StatusText status={status.status} version={status.version} error={status.error} />
@@ -100,7 +102,7 @@ function UpdateCard(): React.ReactElement | null {
                 onClick={handleCancelIdleInstall}
                 className="inline-flex items-center gap-1.5 rounded-md bg-secondary px-3 py-1.5 text-xs font-medium text-secondary-foreground hover:bg-secondary/80 transition-colors"
               >
-                取消安排
+                {t('settingsMisc.about.cancelSchedule')}
               </button>
             ) : (
               <button
@@ -108,7 +110,7 @@ function UpdateCard(): React.ReactElement | null {
                 className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
               >
                 <RotateCw className="h-3.5 w-3.5" />
-                空闲时更新
+                {t('settingsMisc.about.installWhenIdle')}
               </button>
             )
           ) : status.status === 'available' ? (
@@ -117,7 +119,7 @@ function UpdateCard(): React.ReactElement | null {
               className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
             >
               <ExternalLink className="h-3.5 w-3.5" />
-              前往下载
+              {t('settingsMisc.about.goToDownload')}
             </button>
           ) : (
             <button
@@ -130,7 +132,7 @@ function UpdateCard(): React.ReactElement | null {
               ) : (
                 <RefreshCw className="h-3.5 w-3.5" />
               )}
-              检查更新
+              {t('settingsMisc.about.checkForUpdates')}
             </button>
           )}
         </div>
@@ -143,7 +145,7 @@ function UpdateCard(): React.ReactElement | null {
             onClick={() => setShowReleaseNotes(!showReleaseNotes)}
             className="w-full flex items-center justify-between py-3 text-left hover:opacity-80 transition-opacity"
           >
-            <span className="text-sm font-medium">更新日志</span>
+            <span className="text-sm font-medium">{t('settingsMisc.about.releaseNotes')}</span>
             {showReleaseNotes ? (
               <ChevronUp className="h-4 w-4 text-muted-foreground" />
             ) : (
@@ -172,51 +174,53 @@ function StatusText({ status, version, error }: {
   version?: string
   error?: string
 }): React.ReactElement {
+  const t = useT()
   switch (status) {
     case 'checking':
-      return <span className="text-xs text-muted-foreground">正在检查...</span>
+      return <span className="text-xs text-muted-foreground">{t('settingsMisc.about.checking')}</span>
     case 'available':
       return (
         <span className="text-xs text-primary flex items-center gap-1">
           <ExternalLink className="h-3 w-3" />
-          新版本 v{version} 可用
+          {t('settingsMisc.about.newVersionAvailable', { version: version ?? '' })}
         </span>
       )
     case 'downloading':
       return (
         <span className="text-xs text-muted-foreground flex items-center gap-1">
           <Loader2 className="h-3 w-3 animate-spin" />
-          正在下载 v{version}
+          {t('settingsMisc.about.downloading', { version: version ?? '' })}
         </span>
       )
     case 'downloaded':
       return (
         <span className="text-xs text-primary flex items-center gap-1">
           <CheckCircle2 className="h-3 w-3" />
-          更新 v{version} 已就绪
+          {t('settingsMisc.about.updateReady', { version: version ?? '' })}
         </span>
       )
     case 'not-available':
       return (
         <span className="text-xs text-muted-foreground flex items-center gap-1">
           <CheckCircle2 className="h-3 w-3" />
-          已是最新版本
+          {t('settingsMisc.about.upToDate')}
         </span>
       )
     case 'error':
       return (
         <span className="text-xs text-destructive flex items-center gap-1" title={error}>
           <AlertCircle className="h-3 w-3" />
-          检查失败
+          {t('settingsMisc.about.checkFailed')}
         </span>
       )
     default:
-      return <span className="text-xs text-muted-foreground">未检查</span>
+      return <span className="text-xs text-muted-foreground">{t('settingsMisc.about.notChecked')}</span>
   }
 }
 
 /** 环境检测卡片 */
 function EnvironmentCard(): React.ReactElement {
+  const t = useT()
   const setEnvironmentResult = useSetAtom(environmentCheckResultAtom)
   const [result, setResult] = React.useState<EnvironmentCheckResult | null>(null)
   const [isChecking, setIsChecking] = React.useState(false)
@@ -264,7 +268,7 @@ function EnvironmentCard(): React.ReactElement {
       <div className="p-4 border-b">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <h3 className="text-sm font-medium">可选环境能力</h3>
+            <h3 className="text-sm font-medium">{t('settingsMisc.about.optionalEnvTitle')}</h3>
           </div>
           <button
             onClick={handleCheck}
@@ -276,11 +280,11 @@ function EnvironmentCard(): React.ReactElement {
             ) : (
               <RefreshCw className="h-3.5 w-3.5" />
             )}
-            {isChecking ? '检测中...' : '重新检查'}
+            {isChecking ? t('settingsMisc.about.detecting') : t('settingsMisc.about.recheck')}
           </button>
         </div>
         <p className="text-xs text-muted-foreground mt-1">
-          基础 Agent 无需 Node.js 或 Git；按需安装以启用 MCP、Git 变更视图等能力
+          {t('settingsMisc.about.envHint')}
         </p>
       </div>
 
@@ -290,14 +294,14 @@ function EnvironmentCard(): React.ReactElement {
           name="Node.js"
           status={nodejsStatus}
           version={result?.nodejs.version}
-          requirement="可选 · 仅 npx / npm 型 MCP 服务器需要（推荐 22 LTS）"
+          requirement={t('settingsMisc.about.nodejsRequirement')}
           action={{
             type: 'openExternal',
             url: result?.nodejs.downloadUrl || 'https://nodejs.org/',
           }}
           statusText={
             result && nodejsStatus === 'warning'
-              ? `v${result.nodejs.version} (建议升级到 22 LTS 以获得最佳体验)`
+              ? t('settingsMisc.about.nodejsUpgradeHint', { version: result.nodejs.version ?? '' })
               : undefined
           }
         />
@@ -307,7 +311,7 @@ function EnvironmentCard(): React.ReactElement {
           name="Git"
           status={gitStatus}
           version={result?.git.version}
-          requirement="可选 · Git 仓库状态、Changes 与 Diff 功能需要"
+          requirement={t('settingsMisc.about.gitRequirement')}
           action={{
             type: 'openExternal',
             url: result?.git.downloadUrl || 'https://git-scm.com/',
@@ -319,8 +323,8 @@ function EnvironmentCard(): React.ReactElement {
           <Alert>
             <Info className="h-4 w-4" />
             <AlertDescription className="text-xs">
-              <strong>Windows 用户建议：</strong>
-              安装时请选择默认路径（C:\Program Files\...），并确保勾选"添加到 PATH"选项
+              <strong>{t('settingsMisc.about.windowsTipTitle')}</strong>
+              {t('settingsMisc.about.windowsTipBody')}
             </AlertDescription>
           </Alert>
         )}
@@ -331,6 +335,7 @@ function EnvironmentCard(): React.ReactElement {
 
 /** Shell 环境卡片（Windows 平台）*/
 function ShellEnvironmentCard(): React.ReactElement | null {
+  const t = useT()
   const [runtimeStatus, setRuntimeStatus] = React.useState<RuntimeStatus | null>(null)
   const [shellPreference, setShellPreference] = React.useState<WindowsShellPreference>('auto')
   const [isChecking, setIsChecking] = React.useState(false)
@@ -378,7 +383,7 @@ function ShellEnvironmentCard(): React.ReactElement | null {
     : shellPreference === 'git-bash' && shell.gitBash.available
       ? 'git-bash'
       : shell.recommended
-  const resolvedShellLabel = resolvedShell === 'git-bash' ? 'Git Bash' : resolvedShell === 'wsl' ? 'WSL' : '无可用 Shell'
+  const resolvedShellLabel = resolvedShell === 'git-bash' ? 'Git Bash' : resolvedShell === 'wsl' ? 'WSL' : t('settingsMisc.about.noShellAvailable')
 
   return (
     <SettingsCard>
@@ -386,8 +391,8 @@ function ShellEnvironmentCard(): React.ReactElement | null {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Terminal className="h-4 w-4 text-muted-foreground" />
-            <h3 className="text-sm font-medium">Shell 环境（Windows）</h3>
-            {!hasShell && <Badge variant="secondary">可选</Badge>}
+            <h3 className="text-sm font-medium">{t('settingsMisc.about.shellEnvTitle')}</h3>
+            {!hasShell && <Badge variant="secondary">{t('settingsMisc.about.shellOptional')}</Badge>}
           </div>
           <button
             onClick={handleCheck}
@@ -399,26 +404,26 @@ function ShellEnvironmentCard(): React.ReactElement | null {
             ) : (
               <RefreshCw className="h-3.5 w-3.5" />
             )}
-            {isChecking ? '检测中...' : '重新检查'}
+            {isChecking ? t('settingsMisc.about.detecting') : t('settingsMisc.about.recheck')}
           </button>
         </div>
         <p className="text-xs text-muted-foreground mt-1">
-          可选：配置 Git Bash 或 WSL 后，Agent 可执行 Bash 命令
+          {t('settingsMisc.about.shellEnvHint')}
         </p>
       </div>
 
       <div className="p-4 space-y-3">
         <SettingsSelect
           label="Agent Shell"
-          description="默认使用 Git Bash，确保 Windows 项目与 Agent 工具使用同一套路径；选择 WSL 后，WSL 不可用时会回退到 Git Bash。"
+          description={t('settingsMisc.about.agentShellDesc')}
           value={shellPreference}
           onValueChange={(value) => {
             void handlePreferenceChange(value).catch((error) => console.error('[Shell 环境检测] 保存偏好失败:', error))
           }}
           options={[
-            { value: 'auto', label: '自动（推荐：Git Bash 优先）' },
+            { value: 'auto', label: t('settingsMisc.about.shellAuto') },
             { value: 'git-bash', label: 'Git Bash' },
-            { value: 'wsl', label: 'WSL（实验性）' },
+            { value: 'wsl', label: t('settingsMisc.about.shellWslExperimental') },
           ]}
         />
 
@@ -427,12 +432,12 @@ function ShellEnvironmentCard(): React.ReactElement | null {
           name="Git Bash"
           status={shell.gitBash?.available ? 'success' : 'error'}
           version={shell.gitBash?.version ?? undefined}
-          requirement="Git for Windows 自带"
+          requirement={t('settingsMisc.about.gitBashRequirement')}
           action={{ type: 'download', installerId: 'git-for-windows' }}
           statusText={
             shell.gitBash?.available
               ? `${shell.gitBash.path}`
-              : shell.gitBash?.error || '未安装'
+              : shell.gitBash?.error || t('settingsMisc.about.notInstalled')
           }
         />
 
@@ -441,24 +446,27 @@ function ShellEnvironmentCard(): React.ReactElement | null {
           name="WSL"
           status={shell.wsl?.available ? 'success' : 'error'}
           version={shell.wsl?.version ? `WSL ${shell.wsl.version}` : undefined}
-          requirement="WSL 1 或 WSL 2"
+          requirement={t('settingsMisc.about.wslRequirement')}
           action={{
             type: 'openExternal',
             url: 'https://learn.microsoft.com/zh-cn/windows/wsl/install',
           }}
           statusText={
             shell.wsl?.available
-              ? `默认发行版: ${shell.wsl.defaultDistro || '未设置'} (${shell.wsl.distros.join(', ')})`
-              : shell.wsl?.error || '未安装'
+              ? t('settingsMisc.about.wslDistroInfo', {
+                  distro: shell.wsl.defaultDistro || t('settingsMisc.about.wslDistroUnset'),
+                  distros: shell.wsl.distros.join(', '),
+                })
+              : shell.wsl?.error || t('settingsMisc.about.notInstalled')
           }
         />
 
         <Alert>
           <Info className="h-4 w-4" />
           <AlertDescription className="text-xs">
-            <strong>Agent 将使用：</strong>{resolvedShellLabel}
-            {shellPreference === 'wsl' && resolvedShell !== 'wsl' && '（WSL 不可用，已回退）'}
-            {shellPreference === 'git-bash' && resolvedShell !== 'git-bash' && '（Git Bash 不可用，已回退）'}
+            <strong>{t('settingsMisc.about.agentWillUse')}</strong>{resolvedShellLabel}
+            {shellPreference === 'wsl' && resolvedShell !== 'wsl' && t('settingsMisc.about.wslFallbackNote')}
+            {shellPreference === 'git-bash' && resolvedShell !== 'git-bash' && t('settingsMisc.about.gitBashFallbackNote')}
           </AlertDescription>
         </Alert>
 
@@ -467,9 +475,9 @@ function ShellEnvironmentCard(): React.ReactElement | null {
           <Alert>
             <AlertCircle className="h-4 w-4" />
             <AlertDescription className="text-xs">
-              <strong>未检测到可用的 Shell 环境。</strong>
+              <strong>{t('settingsMisc.about.noShellTitle')}</strong>
               <br />
-              基础 Agent 仍可使用；安装 Git Bash 或 WSL 后可启用 Bash 命令执行。
+              {t('settingsMisc.about.noShellBody')}
             </AlertDescription>
           </Alert>
         )}
@@ -479,21 +487,22 @@ function ShellEnvironmentCard(): React.ReactElement | null {
 }
 
 export function AboutSettings(): React.ReactElement {
+  const t = useT()
   return (
     <SettingsSection
-      title="关于 Locus"
-      description="本地优先的桌面 AI Agent"
+      title={t('settingsMisc.about.title')}
+      description={t('settingsMisc.about.description')}
     >
       <SettingsCard>
-        <SettingsRow label="版本">
+        <SettingsRow label={t('settingsMisc.about.version')}>
           <span className="text-sm text-muted-foreground font-mono">{APP_VERSION}</span>
         </SettingsRow>
-        <SettingsRow label="运行时">
+        <SettingsRow label={t('settingsMisc.about.runtime')}>
           <span className="text-sm text-muted-foreground">Electron + React</span>
         </SettingsRow>
         <SettingsRow
-          label="开源协议"
-          description="本项目是基于 Locus 的修改版，修改日期 2026-10-29；按 AGPL-3.0 第 5 条要求标注修改，衍生作品整体继续以 AGPL-3.0 授权。"
+          label={t('settingsMisc.about.license')}
+          description={t('settingsMisc.about.licenseNote')}
         >
           <a
             href="https://www.gnu.org/licenses/agpl-3.0.html"
@@ -505,8 +514,8 @@ export function AboutSettings(): React.ReactElement {
           </a>
         </SettingsRow>
         <SettingsRow
-          label="项目地址"
-          description="完整对应源码（含本项目全部修改）在此仓库公开"
+          label={t('settingsMisc.about.repo')}
+          description={t('settingsMisc.about.repoNote')}
         >
           <a
             href="https://github.com/jansfer/Locus"

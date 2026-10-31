@@ -10,6 +10,8 @@ import * as React from 'react'
 import { Download } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import { useT } from '@/i18n'
+import type { MessageKey } from '@/i18n'
 import { SettingsSection } from './primitives/SettingsSection'
 import { SettingsCard } from './primitives/SettingsCard'
 import { Button } from '@/components/ui/button'
@@ -25,8 +27,10 @@ import locusTransparentLogo from '@/assets/bots/locus-logos/locus-transparent.pn
 
 interface LogoVariant {
   id: string
-  name: string
-  description: string
+  /** 变体名称的文案键，渲染处用 t() 翻译 */
+  nameKey: MessageKey
+  /** 变体描述的文案键，渲染处用 t() 翻译 */
+  descriptionKey: MessageKey
   src: string
   resourcePath: string
   previewBg: string
@@ -37,32 +41,32 @@ interface LogoVariant {
 const LOGO_VARIANTS: readonly LogoVariant[] = [
   {
     id: 'brand',
-    name: '品牌色',
-    description: '与应用图标一致',
+    nameKey: 'settings.bots.logoBrand',
+    descriptionKey: 'settings.bots.logoBrandDesc',
     src: locusBrandLogo,
     resourcePath: 'locus-logos/locus-brand.png',
     previewBg: 'bg-indigo-600',
   },
   {
     id: 'black',
-    name: '经典黑',
-    description: '深色底，适合浅色平台',
+    nameKey: 'settings.bots.logoBlack',
+    descriptionKey: 'settings.bots.logoBlackDesc',
     src: locusBlackLogo,
     resourcePath: 'locus-logos/locus-black.png',
     previewBg: 'bg-neutral-900',
   },
   {
     id: 'white',
-    name: '纯白版',
-    description: '白色底，适合深色平台',
+    nameKey: 'settings.bots.logoWhite',
+    descriptionKey: 'settings.bots.logoWhiteDesc',
     src: locusWhiteLogo,
     resourcePath: 'locus-logos/locus-white.png',
     previewBg: 'bg-white',
   },
   {
     id: 'transparent',
-    name: '透明底',
-    description: '适配任意底色',
+    nameKey: 'settings.bots.logoTransparent',
+    descriptionKey: 'settings.bots.logoTransparentDesc',
     src: locusTransparentLogo,
     resourcePath: 'locus-logos/locus-transparent.png',
     previewBg: 'bg-neutral-300',
@@ -72,6 +76,7 @@ const LOGO_VARIANTS: readonly LogoVariant[] = [
 // ===== 组件 =====
 
 function LogoCard({ logo }: { logo: LogoVariant }): React.ReactElement {
+  const t = useT()
   const handleDownload = React.useCallback(async () => {
     try {
       const saved = await window.electronAPI.saveResourceFileAs(
@@ -79,12 +84,12 @@ function LogoCard({ logo }: { logo: LogoVariant }): React.ReactElement {
         `locus-${logo.id}.png`,
       )
       if (saved) {
-        toast.success(`${logo.name} 已保存`)
+        toast.success(t('settings.bots.logoSaved', { name: t(logo.nameKey) }))
       }
     } catch {
-      toast.error('保存失败，请重试')
+      toast.error(t('settings.bots.logoSaveFailed'))
     }
-  }, [logo])
+  }, [logo, t])
 
   return (
     <div className="flex flex-col items-center gap-2">
@@ -96,14 +101,14 @@ function LogoCard({ logo }: { logo: LogoVariant }): React.ReactElement {
       >
         <img
           src={logo.src}
-          alt={logo.name}
+          alt={t(logo.nameKey)}
           className="w-full h-full object-contain"
           draggable={false}
         />
       </div>
       <div className="text-center">
-        <div className="text-xs font-medium">{logo.name}</div>
-        <div className="text-[10px] text-muted-foreground">{logo.description}</div>
+        <div className="text-xs font-medium">{t(logo.nameKey)}</div>
+        <div className="text-[10px] text-muted-foreground">{t(logo.descriptionKey)}</div>
       </div>
       <Button
         size="sm"
@@ -112,18 +117,19 @@ function LogoCard({ logo }: { logo: LogoVariant }): React.ReactElement {
         onClick={handleDownload}
       >
         <Download size={12} />
-        下载
+        {t('settings.bots.download')}
       </Button>
     </div>
   )
 }
 
 export function LocusLogoSettings(): React.ReactElement {
+  const t = useT()
   return (
     <>
       <SettingsSection
-        title="品牌 Logo"
-        description="下载 Locus Logo 用作机器人头像，让用户一眼认出你的 AI 助手"
+        title={t('settings.bots.logosTitle')}
+        description={t('settings.bots.logosDesc')}
       >
         <div className="grid grid-cols-4 gap-4">
           {LOGO_VARIANTS.map((logo) => (
@@ -135,14 +141,14 @@ export function LocusLogoSettings(): React.ReactElement {
       <div className="my-6 border-t border-border/50" />
 
       <SettingsSection
-        title="使用提示"
-        description="在机器人平台设置头像时参考"
+        title={t('settings.bots.tipsTitle')}
+        description={t('settings.bots.tipsDesc')}
       >
         <SettingsCard divided={false}>
           <div className="px-4 py-3 space-y-1.5 text-sm text-muted-foreground">
-            <p>建议使用 PNG 格式，飞书/钉钉头像推荐 200x200 以上。</p>
-            <p>透明底版本适合需要自定义背景色的平台。</p>
-            <p>品牌色版本在深色与浅色界面上辨识度都较高。</p>
+            <p>{t('settings.bots.tipPng')}</p>
+            <p>{t('settings.bots.tipTransparent')}</p>
+            <p>{t('settings.bots.tipBrand')}</p>
           </div>
         </SettingsCard>
       </SettingsSection>

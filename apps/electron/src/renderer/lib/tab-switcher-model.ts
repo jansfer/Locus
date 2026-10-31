@@ -1,5 +1,6 @@
 import type { AgentSessionMeta, AgentWorkspace, ConversationMeta } from '@proma/shared'
 import type { SessionIndicatorStatus } from '@/atoms/agent-atoms'
+import { t } from '@/i18n'
 
 export type SwitchSectionId = 'collaboration' | 'recent'
 export type SwitchCandidateType = 'chat' | 'agent'
@@ -61,7 +62,7 @@ export function buildTabSwitcherModel({
     return {
       id: session.id,
       type: 'agent',
-      title: session.title || '新 Agent 会话',
+      title: session.title || t('misc.session.newAgentSession'),
       updatedAt: session.updatedAt,
       status,
       workspaceId: session.workspaceId,
@@ -75,7 +76,7 @@ export function buildTabSwitcherModel({
     .map((conversation): SwitchCandidate => ({
       id: conversation.id,
       type: 'chat',
-      title: conversation.title || '新对话',
+      title: conversation.title || t('misc.session.newConversation'),
       updatedAt: conversation.updatedAt,
       status: streamingConversationIds.has(conversation.id) ? 'running' : 'idle',
     }))
@@ -128,16 +129,16 @@ export function buildTabSwitcherModel({
   if (shouldShowCollaborationSection) {
     sections.push({
       id: 'collaboration',
-      title: '当前协作',
-      description: '父会话与子会话',
+      title: t('misc.tabSwitcher.collaborationTitle'),
+      description: t('misc.tabSwitcher.collaborationDescription'),
       candidates: relatedCandidates,
     })
   }
   if (recentCandidates.length > 0) {
     sections.push({
       id: 'recent',
-      title: '最近访问',
-      description: '按访问顺序排列',
+      title: t('misc.tabSwitcher.recentTitle'),
+      description: t('misc.tabSwitcher.recentDescription'),
       candidates: recentCandidates,
     })
   }

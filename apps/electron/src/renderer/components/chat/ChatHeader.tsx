@@ -14,12 +14,14 @@ import { SystemPromptSelector } from './SystemPromptSelector'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
+import { useT } from '@/i18n'
 
 interface ChatHeaderProps {
   conversation: ConversationMeta | null
 }
 
 export function ChatHeader({ conversation }: ChatHeaderProps): React.ReactElement | null {
+  const t = useT()
   const setConversations = useSetAtom(conversationsAtom)
   const [parallelMode, setParallelMode] = useConversationParallelMode()
   const [editing, setEditing] = React.useState(false)
@@ -106,7 +108,7 @@ export function ChatHeader({ conversation }: ChatHeaderProps): React.ReactElemen
             onMouseDown={(e) => e.preventDefault()}
             onClick={startEdit}
             className="titlebar-no-drag p-1 text-muted-foreground hover:text-foreground transition-colors"
-            aria-label="编辑标题"
+            aria-label={t('chat.header.editTitle')}
           >
             <Pencil className="size-3.5" />
           </button>
@@ -131,7 +133,7 @@ export function ChatHeader({ conversation }: ChatHeaderProps): React.ReactElemen
               <Pin className="size-3.5" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent side="bottom"><p>{conversation.pinned ? '取消置顶' : '置顶对话'}</p></TooltipContent>
+          <TooltipContent side="bottom"><p>{conversation.pinned ? t('chat.header.unpin') : t('chat.header.pin')}</p></TooltipContent>
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
@@ -145,7 +147,7 @@ export function ChatHeader({ conversation }: ChatHeaderProps): React.ReactElemen
               <Columns2 className="size-3.5" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent side="bottom"><p>{parallelMode ? '关闭并排模式' : '并排模式'}</p></TooltipContent>
+          <TooltipContent side="bottom"><p>{parallelMode ? t('chat.header.exitParallel') : t('chat.header.parallelMode')}</p></TooltipContent>
         </Tooltip>
       </div>
     </div>

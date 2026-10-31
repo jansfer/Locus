@@ -27,6 +27,7 @@ import { toast } from 'sonner'
 import { useSetAtom } from 'jotai'
 import { channelFormDirtyAtom } from '@/atoms/settings-tab'
 import { cn } from '@/lib/utils'
+import { t, useT } from '@/i18n'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -148,22 +149,22 @@ function isThirdPartyBaseUrl(provider: ProviderType, baseUrl: string): boolean {
 }
 
 function getUrlInputLabel(provider: ProviderType): string {
-  return provider === 'custom' || provider === 'anthropic-compatible' ? '请求地址' : 'Base URL'
+  return provider === 'custom' || provider === 'anthropic-compatible' ? t('settings.channels.urlLabelCustom') : 'Base URL'
 }
 
 function getUrlInputPlaceholder(provider: ProviderType): string {
-  if (provider === 'custom') return 'https://api.example.com/v2（Chat 按原样请求）'
+  if (provider === 'custom') return t('settings.channels.urlPlaceholderCustom')
   if (provider === 'openai-responses') return 'https://api.example.com/v1/responses'
   if (provider === 'anthropic-compatible') return 'https://api.example.com/v1/messages'
   return 'https://api.example.com'
 }
 
 function getApiKeyPlaceholder(provider: ProviderType, isEdit: boolean): string {
-  if (isEdit) return '留空则不更新'
+  if (isEdit) return t('settings.channels.apiKeyKeepExisting')
   if (provider === 'zhipu-coding-team') {
-    return '输入 API Token'
+    return t('settings.channels.apiTokenPlaceholder')
   }
-  return '输入 API Key'
+  return t('settings.channels.apiKeyPlaceholder')
 }
 
 interface ZhipuTeamSecretForm {
@@ -201,6 +202,7 @@ const AUTO_SAVE_DELAY = 600
 
 export function ChannelForm({ channel, onSaved, onCancel }: ChannelFormProps): React.ReactElement {
   const isEdit = channel !== null
+  const t = useT()
 
   // 表单状态
   const [name, setName] = React.useState(channel?.name ?? '')
@@ -360,12 +362,12 @@ export function ChannelForm({ channel, onSaved, onCancel }: ChannelFormProps): R
         models: currentModels,
         enabled: currentEnabled,
       })
-      toast.success('已保存', { id: 'auto-save-success' })
+      toast.success(t('settings.channels.autoSaveSaved'), { id: 'auto-save-success' })
     } catch (error) {
       console.error('[模型配置表单] auto-save 失败:', error)
-      toast.error('自动保存失败，请检查后手动重试', { id: 'auto-save-error' })
+      toast.error(t('settings.channels.autoSaveFailed'), { id: 'auto-save-error' })
     }
-  }, [isEdit, channel])
+  }, [isEdit, channel, t])
 
   /** 触发防抖 auto-save */
   const scheduleAutoSave = React.useCallback((
@@ -532,7 +534,7 @@ export function ChannelForm({ channel, onSaved, onCancel }: ChannelFormProps): R
       setCodexManualInput(null)
       setCodexManualInputValue('')
     } else {
-      toast.error('当前没有等待输入的登录流程，请重新发起登录')
+      toast.error(t('settings.channels.codexNoPendingLogin'))
     }
   }
 
@@ -548,7 +550,7 @@ export function ChannelForm({ channel, onSaved, onCancel }: ChannelFormProps): R
     try {
       const result = await window.electronAPI.codexOAuthLogin(method)
       if (!result.success || !result.credentials) {
-        toast.error(result.message ?? 'ChatGPT 登录失败，请重试')
+        toast.error(result.message ?? t('settings.channels.chatgptLoginFailed'))
         return
       }
       const credentials = result.credentials
@@ -574,7 +576,7 @@ export function ChannelForm({ channel, onSaved, onCancel }: ChannelFormProps): R
       // 登录成功即明确的保存意图：创建模式下自动落库（编辑模式由 effectiveApiKey 变化触发 auto-save）。
       // 用刚拿到的凭据/模型直接构造入参，避免依赖 setState 后同一 tick 仍是旧值的闭包。
       if (isEdit) {
-        toast.success('ChatGPT 登录成功')
+        toast.success(t('settings.channels.chatgptLoginSuccess'))
       } else {
         const input: ChannelCreateInput = {
           name: name.trim() || PROVIDER_LABELS['openai-codex'],
@@ -585,12 +587,12 @@ export function ChannelForm({ channel, onSaved, onCancel }: ChannelFormProps): R
           enabled,
         }
         const saved = await window.electronAPI.createChannel(input)
-        toast.success('ChatGPT 渠道已创建')
+        toast.success(t('settings.channels.chatgptChannelCreated'))
         onSaved(saved)
       }
     } catch (error) {
       console.error('[模型配置表单] ChatGPT 登录失败:', error)
-      toast.error('ChatGPT 登录失败，请重试')
+      toast.error(t('settings.channels.chatgptLoginFailed'))
     } finally {
       codexLoggingInRef.current = false
       setCodexLoggingIn(false)
@@ -612,7 +614,7 @@ export function ChannelForm({ channel, onSaved, onCancel }: ChannelFormProps): R
     try {
       const result = await window.electronAPI.githubCopilotOAuthLogin(githubCopilotEnterpriseUrl)
       if (!result.success || !result.credentials) {
-        toast.error(result.message ?? 'GitHub Copilot 登录失败，请重试')
+        toast.error(result.message ?? t('settings.channels.copilotLoginFailed'))
         return
       }
       const credentials = result.credentials
@@ -623,7 +625,7 @@ export function ChannelForm({ channel, onSaved, onCancel }: ChannelFormProps): R
         const modelsResult = await window.electronAPI.fetchModels({ provider, baseUrl, apiKey: credentials })
         setFetchResult(modelsResult)
         if (!modelsResult.success) {
-          toast.error(modelsResult.message ?? '无法读取 GitHub Copilot 可用模型，请重试')
+          toast.error(modelsResult.message ?? t('settings.channels.copilotModelsFailed'))
           return
         }
         // 本次登录返回的模型目录反映当前账号与组织策略。空列表也是权威结果，
@@ -632,7 +634,7 @@ export function ChannelForm({ channel, onSaved, onCancel }: ChannelFormProps): R
         setModels(copilotModels)
       } catch (modelErr) {
         console.error('[模型配置表单] 拉取 GitHub Copilot 模型失败:', modelErr)
-        toast.error('无法读取 GitHub Copilot 可用模型，请重试')
+        toast.error(t('settings.channels.copilotModelsFailed'))
         return
       }
 
@@ -645,7 +647,7 @@ export function ChannelForm({ channel, onSaved, onCancel }: ChannelFormProps): R
           models: copilotModels,
           enabled,
         })
-        toast.success(copilotModels.length > 0 ? 'GitHub Copilot 登录成功' : 'GitHub Copilot 登录成功，但当前订阅没有可用模型')
+        toast.success(copilotModels.length > 0 ? t('settings.channels.copilotLoginSuccess') : t('settings.channels.copilotLoginSuccessNoModels'))
       } else {
         const input: ChannelCreateInput = {
           name: name.trim() || PROVIDER_LABELS['github-copilot'],
@@ -656,12 +658,12 @@ export function ChannelForm({ channel, onSaved, onCancel }: ChannelFormProps): R
           enabled,
         }
         const saved = await window.electronAPI.createChannel(input)
-        toast.success(copilotModels.length > 0 ? 'GitHub Copilot 渠道已创建' : 'GitHub Copilot 渠道已创建，但当前订阅没有可用模型')
+        toast.success(copilotModels.length > 0 ? t('settings.channels.copilotChannelCreated') : t('settings.channels.copilotChannelCreatedNoModels'))
         onSaved(saved)
       }
     } catch (error) {
       console.error('[模型配置表单] GitHub Copilot 登录失败:', error)
-      toast.error('GitHub Copilot 登录失败，请重试')
+      toast.error(t('settings.channels.copilotLoginFailed'))
     } finally {
       githubCopilotLoggingInRef.current = false
       setGithubCopilotLoggingIn(false)
@@ -684,7 +686,7 @@ export function ChannelForm({ channel, onSaved, onCancel }: ChannelFormProps): R
     try {
       const result = await window.electronAPI.xaiOAuthLogin()
       if (!result.success || !result.credentials) {
-        toast.error(result.message ?? 'xAI 登录失败，请重试')
+        toast.error(result.message ?? t('settings.channels.xaiLoginFailed'))
         return
       }
       const credentials = result.credentials
@@ -714,7 +716,7 @@ export function ChannelForm({ channel, onSaved, onCancel }: ChannelFormProps): R
           models: savedModels,
           enabled,
         })
-        toast.success('xAI 登录成功')
+        toast.success(t('settings.channels.xaiLoginSuccess'))
       } else {
         const input: ChannelCreateInput = {
           name: name.trim() || PROVIDER_LABELS.xai,
@@ -725,12 +727,12 @@ export function ChannelForm({ channel, onSaved, onCancel }: ChannelFormProps): R
           enabled,
         }
         const saved = await window.electronAPI.createChannel(input)
-        toast.success('xAI 渠道已创建')
+        toast.success(t('settings.channels.xaiChannelCreated'))
         onSaved(saved)
       }
     } catch (error) {
       console.error('[模型配置表单] xAI 登录失败:', error)
-      toast.error('xAI 登录失败，请重试')
+      toast.error(t('settings.channels.xaiLoginFailed'))
     } finally {
       xaiLoggingInRef.current = false
       setXaiLoggingIn(false)
@@ -777,7 +779,7 @@ export function ChannelForm({ channel, onSaved, onCancel }: ChannelFormProps): R
         return [...manualKept, ...merged]
       })
     } catch (error) {
-      setFetchResult({ success: false, message: '拉取模型请求失败', models: [] })
+      setFetchResult({ success: false, message: t('settings.channels.fetchModelsRequestFailed'), models: [] })
     } finally {
       setFetchingModels(false)
     }
@@ -808,7 +810,7 @@ export function ChannelForm({ channel, onSaved, onCancel }: ChannelFormProps): R
       })
       setTestResult(result)
     } catch (error) {
-      setTestResult({ success: false, message: '测试请求失败' })
+      setTestResult({ success: false, message: t('settings.channels.testRequestFailed') })
     } finally {
       setTesting(false)
     }
@@ -837,16 +839,16 @@ export function ChannelForm({ channel, onSaved, onCancel }: ChannelFormProps): R
         enabled,
       }
       const savedChannel = await window.electronAPI.createChannel(input)
-      toast.success('渠道创建成功')
+      toast.success(t('settings.channels.channelCreated'))
       return savedChannel
     } catch (error) {
       console.error('[模型配置表单] 创建失败:', error)
-      toast.error('渠道创建失败，请检查配置后重试')
+      toast.error(t('settings.channels.channelCreateFailed'))
       return null
     } finally {
       setSaving(false)
     }
-  }, [name, provider, baseUrl, effectiveApiKey, hasRequiredSecret, models, enabled])
+  }, [name, provider, baseUrl, effectiveApiKey, hasRequiredSecret, models, enabled, t])
 
   /** 显示第三方 Base URL 风险确认。 */
   const requestBaseUrlRiskAcknowledgement = (action: 'auto-save' | 'create' | 'fetch' | 'save-and-close' | 'test' | null): void => {
@@ -889,7 +891,7 @@ export function ChannelForm({ channel, onSaved, onCancel }: ChannelFormProps): R
   /** 创建渠道（仅新建模式） */
   const handleCreate = async (): Promise<void> => {
     if (models.length === 0) {
-      toast.warning('尚未配置模型，建议先从供应商获取或手动添加', { id: 'no-models-warn' })
+      toast.warning(t('settings.channels.noModelsWarning'), { id: 'no-models-warn' })
       return
     }
     if (requiresBaseUrlRiskAcknowledgement) {
@@ -991,7 +993,7 @@ export function ChannelForm({ channel, onSaved, onCancel }: ChannelFormProps): R
           <ArrowLeft size={18} />
         </Button>
         <h3 className="text-lg font-medium text-foreground flex-1">
-          {isEdit ? '编辑模型配置' : '添加模型配置'}
+          {isEdit ? t('settings.channels.editTitle') : t('settings.channels.addTitle')}
         </h3>
         {/* 新建模式：创建按钮 */}
         {!isEdit && (
@@ -1001,31 +1003,31 @@ export function ChannelForm({ channel, onSaved, onCancel }: ChannelFormProps): R
             disabled={saving || !name.trim() || !hasRequiredSecret}
           >
             {saving && <Loader2 size={14} className="animate-spin" />}
-            <span>创建</span>
+            <span>{t('settings.channels.create')}</span>
           </Button>
         )}
       </div>
 
       {/* 基本信息卡片 */}
-      <SettingsSection title="基本信息">
+      <SettingsSection title={t('settings.channels.sectionBasic')}>
         <SettingsCard>
           <SettingsSelect
-            label="供应商类型"
+            label={t('settings.channels.providerType')}
             value={provider}
             onValueChange={handleProviderChange}
             options={providerSelectOptions}
-            placeholder="选择供应商"
+            placeholder={t('settings.channels.providerPlaceholder')}
           />
           {provider === 'custom' && (
             <div className="px-4 pb-3 text-xs text-muted-foreground">
-              用于 OpenAI Chat Completions 的自定义请求地址，Chat 会按原样发送请求。用于 Agent 时请选择 Pi；若服务提供 Anthropic Messages 端点，请选择「Anthropic 兼容格式」。
+              {t('settings.channels.customProviderHint')}
             </div>
           )}
           <SettingsInput
-            label="供应商名称"
+            label={t('settings.channels.providerName')}
             value={name}
             onChange={setName}
-            placeholder="例如: My Anthropic"
+            placeholder={t('settings.channels.providerNamePlaceholder')}
             required
           />
           {/* 订阅 provider 的请求地址由 Pi SDK 内置管理，无需用户填写 */}
@@ -1036,14 +1038,14 @@ export function ChannelForm({ channel, onSaved, onCancel }: ChannelFormProps): R
               onChange={setBaseUrl}
               onBlur={handleBaseUrlBlur}
               placeholder={getUrlInputPlaceholder(provider)}
-              description={baseUrl.trim() ? `预览：${buildPreviewUrl(baseUrl, provider)}` : undefined}
+              description={baseUrl.trim() ? t('settings.channels.previewUrl', { url: buildPreviewUrl(baseUrl, provider) }) : undefined}
             />
           )}
           {/* API Key + 测试连接同行 */}
           <div className="px-4 py-3 space-y-2">
             <div className="flex items-center justify-between">
               <div className="text-sm font-medium text-foreground">
-                {isCodexProvider ? 'ChatGPT 登录' : isGithubCopilotProvider ? 'GitHub Copilot 登录' : isXaiProvider ? 'xAI 登录' : isZhipuTeamProvider ? '智谱团队版凭证' : 'API Key'}
+                {isCodexProvider ? t('settings.channels.chatgptLogin') : isGithubCopilotProvider ? t('settings.channels.copilotLogin') : isXaiProvider ? t('settings.channels.xaiLogin') : isZhipuTeamProvider ? t('settings.channels.zhipuTeamCredentials') : 'API Key'}
               </div>
               {/* 订阅 OAuth 无标准 API Key 测试路径，隐藏测试按钮 */}
               {!isSubscriptionProvider && (
@@ -1060,7 +1062,7 @@ export function ChannelForm({ channel, onSaved, onCancel }: ChannelFormProps): R
                   ) : (
                     <Zap size={12} />
                   )}
-                  <span>测试连接</span>
+                  <span>{t('settings.channels.testConnection')}</span>
                 </Button>
               )}
             </div>
@@ -1075,7 +1077,7 @@ export function ChannelForm({ channel, onSaved, onCancel }: ChannelFormProps): R
                   className="w-full"
                 >
                   {codexLoggingIn ? <Loader2 size={14} className="animate-spin" /> : <Zap size={14} />}
-                  <span>{codexLoggingIn ? '等待授权完成…' : hasRequiredSecret ? '重新登录 ChatGPT' : '用 ChatGPT 登录'}</span>
+                  <span>{codexLoggingIn ? t('settings.channels.waitingChatgptAuthorization') : hasRequiredSecret ? t('settings.channels.reloginChatgpt') : t('settings.channels.loginWithChatgpt')}</span>
                 </Button>
                 <Button
                   variant="ghost"
@@ -1085,23 +1087,22 @@ export function ChannelForm({ channel, onSaved, onCancel }: ChannelFormProps): R
                   disabled={codexLoggingIn}
                   className="w-full text-muted-foreground"
                 >
-                  使用设备码登录（浏览器无法使用系统代理时）
+                  {t('settings.channels.deviceCodeLogin')}
                 </Button>
                 {codexLoggingIn && (
                   <Button variant="ghost" size="sm" type="button" onClick={handleCancelCodexLogin} className="w-full text-muted-foreground">
-                    取消登录
+                    {t('settings.channels.cancelLogin')}
                   </Button>
                 )}
                 {codexLoggingIn && codexAuthUrl && (
                   <a href={codexAuthUrl} target="_blank" rel="noreferrer" className="block text-xs text-primary hover:underline">
-                    浏览器没有自动打开？点此打开 ChatGPT 授权页面
+                    {t('settings.channels.openChatgptAuthLink')}
                   </a>
                 )}
                 {codexLoggingIn && codexManualInput && (
                   <div className="rounded-md border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground space-y-2">
                     <div>
-                      浏览器授权后如果提示「无法访问 localhost:1455」，把浏览器地址栏的完整地址粘贴到下面即可完成登录；
-                      也可以改用下方的设备码登录。
+                      {t('settings.channels.codexManualInputHint')}
                     </div>
                     <div className="flex gap-2">
                       <input
@@ -1110,34 +1111,34 @@ export function ChannelForm({ channel, onSaved, onCancel }: ChannelFormProps): R
                         onKeyDown={(event) => { if (event.key === 'Enter') void handleSubmitCodexCallback() }}
                         placeholder={codexManualInput.placeholder || 'http://localhost:1455/auth/callback?code=…'}
                         className="h-7 flex-1 min-w-0 rounded-md border border-border bg-background px-2 font-mono text-[11px] outline-none focus-visible:border-ring"
-                        aria-label="粘贴浏览器回调地址"
+                        aria-label={t('settings.channels.pasteCallbackUrl')}
                       />
                       <Button size="sm" variant="outline" type="button" onClick={() => void handleSubmitCodexCallback()} disabled={!codexManualInputValue.trim()}>
-                        完成登录
+                        {t('settings.channels.finishLogin')}
                       </Button>
                     </div>
                   </div>
                 )}
                 {codexDeviceCode && (
                   <div className="rounded-md border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground space-y-2">
-                    <div>在任意可访问网络的浏览器中打开链接，并输入设备码：<span className="font-mono font-medium text-foreground">{codexDeviceCode.userCode}</span></div>
-                    <a href={codexDeviceCode.verificationUri} target="_blank" rel="noreferrer" className="text-primary hover:underline">打开 ChatGPT 授权页面</a>
-                    {codexDeviceCode.qrCodeData && <img src={codexDeviceCode.qrCodeData} alt="ChatGPT 设备码授权二维码" className="h-28 w-28 rounded bg-white p-1" />}
+                    <div>{t('settings.channels.chatgptDeviceCodeInstruction')}<span className="font-mono font-medium text-foreground">{codexDeviceCode.userCode}</span></div>
+                    <a href={codexDeviceCode.verificationUri} target="_blank" rel="noreferrer" className="text-primary hover:underline">{t('settings.channels.openChatgptAuthPage')}</a>
+                    {codexDeviceCode.qrCodeData && <img src={codexDeviceCode.qrCodeData} alt={t('settings.channels.chatgptQrAlt')} className="h-28 w-28 rounded bg-white p-1" />}
                   </div>
                 )}
                 {hasRequiredSecret ? (
                   <div className="flex items-center gap-1.5 text-xs text-emerald-600">
                     <CheckCircle2 size={12} className="shrink-0" />
-                    <span>已登录 ChatGPT 订阅{codexCredentials?.accountId ? `（账号 ${codexCredentials.accountId.slice(0, 8)}…）` : ''}</span>
+                    <span>{codexCredentials?.accountId ? t('settings.channels.chatgptLoggedInWithAccount', { id: codexCredentials.accountId.slice(0, 8) }) : t('settings.channels.chatgptLoggedIn')}</span>
                   </div>
-                ) : <div className="text-xs text-muted-foreground">Locus 会代理 token 请求；系统浏览器授权页仍需使用可访问 OpenAI 的网络。可改用设备码并在另一台设备完成授权。</div>}
+                ) : <div className="text-xs text-muted-foreground">{t('settings.channels.chatgptNoSecretHint')}</div>}
               </div>
             ) : isGithubCopilotProvider ? (
               <div className="space-y-2">
                 <Input
                   value={githubCopilotEnterpriseUrl}
                   onChange={(event) => setGithubCopilotEnterpriseUrl(event.target.value)}
-                  placeholder="GitHub Enterprise Server 域名（可选，例如 github.company.com）"
+                  placeholder={t('settings.channels.copilotEnterprisePlaceholder')}
                   disabled={githubCopilotLoggingIn}
                 />
                 <Button
@@ -1149,26 +1150,26 @@ export function ChannelForm({ channel, onSaved, onCancel }: ChannelFormProps): R
                   className="w-full"
                 >
                   {githubCopilotLoggingIn ? <Loader2 size={14} className="animate-spin" /> : <Zap size={14} />}
-                  <span>{githubCopilotLoggingIn ? '等待 GitHub 授权完成…' : hasRequiredSecret ? '重新登录 GitHub Copilot' : '用 GitHub Copilot 登录'}</span>
+                  <span>{githubCopilotLoggingIn ? t('settings.channels.waitingGithubAuthorization') : hasRequiredSecret ? t('settings.channels.reloginCopilot') : t('settings.channels.loginWithCopilot')}</span>
                 </Button>
                 {githubCopilotLoggingIn && (
                   <Button variant="ghost" size="sm" type="button" onClick={handleCancelGithubCopilotLogin} className="w-full text-muted-foreground">
-                    取消登录
+                    {t('settings.channels.cancelLogin')}
                   </Button>
                 )}
                 {githubCopilotDeviceCode && (
                   <div className="rounded-md border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground space-y-2">
-                    <div>在 GitHub 授权页面输入设备码：<span className="font-mono font-medium text-foreground">{githubCopilotDeviceCode.userCode}</span></div>
-                    <a href={githubCopilotDeviceCode.verificationUri} target="_blank" rel="noreferrer" className="text-primary hover:underline">打开 GitHub 授权页面</a>
-                    {githubCopilotDeviceCode.qrCodeData && <img src={githubCopilotDeviceCode.qrCodeData} alt="GitHub Copilot 设备码授权二维码" className="h-28 w-28 rounded bg-white p-1" />}
+                    <div>{t('settings.channels.copilotDeviceCodeInstruction')}<span className="font-mono font-medium text-foreground">{githubCopilotDeviceCode.userCode}</span></div>
+                    <a href={githubCopilotDeviceCode.verificationUri} target="_blank" rel="noreferrer" className="text-primary hover:underline">{t('settings.channels.openCopilotAuthPage')}</a>
+                    {githubCopilotDeviceCode.qrCodeData && <img src={githubCopilotDeviceCode.qrCodeData} alt={t('settings.channels.copilotQrAlt')} className="h-28 w-28 rounded bg-white p-1" />}
                   </div>
                 )}
                 {hasRequiredSecret ? (
                   <div className="flex items-center gap-1.5 text-xs text-emerald-600">
                     <CheckCircle2 size={12} className="shrink-0" />
-                    <span>已登录 GitHub Copilot 订阅（{githubCopilotCredentials?.availableModelIds.length ?? 0} 个可用模型）</span>
+                    <span>{t('settings.channels.copilotLoggedInWithCount', { n: githubCopilotCredentials?.availableModelIds.length ?? 0 })}</span>
                   </div>
-                ) : <div className="text-xs text-muted-foreground">Locus 会通过 GitHub device-code 绑定 Copilot 订阅，并按你的套餐和组织策略只显示可用模型。</div>}
+                ) : <div className="text-xs text-muted-foreground">{t('settings.channels.copilotNoSecretHint')}</div>}
               </div>
             ) : isXaiProvider ? (
               <div className="space-y-2">
@@ -1181,28 +1182,28 @@ export function ChannelForm({ channel, onSaved, onCancel }: ChannelFormProps): R
                   className="w-full"
                 >
                   {xaiLoggingIn ? <Loader2 size={14} className="animate-spin" /> : <Zap size={14} />}
-                  <span>{xaiLoggingIn ? '等待浏览器授权…' : hasRequiredSecret ? '重新登录 xAI' : '用 xAI 登录'}</span>
+                  <span>{xaiLoggingIn ? t('settings.channels.waitingBrowserAuthorization') : hasRequiredSecret ? t('settings.channels.reloginXai') : t('settings.channels.loginWithXai')}</span>
                 </Button>
                 {xaiLoggingIn && (
                   <Button variant="ghost" size="sm" type="button" onClick={handleCancelXaiLogin} className="w-full text-muted-foreground">
-                    取消登录
+                    {t('settings.channels.cancelLogin')}
                   </Button>
                 )}
                 {xaiDeviceCode && (
                   <div className="rounded-md border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground space-y-2">
-                    <div>若浏览器未自动填入授权码，请输入：<span className="font-mono font-medium text-foreground">{xaiDeviceCode.userCode}</span></div>
+                    <div>{t('settings.channels.xaiDeviceCodeInstruction')}<span className="font-mono font-medium text-foreground">{xaiDeviceCode.userCode}</span></div>
                     <a href={xaiDeviceCode.verificationUri} target="_blank" rel="noreferrer" className="text-primary hover:underline">
-                      打开 xAI 授权页面
+                      {t('settings.channels.openXaiAuthPage')}
                     </a>
-                    {xaiDeviceCode.qrCodeData && <img src={xaiDeviceCode.qrCodeData} alt="xAI 设备码授权二维码" className="h-28 w-28 rounded bg-white p-1" />}
+                    {xaiDeviceCode.qrCodeData && <img src={xaiDeviceCode.qrCodeData} alt={t('settings.channels.xaiQrAlt')} className="h-28 w-28 rounded bg-white p-1" />}
                   </div>
                 )}
                 {hasRequiredSecret ? (
                   <div className="flex items-center gap-1.5 text-xs text-emerald-600">
                     <CheckCircle2 size={12} className="shrink-0" />
-                    <span>已登录 xAI（Grok）订阅</span>
+                    <span>{t('settings.channels.xaiLoggedIn')}</span>
                   </div>
-                ) : <div className="text-xs text-muted-foreground">Locus 会代理设备码与 token 请求；授权页由系统浏览器打开。若浏览器无可用代理，可扫码在另一台设备完成授权。</div>}
+                ) : <div className="text-xs text-muted-foreground">{t('settings.channels.xaiNoSecretHint')}</div>}
               </div>
             ) : isZhipuTeamProvider ? (
               <div className="space-y-2">
@@ -1220,7 +1221,7 @@ export function ChannelForm({ channel, onSaved, onCancel }: ChannelFormProps): R
                     onClick={() => setShowApiKey(!showApiKey)}
                     className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground transition-colors"
                     tabIndex={-1}
-                    title={showApiKey ? '隐藏凭证' : '显示凭证'}
+                    title={showApiKey ? t('settings.channels.hideCredentials') : t('settings.channels.showCredentials')}
                   >
                     {showApiKey ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
@@ -1229,25 +1230,25 @@ export function ChannelForm({ channel, onSaved, onCancel }: ChannelFormProps): R
                   <Input
                     value={zhipuTeamSecret.organization}
                     onChange={(e) => updateZhipuTeamSecret({ organization: e.target.value })}
-                    placeholder="组织 ID（可选）"
+                    placeholder={t('settings.channels.orgIdPlaceholder')}
                   />
                   <Input
                     value={zhipuTeamSecret.project}
                     onChange={(e) => updateZhipuTeamSecret({ project: e.target.value })}
-                    placeholder="项目 ID（可选）"
+                    placeholder={t('settings.channels.projectIdPlaceholder')}
                   />
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  组织 ID 和项目 ID 可在{' '}
+                  {t('settings.channels.zhipuOrgHintBefore')}{' '}
                   <a
                     href="https://bigmodel.cn/usercenter/proj-mgmt/org-mgmt"
                     target="_blank"
                     rel="noreferrer"
                     className="text-primary hover:underline"
                   >
-                    智谱组织与项目管理
+                    {t('settings.channels.zhipuOrgHintLink')}
                   </a>
-                  {' '}查看；不填写时使用 API Token 的默认组织与项目上下文查询。
+                  {t('settings.channels.zhipuOrgHintAfter')}
                 </div>
               </div>
             ) : (
@@ -1283,8 +1284,8 @@ export function ChannelForm({ channel, onSaved, onCancel }: ChannelFormProps): R
             )}
           </div>
           <SettingsToggle
-            label="启用此配置"
-            description="关闭后该配置的模型不会在选择列表中出现"
+            label={t('settings.channels.enableConfig')}
+            description={t('settings.channels.enableConfigDesc')}
             checked={enabled}
             onCheckedChange={setEnabled}
           />
@@ -1293,13 +1294,13 @@ export function ChannelForm({ channel, onSaved, onCancel }: ChannelFormProps): R
 
       {/* 已启用模型 */}
       <SettingsSection
-        title="已启用模型"
-        description={enabledModels.length > 0 ? `${enabledModels.length} 个模型` : undefined}
+        title={t('settings.channels.sectionEnabledModels')}
+        description={enabledModels.length > 0 ? t('settings.channels.enabledModelsCount', { n: enabledModels.length }) : undefined}
       >
         <SettingsCard divided={false}>
           {enabledModels.length === 0 ? (
             <div className="px-4 py-8 text-center text-sm text-muted-foreground">
-              还没有启用任何模型，从下方可用模型中选择
+              {t('settings.channels.noEnabledModels')}
             </div>
           ) : (
             <div className="divide-y divide-border/50">
@@ -1319,7 +1320,7 @@ export function ChannelForm({ channel, onSaved, onCancel }: ChannelFormProps): R
                     type="button"
                     onClick={() => handleToggleModel(model.id)}
                     className="p-0.5 text-muted-foreground hover:text-destructive transition-colors opacity-0 group-hover:opacity-100"
-                    title="取消启用"
+                    title={t('settings.channels.disableModel')}
                   >
                     <X size={14} />
                   </button>
@@ -1332,7 +1333,7 @@ export function ChannelForm({ channel, onSaved, onCancel }: ChannelFormProps): R
 
       {/* 可用模型 */}
       <SettingsSection
-        title="可用模型"
+        title={t('settings.channels.sectionAvailableModels')}
         action={
           <Button
             variant="outline"
@@ -1347,7 +1348,7 @@ export function ChannelForm({ channel, onSaved, onCancel }: ChannelFormProps): R
             ) : (
               <Download size={12} />
             )}
-            <span>从供应商获取</span>
+            <span>{t('settings.channels.fetchFromProvider')}</span>
           </Button>
         }
       >
@@ -1371,7 +1372,7 @@ export function ChannelForm({ channel, onSaved, onCancel }: ChannelFormProps): R
                 <Input
                   value={modelFilter}
                   onChange={(e) => setModelFilter(e.target.value)}
-                  placeholder="搜索可用模型..."
+                  placeholder={t('settings.channels.searchModels')}
                   className="h-8 text-sm pl-8"
                 />
               </div>
@@ -1382,8 +1383,8 @@ export function ChannelForm({ channel, onSaved, onCancel }: ChannelFormProps): R
           {models.filter((m) => !m.enabled).length > 0 && (
             <div className="px-4 pt-2 pb-1 text-xs text-muted-foreground">
               {modelFilter.trim()
-                ? `${availableModels.length} / ${models.filter((m) => !m.enabled).length} 个可用模型`
-                : `${models.filter((m) => !m.enabled).length} 个可用模型`}
+                ? t('settings.channels.availableModelsFilteredCount', { filtered: availableModels.length, total: models.filter((m) => !m.enabled).length })
+                : t('settings.channels.availableModelsCount', { n: models.filter((m) => !m.enabled).length })}
             </div>
           )}
 
@@ -1406,7 +1407,7 @@ export function ChannelForm({ channel, onSaved, onCancel }: ChannelFormProps): R
                     type="button"
                     onClick={(e) => { e.stopPropagation(); handleRemoveModel(model.id) }}
                     className="p-0.5 text-muted-foreground hover:text-destructive transition-colors opacity-0 group-hover:opacity-100"
-                    title="删除"
+                    title={t('common.delete')}
                   >
                     <X size={14} />
                   </button>
@@ -1416,14 +1417,14 @@ export function ChannelForm({ channel, onSaved, onCancel }: ChannelFormProps): R
               {/* 搜索无结果提示 */}
               {modelFilter.trim() && availableModels.length === 0 && (
                 <div className="px-4 py-6 text-center text-sm text-muted-foreground">
-                  未找到匹配的模型
+                  {t('settings.channels.noMatchingModels')}
                 </div>
               )}
 
               {/* 无可用模型提示 */}
               {!modelFilter.trim() && models.filter((m) => !m.enabled).length === 0 && models.length > 0 && (
                 <div className="px-4 py-6 text-center text-sm text-muted-foreground">
-                  所有模型已启用
+                  {t('settings.channels.allModelsEnabled')}
                 </div>
               )}
             </div>
@@ -1434,7 +1435,7 @@ export function ChannelForm({ channel, onSaved, onCancel }: ChannelFormProps): R
             <Input
               value={newModelId}
               onChange={(e) => setNewModelId(e.target.value)}
-              placeholder="模型 ID（如 claude-opus-4-6）"
+              placeholder={t('settings.channels.modelIdPlaceholder')}
               className="flex-1 h-8 text-sm"
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
@@ -1446,7 +1447,7 @@ export function ChannelForm({ channel, onSaved, onCancel }: ChannelFormProps): R
             <Input
               value={newModelName}
               onChange={(e) => setNewModelName(e.target.value)}
-              placeholder="显示名称（可选）"
+              placeholder={t('settings.channels.modelNamePlaceholder')}
               className="flex-1 h-8 text-sm"
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
@@ -1479,19 +1480,19 @@ export function ChannelForm({ channel, onSaved, onCancel }: ChannelFormProps): R
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>确认使用第三方中转站？</AlertDialogTitle>
+            <AlertDialogTitle>{t('settings.channels.riskDialogTitle')}</AlertDialogTitle>
             <AlertDialogDescription asChild>
               <div className="space-y-2">
-                <p>该地址并非当前供应商的官方默认 Base URL。中转站可能存在篡改对话内容和模型响应，存在中间人攻击、凭据泄露与隐私风险。</p>
-                <p>其协议适配也可能导致上下文窗口、工具调用、多模态或流式内容显示异常。请仅使用你信赖的服务，并先用非敏感内容测试。</p>
-                <p>Locus 仅作为本地 Agent 执行环境：配置、会话等本地数据均存储在你的设备上，Locus 本身不会额外构成数据风险。</p>
+                <p>{t('settings.channels.riskDesc1')}</p>
+                <p>{t('settings.channels.riskDesc2')}</p>
+                <p>{t('settings.channels.riskDesc3')}</p>
               </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction onClick={handleBaseUrlRiskAcknowledgement}>
-              知晓并愿意承担风险
+              {t('settings.channels.riskAcknowledge')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -1501,20 +1502,20 @@ export function ChannelForm({ channel, onSaved, onCancel }: ChannelFormProps): R
       <AlertDialog open={showExitDialog} onOpenChange={setShowExitDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>放弃未保存的更改？</AlertDialogTitle>
+            <AlertDialogTitle>{t('settings.channels.discardTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
               {hasNoModels
-                ? '当前尚未配置模型，建议先配置模型再保存。'
-                : '您填写的内容尚未保存，确定要放弃编辑吗？'}
+                ? t('settings.channels.discardNoModelsDesc')
+                : t('settings.channels.discardDesc')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={handleDiscard}>放弃编辑</AlertDialogCancel>
+            <AlertDialogCancel onClick={handleDiscard}>{t('settings.channels.discardAction')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleSaveAndClose}
               disabled={saving || !name.trim() || !hasRequiredSecret}
             >
-              {saving ? <><Loader2 size={14} className="animate-spin" /> 保存中...</> : '保存并关闭'}
+              {saving ? <><Loader2 size={14} className="animate-spin" /> {t('common.saving')}</> : t('settings.channels.saveAndClose')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

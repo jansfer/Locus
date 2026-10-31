@@ -9,6 +9,7 @@ import * as React from 'react'
 import { useAtom, useSetAtom } from 'jotai'
 import { Loader2, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { useT } from '@/i18n'
 import { EnvironmentCheckCard } from './EnvironmentCheckCard'
 import {
   installerManifestAtom,
@@ -26,6 +27,7 @@ interface EnvironmentCheckPanelProps {
 export function EnvironmentCheckPanel({
   autoDetectOnMount = true,
 }: EnvironmentCheckPanelProps) {
+  const t = useT()
   const [runtime, setRuntime] = useAtom(runtimeStatusAtom)
   const setManifest = useSetAtom(installerManifestAtom)
   const shellOk = useAtomValue(isShellEnvironmentOkAtom)
@@ -73,16 +75,16 @@ export function EnvironmentCheckPanel({
   let shellStatusText = ''
   if (!runtime) {
     shellStatus = 'checking'
-    shellStatusText = '正在检测...'
+    shellStatusText = t('environment.card.checking')
   } else if (gitBashAvailable) {
     shellStatus = 'success'
-    shellStatusText = `Git Bash v${shell?.gitBash?.version ?? ''} 已可用`
+    shellStatusText = t('environment.panel.gitBashReady', { version: shell?.gitBash?.version ?? '' })
   } else if (wslAvailable) {
     shellStatus = 'success'
-    shellStatusText = `WSL ${shell?.wsl?.defaultDistro ?? ''} 已可用`
+    shellStatusText = t('environment.panel.wslReady', { distro: shell?.wsl?.defaultDistro ?? '' })
   } else {
     shellStatus = 'warning'
-    shellStatusText = '未检测到 Git Bash 或 WSL（基础 Agent 仍可用）'
+    shellStatusText = t('environment.panel.shellMissing')
   }
 
   // ----- Node.js 卡片 -----
@@ -92,23 +94,23 @@ export function EnvironmentCheckPanel({
   let nodeVersion: string | undefined = undefined
   if (!runtime) {
     nodeStatus = 'checking'
-    nodeStatusText = '正在检测...'
+    nodeStatusText = t('environment.card.checking')
   } else if (nodeInfo?.available) {
     nodeStatus = 'success'
     nodeVersion = nodeInfo.version ?? undefined
-    nodeStatusText = nodeVersion ? `v${nodeVersion} 已安装` : '已安装'
+    nodeStatusText = nodeVersion ? t('environment.panel.nodeInstalledWithVersion', { version: nodeVersion }) : t('environment.card.installed')
   } else {
     nodeStatus = 'warning'
-    nodeStatusText = '未安装（可选）'
+    nodeStatusText = t('environment.panel.nodeNotInstalledOptional')
   }
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-sm font-semibold">Windows 环境检测</h3>
+          <h3 className="text-sm font-semibold">{t('environment.panel.title')}</h3>
           <p className="text-xs text-muted-foreground mt-0.5">
-            基础 Agent 无需额外环境；Git Bash 或 WSL 可启用 Bash 命令执行
+            {t('environment.panel.subtitle')}
           </p>
         </div>
         <Button
@@ -123,15 +125,15 @@ export function EnvironmentCheckPanel({
           ) : (
             <RefreshCw className="mr-1.5 h-3 w-3" />
           )}
-          重新检测
+          {t('environment.panel.recheck')}
         </Button>
       </div>
 
       <div className="space-y-2">
         <EnvironmentCheckCard
-          name="Shell 环境"
+          name={t('environment.panel.shellName')}
           status={shellStatus}
-          requirement="可选 · 安装 Git Bash 或 WSL 后可使用 Bash 命令"
+          requirement={t('environment.panel.shellRequirement')}
           statusText={shellStatusText}
           action={
             shellStatus === 'warning'
@@ -143,7 +145,7 @@ export function EnvironmentCheckPanel({
           name="Node.js"
           status={nodeStatus}
           version={nodeVersion}
-          requirement="推荐 · 仅在使用 MCP 服务器（npx xxx）时需要"
+          requirement={t('environment.panel.nodeRequirement')}
           statusText={nodeStatusText}
           action={
             nodeStatus === 'warning'
@@ -155,13 +157,13 @@ export function EnvironmentCheckPanel({
 
       {!shellOk && runtime && (
         <div className="rounded-md border border-yellow-500/30 bg-yellow-500/5 px-3 py-2 text-[12px] text-yellow-700 dark:text-yellow-400">
-          未检测到 Git Bash 或 WSL：仍可使用基础 Agent，但本次不会提供 Bash 命令工具。
+          {t('environment.panel.shellMissingHint')}
         </div>
       )}
 
       {!nodeOk && runtime && (
         <div className="rounded-md border border-yellow-500/30 bg-yellow-500/5 px-3 py-2 text-[12px] text-yellow-700 dark:text-yellow-400">
-          未检测到 Node.js。如果不使用基于 npx 的 MCP 服务器，可以忽略此项。
+          {t('environment.panel.nodeMissingHint')}
         </div>
       )}
     </div>

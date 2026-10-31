@@ -11,6 +11,7 @@ import type { FileContents } from '@pierre/diffs'
 import { resolvedThemeAtom } from '@/atoms/theme'
 import { FilePathChip } from '@/components/ai-elements/file-path-chip'
 import { PIERRE_DIFF_CSS } from './pierre-styles'
+import { useT } from '@/i18n'
 
 function cheapHash(s: string): number {
   let h = 0
@@ -25,6 +26,7 @@ interface WriteResultRendererProps {
 }
 
 export function WriteResultRenderer({ result, isError, input }: WriteResultRendererProps): React.ReactElement {
+  const t = useT()
   const theme = useAtomValue(resolvedThemeAtom)
   const content = typeof input.content === 'string' ? input.content : ''
   const filePath = typeof input.file_path === 'string' ? input.file_path : ''
@@ -64,7 +66,7 @@ export function WriteResultRenderer({ result, isError, input }: WriteResultRende
   if (!content) {
     return (
       <div className="text-[12px] text-muted-foreground flex items-center gap-1">
-        已写入 {filePath ? <FilePathChip filePath={filePath} /> : <span className="font-mono text-foreground/70">文件</span>}
+        {t('agentMisc.toolResult.wroteTo')} {filePath ? <FilePathChip filePath={filePath} /> : <span className="font-mono text-foreground/70">{t('agentMisc.toolResult.fileFallback')}</span>}
       </div>
     )
   }

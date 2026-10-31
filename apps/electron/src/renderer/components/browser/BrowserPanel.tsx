@@ -20,6 +20,7 @@ import { browserPendingNavigationMapAtom } from '@/atoms/browser-atoms'
 import { BrowserSlot } from './BrowserSlot'
 import { shouldReuseInitialBrowserTab } from './agent-browser-link-utils'
 import { resolveExternalBrowserUrl } from './browser-external-url'
+import { useT } from '@/i18n'
 
 /** 加号菜单最多 7 项；为原生 WebContentsView 预留完整菜单及安全间距。 */
 const ADD_TAB_MENU_CLEARANCE_PX = 256
@@ -34,6 +35,7 @@ interface BrowserPanelProps {
 }
 
 export function BrowserPanel({ sessionId, tabId, state, isAddTabMenuOpen = false }: BrowserPanelProps): React.ReactElement {
+  const t = useT()
   const [url, setUrl] = React.useState(state?.url ?? '')
   const [riskAcknowledged, setRiskAcknowledged] = React.useState<boolean | null>(null)
   const [savingRiskAcknowledgement, setSavingRiskAcknowledgement] = React.useState(false)
@@ -86,7 +88,7 @@ export function BrowserPanel({ sessionId, tabId, state, isAddTabMenuOpen = false
       if (pendingNavigationUrl) {
         try {
           const currentState = await window.electronAPI.getAgentBrowserState(sessionId)
-          if (!currentState) throw new Error('受管浏览器会话不存在。')
+          if (!currentState) throw new Error(t('browser.panel.sessionMissing'))
           if (shouldReuseInitialBrowserTab(currentState)) {
             await window.electronAPI.navigateAgentBrowser({ sessionId, url: pendingNavigationUrl })
           } else {
@@ -130,11 +132,11 @@ export function BrowserPanel({ sessionId, tabId, state, isAddTabMenuOpen = false
   return (
     <div className="flex h-full min-w-0 flex-col overflow-hidden border-l border-border/80 bg-content-area titlebar-no-drag">
       <div className="flex items-center h-[42px] gap-1 px-2 border-b border-border/40 bg-muted/20">
-        <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" className="size-8 rounded-lg text-muted-foreground/70 hover:bg-muted/60 hover:text-foreground" disabled={riskBlocked || !isControllerTabActive || !state?.canGoBack} onClick={() => void window.electronAPI.goBackAgentBrowser?.(sessionId)}><ChevronLeft className="size-5" /></Button></TooltipTrigger><TooltipContent>后退</TooltipContent></Tooltip>
-        <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" className="size-8 rounded-lg text-muted-foreground/70 hover:bg-muted/60 hover:text-foreground" disabled={riskBlocked || !isControllerTabActive || !state?.canGoForward} onClick={() => void window.electronAPI.goForwardAgentBrowser?.(sessionId)}><ChevronRight className="size-5" /></Button></TooltipTrigger><TooltipContent>前进</TooltipContent></Tooltip>
-        <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" className="size-8 rounded-lg text-muted-foreground/70 hover:bg-muted/60 hover:text-foreground" disabled={riskBlocked || !isControllerTabActive} onClick={() => void window.electronAPI.reloadAgentBrowser?.(sessionId)}><RotateCw className="size-[18px]" /></Button></TooltipTrigger><TooltipContent>刷新</TooltipContent></Tooltip>
+        <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" className="size-8 rounded-lg text-muted-foreground/70 hover:bg-muted/60 hover:text-foreground" disabled={riskBlocked || !isControllerTabActive || !state?.canGoBack} onClick={() => void window.electronAPI.goBackAgentBrowser?.(sessionId)}><ChevronLeft className="size-5" /></Button></TooltipTrigger><TooltipContent>{t('browser.panel.navBack')}</TooltipContent></Tooltip>
+        <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" className="size-8 rounded-lg text-muted-foreground/70 hover:bg-muted/60 hover:text-foreground" disabled={riskBlocked || !isControllerTabActive || !state?.canGoForward} onClick={() => void window.electronAPI.goForwardAgentBrowser?.(sessionId)}><ChevronRight className="size-5" /></Button></TooltipTrigger><TooltipContent>{t('browser.panel.navForward')}</TooltipContent></Tooltip>
+        <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" className="size-8 rounded-lg text-muted-foreground/70 hover:bg-muted/60 hover:text-foreground" disabled={riskBlocked || !isControllerTabActive} onClick={() => void window.electronAPI.reloadAgentBrowser?.(sessionId)}><RotateCw className="size-[18px]" /></Button></TooltipTrigger><TooltipContent>{t('browser.panel.reload')}</TooltipContent></Tooltip>
         <form className="flex-1 min-w-0" onSubmit={(event) => { event.preventDefault(); if (!riskBlocked) void navigate() }}>
-          <Input disabled={riskBlocked || !isControllerTabActive} value={url} onChange={(event) => setUrl(event.target.value)} placeholder="输入网址或搜索内容" className="h-7 bg-background/70 text-xs text-muted-foreground/70" aria-label="浏览器地址" />
+          <Input disabled={riskBlocked || !isControllerTabActive} value={url} onChange={(event) => setUrl(event.target.value)} placeholder={t('browser.panel.addressPlaceholder')} className="h-7 bg-background/70 text-xs text-muted-foreground/70" aria-label={t('browser.panel.addressAria')} />
         </form>
         <Tooltip>
           <TooltipTrigger asChild>
@@ -145,16 +147,16 @@ export function BrowserPanel({ sessionId, tabId, state, isAddTabMenuOpen = false
               className="size-8 shrink-0 rounded-lg text-muted-foreground/70 hover:bg-muted/60 hover:text-foreground"
               disabled={riskBlocked || !isControllerTabActive || !externalBrowserUrl}
               onClick={openInDefaultBrowser}
-              aria-label="通过默认浏览器打开"
+              aria-label={t('browser.panel.openExternal')}
             >
               <Globe className="size-[18px]" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>通过默认浏览器打开</TooltipContent>
+          <TooltipContent>{t('browser.panel.openExternal')}</TooltipContent>
         </Tooltip>
         {state?.loading && <LoaderCircle className="size-3.5 text-muted-foreground animate-spin" />}
         {isBackgroundRun && (
-          <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" className="size-7 text-amber-600 hover:text-amber-700" onClick={() => void stopBackgroundRun()} aria-label="停止当前后台 Agent"><Square className="size-3.5 fill-current" /></Button></TooltipTrigger><TooltipContent>停止当前{state?.executionSource === 'automation' ? '自动任务' : '委派'}运行</TooltipContent></Tooltip>
+          <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" className="size-7 text-amber-600 hover:text-amber-700" onClick={() => void stopBackgroundRun()} aria-label={t('browser.panel.stopBackgroundAgent')}><Square className="size-3.5 fill-current" /></Button></TooltipTrigger><TooltipContent>{state?.executionSource === 'automation' ? t('browser.panel.stopAutomationRun') : t('browser.panel.stopDelegationRun')}</TooltipContent></Tooltip>
         )}
       </div>
       {riskAcknowledged === true ? (
@@ -168,8 +170,8 @@ export function BrowserPanel({ sessionId, tabId, state, isAddTabMenuOpen = false
         <div className="flex flex-1 min-h-0 items-center justify-center bg-muted/15 px-8 text-center">
           <div className="max-w-sm space-y-2 text-muted-foreground">
             <ShieldAlert className="mx-auto size-7 text-amber-500/90" />
-            <p className="text-sm font-medium text-foreground">使用前请阅读风险告知</p>
-            <p className="text-xs leading-5">受管浏览器将在确认后启用，登录状态只保存在本机。</p>
+            <p className="text-sm font-medium text-foreground">{t('browser.panel.riskGateTitle')}</p>
+            <p className="text-xs leading-5">{t('browser.panel.riskGateSubtitle')}</p>
           </div>
         </div>
       )}
@@ -179,19 +181,19 @@ export function BrowserPanel({ sessionId, tabId, state, isAddTabMenuOpen = false
             <div className="mb-1 flex size-10 items-center justify-center rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
               <ShieldAlert className="size-5" />
             </div>
-            <AlertDialogTitle className="text-balance">首次使用受管浏览器</AlertDialogTitle>
+            <AlertDialogTitle className="text-balance">{t('browser.panel.riskDialogTitle')}</AlertDialogTitle>
             <AlertDialogDescription asChild>
               <div className="space-y-3 text-left leading-6">
-                <p>Locus 可让 Agent 在浏览器中读取、搜索、点击和输入。部分平台可能将这些行为或高频操作识别为自动化活动。</p>
-                <p>这可能导致验证码、限流、功能限制、账号风控，严重时可能造成账号处罚或封禁。请自行了解并遵守目标平台规则，并自行承担相应风险。</p>
-                <p className="text-xs">Locus 不会保证第三方平台接受这些操作；请避免不必要的高频互动，并在重要操作前核对页面状态。</p>
+                <p>{t('browser.panel.riskDesc1')}</p>
+                <p>{t('browser.panel.riskDesc2')}</p>
+                <p className="text-xs">{t('browser.panel.riskDesc3')}</p>
               </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={savingRiskAcknowledgement}>暂不使用</AlertDialogCancel>
+            <AlertDialogCancel disabled={savingRiskAcknowledgement}>{t('browser.panel.riskDecline')}</AlertDialogCancel>
             <Button type="button" disabled={savingRiskAcknowledgement} onClick={() => void acceptRiskDisclaimer()}>
-              {savingRiskAcknowledgement ? '正在确认…' : '我已知悉并承担风险'}
+              {savingRiskAcknowledgement ? t('browser.panel.riskConfirming') : t('browser.panel.riskAccept')}
             </Button>
           </AlertDialogFooter>
         </AlertDialogContent>

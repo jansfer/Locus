@@ -10,6 +10,7 @@
 import * as React from 'react'
 import { ChevronDown, ChevronUp } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useT } from '@/i18n'
 
 interface CollapsibleResultProps {
   /** 内容文本 */
@@ -33,6 +34,7 @@ export function CollapsibleResult({
 }: CollapsibleResultProps): React.ReactElement {
   const safeContent = content ?? ''
   const [expanded, setExpanded] = React.useState(false)
+  const t = useT()
   const needsCollapse = safeContent.length > threshold
 
   const displayContent = React.useMemo(() => {
@@ -55,12 +57,12 @@ export function CollapsibleResult({
           {expanded ? (
             <>
               <ChevronUp className="size-3" />
-              收起
+              {t('common.collapse')}
             </>
           ) : (
             <>
               <ChevronDown className="size-3" />
-              展开全部
+              {t('agentMisc.toolResult.expandAll')}
             </>
           )}
         </button>

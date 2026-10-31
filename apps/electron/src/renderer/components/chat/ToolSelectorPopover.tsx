@@ -24,6 +24,7 @@ import { cn } from '@/lib/utils'
 import { Wrench, Brain, Globe, ImagePlus } from 'lucide-react'
 import { chatToolsAtom, hasActiveToolsAtom } from '@/atoms/chat-tool-atoms'
 import { inputToolbarActiveButtonClass, inputToolbarButtonClass } from '@/components/ai-elements/input-toolbar-styles'
+import { useT } from '@/i18n'
 
 /** 工具 ID 到图标的映射 */
 function getToolIcon(iconName?: string): React.ReactElement {
@@ -40,6 +41,7 @@ function getToolIcon(iconName?: string): React.ReactElement {
 }
 
 export function ToolSelectorPopover(): React.ReactElement {
+  const t = useT()
   const [open, setOpen] = useState(false)
   const tools = useAtomValue(chatToolsAtom)
   const setChatTools = useSetAtom(chatToolsAtom)
@@ -75,18 +77,18 @@ export function ToolSelectorPopover(): React.ReactElement {
           </PopoverTrigger>
         </TooltipTrigger>
         <TooltipContent side="top">
-          <p>工具</p>
+          <p>{t('chat.tools.title')}</p>
         </TooltipContent>
       </Tooltip>
       <PopoverContent className="w-64" side="top" align="center">
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium">工具</span>
+            <span className="text-xs font-medium">{t('chat.tools.title')}</span>
           </div>
 
           {/* 工具列表 */}
           {tools.length === 0 ? (
-            <p className="text-xs text-muted-foreground py-2">加载中...</p>
+            <p className="text-xs text-muted-foreground py-2">{t('common.loading')}</p>
           ) : (
             <div className="space-y-1">
               {tools.map((tool) => {
@@ -113,7 +115,7 @@ export function ToolSelectorPopover(): React.ReactElement {
                       </span>
                       {!canToggle && (
                         <span className="text-[10px] text-muted-foreground shrink-0">
-                          需配置
+                          {t('chat.tools.needsConfig')}
                         </span>
                       )}
                     </div>

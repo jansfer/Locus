@@ -31,6 +31,7 @@ import {
 import { streamingModelAtom, channelsAtom } from '@/atoms/chat-atoms'
 import { getModelLogo, resolveModelProvider } from '@/lib/model-logo'
 import type { ChatMessage } from '@proma/shared'
+import { useT } from '@/i18n'
 
 /** 消息段落（按分隔线分割） */
 interface MessageSegment {
@@ -62,10 +63,11 @@ interface ParallelChatMessagesProps {
 
 /** 空列占位 */
 function EmptyColumn({ side }: { side: 'user' | 'assistant' }): React.ReactElement {
+  const t = useT()
   return (
     <div className="flex h-full items-center justify-center p-4">
       <p className="text-sm text-muted-foreground">
-        {side === 'user' ? '暂无用户消息' : '暂无助手回复'}
+        {side === 'user' ? t('chat.parallel.emptyUser') : t('chat.parallel.emptyAssistant')}
       </p>
     </div>
   )
@@ -255,6 +257,7 @@ export function ParallelChatMessages({
   inlineEditingMessageId,
   loadingMore = false,
 }: ParallelChatMessagesProps): React.ReactElement {
+  const t = useT()
   // 分段消息
   const segments = useMemo(
     () => segmentMessages(messages, contextDividers),
@@ -287,7 +290,7 @@ export function ParallelChatMessages({
           <div className="w-1/2 flex flex-col overflow-hidden border-r border-border">
             <div className="px-4 py-2 border-b border-border bg-muted/30">
               <span className="text-sm font-medium text-muted-foreground">
-                用户消息
+                {t('chat.parallel.userMessages')}
               </span>
             </div>
             <MessageColumn
@@ -308,7 +311,7 @@ export function ParallelChatMessages({
           <div className="w-1/2 flex flex-col overflow-hidden">
             <div className="px-4 py-2 border-b border-border bg-muted/30">
               <span className="text-sm font-medium text-muted-foreground">
-                助手回复
+                {t('chat.parallel.assistantReplies')}
               </span>
             </div>
             <MessageColumn
@@ -355,7 +358,7 @@ export function ParallelChatMessages({
                 {index === 0 && (
                   <div className="px-4 py-2 border-b border-border bg-muted/30">
                     <span className="text-sm font-medium text-muted-foreground">
-                      用户消息
+                      {t('chat.parallel.userMessages')}
                     </span>
                   </div>
                 )}
@@ -378,7 +381,7 @@ export function ParallelChatMessages({
                 {index === 0 && (
                   <div className="px-4 py-2 border-b border-border bg-muted/30">
                     <span className="text-sm font-medium text-muted-foreground">
-                      助手回复
+                      {t('chat.parallel.assistantReplies')}
                     </span>
                   </div>
                 )}

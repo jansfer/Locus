@@ -14,6 +14,7 @@
 import * as React from 'react'
 import { Clock, GitBranch } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useT } from '@/i18n'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import {
   SessionMiniMapPopover,
@@ -77,12 +78,15 @@ function RailRecentButton({
   miniMapDisabled?: boolean
 }): React.ReactElement {
   const hasChildren = getRailItemChildCount(item) > 0
+  const t = useT()
   const preview = useSessionMiniMapHover(600, miniMapDisabled || hasChildren)
   const button = (
     <button
       ref={preview.setAnchorRef}
       type="button"
-      aria-label={`打开${item.type === 'agent' ? 'Agent 会话' : 'Chat 对话'}：${item.title}`}
+      aria-label={item.type === 'agent'
+        ? t('agentMisc.openAgentSessionAria', { title: item.title })
+        : t('agentMisc.openChatSessionAria', { title: item.title })}
       onClick={() => onSelect(item)}
       onMouseEnter={preview.handleMouseEnter}
       onMouseLeave={preview.handleMouseLeave}

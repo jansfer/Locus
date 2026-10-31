@@ -1,0 +1,53 @@
+/** uiCommon 域文案（English）。与 zh-CN 同名文件同形；缺键会在编译期报错。 */
+import type { MirrorStructure } from '../../types'
+import { uiCommon as zhuiCommon } from '../zh-CN/uiCommon'
+
+export const uiCommon: MirrorStructure<typeof zhuiCommon> = {
+  editor: {
+    noImageData: 'No image data',
+    loadFailed: 'Failed to load image',
+    crop: 'Crop',
+    rotate90: 'Rotate 90°',
+    rect: 'Rectangle',
+    brush: 'Brush',
+    brushSize: 'Brush {size}px',
+    applyCrop: 'Apply crop',
+  },
+  lightbox: {
+    previewAlt: 'Image preview',
+    untitledImage: 'image',
+    previewImage: 'Image preview: {alt}',
+    prev: 'Previous',
+    next: 'Next',
+    editImage: 'Edit image',
+    saveImage: 'Save image',
+  },
+  datePicker: {
+    placeholder: 'Set a due date',
+    today: 'Today',
+    tomorrow: 'Tomorrow',
+    nextMonday: 'Next Monday',
+    noDate: 'No date',
+    date: 'Date',
+    time: 'Time',
+    prevMonth: 'Previous month',
+    currentMonth: 'This month',
+    nextMonth: 'Next month',
+    weekMon: 'Mon',
+    weekTue: 'Tue',
+    weekWed: 'Wed',
+    weekThu: 'Thu',
+    weekFri: 'Fri',
+    weekSat: 'Sat',
+    weekSun: 'Sun',
+    dueWithTime: '{prefix} · {time}',
+    selectTime: 'Pick a time',
+    timeRequiredHint: 'Choose the exact time for the event.',
+    timeOptionalHint: 'Time is optional; leaving it unset uses end of day.',
+    hour: 'Hour',
+    minute: 'Minute',
+    noTime: 'No time',
+    customTime: 'Custom time',
+    defaultLabel: 'Due date',
+  },
+}

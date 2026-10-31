@@ -26,6 +26,7 @@ import {
 import { fetchChannelPlanQuota } from '@/lib/channel-plan-quota'
 import { currentPlanQuota, formatPlanQuotaWindowValue, planQuotaAccountKey } from '@/lib/channel-plan-quota-display'
 import type { LoadedPlanQuota } from '@/lib/channel-plan-quota-display'
+import { useT } from '@/i18n'
 
 /** 显示警告的阈值（压缩阈值的 80%） */
 const WARNING_RATIO = 0.80
@@ -33,6 +34,7 @@ const WARNING_RATIO = 0.80
 const HOVER_CLOSE_DELAY = 150
 /** 手动压缩二次确认后自动重置确认态的超时（ms），与归档按钮一致 */
 const CONFIRM_RESET_DELAY = 3000
+/** 与主进程 channel-manager 生成的哨兵文案保持一致，仅用于相等比较，不直接展示。 */
 const UNSUPPORTED_PLAN_QUOTA_MESSAGE = '当前渠道不支持订阅 Plan 额度查询'
 
 interface ContextUsageBadgeProps {
@@ -172,6 +174,7 @@ export function ContextUsageBadge({
   channelId,
   channelUpdatedAt,
 }: ContextUsageBadgeProps): React.ReactElement | null {
+  const t = useT()
   // usage 高频更新只唤醒这个小组件，不再让 AgentView 和输入框参与 reconciliation。
   const sessionStreamState = useAtomValue(agentSessionViewStreamStateAtomFamily(sessionId ?? ''))
   const displayInputTokens = sessionId ? sessionStreamState.inputTokens : inputTokens
@@ -351,26 +354,28 @@ export function ContextUsageBadge({
         <div className="flex flex-col gap-1.5">
           {displayIsEstimated ? (
             <DetailRow
-              label="压缩后"
-              value={`预估 ${formatTokens(displayTokens)} tokens${percent != null ? `（${percent}%）` : ''}`}
+              label={t('agentMisc.afterCompaction')}
+              value={percent != null
+                ? t('agentMisc.estimatedTokensWithPercent', { tokens: formatTokens(displayTokens), percent })
+                : t('agentMisc.estimatedTokens', { tokens: formatTokens(displayTokens) })}
               emphasized
             />
           ) : (
             <>
-              {displayOutput ? <DetailRow label="输出" value={displayOutput.toLocaleString()} /> : null}
-              {displayCacheCreation ? <DetailRow label="缓存写入" value={displayCacheCreation.toLocaleString()} /> : null}
-              {displayCacheRead ? <DetailRow label="缓存读取" value={displayCacheRead.toLocaleString()} /> : null}
+              {displayOutput ? <DetailRow label={t('agentMisc.outputTokensLabel')} value={displayOutput.toLocaleString()} /> : null}
+              {displayCacheCreation ? <DetailRow label={t('agentMisc.cacheWriteLabel')} value={displayCacheCreation.toLocaleString()} /> : null}
+              {displayCacheRead ? <DetailRow label={t('agentMisc.cacheReadLabel')} value={displayCacheRead.toLocaleString()} /> : null}
 
               {displayWindow ? (
                 <>
                   <DetailRow
-                    label="上下文"
+                    label={t('agentMisc.contextLabel')}
                     value={`${formatTokens(displayTokens)} / ${formatTokens(displayWindow)}`}
                     emphasized
                   />
                   {percent != null && (
                     <DetailRow
-                      label="占用"
+                      label={t('agentMisc.usagePercentLabel')}
                       value={`${percent}%`}
                       emphasized={isWarning}
                     />
@@ -384,7 +389,9 @@ export function ContextUsageBadge({
             <>
               <div className="h-px bg-border my-0.5" />
               <div className="text-[11px] font-medium text-foreground/70">
-                订阅额度{quota?.planName ? ` · ${quota.planName}` : ''}
+                {quota?.planName
+                  ? t('agentMisc.planQuotaTitleWithPlan', { plan: quota.planName })
+                  : t('agentMisc.planQuotaTitle')}
               </div>
               {quota?.supported && quota.windows.length > 0 ? (
                 <div className="flex flex-col gap-1.5">
@@ -394,7 +401,7 @@ export function ContextUsageBadge({
                 </div>
               ) : (
                 <div className="text-[11px] text-foreground/50">
-                  {quota?.message ?? '订阅额度查询失败'}
+                  {quota?.message ?? t('agentMisc.planQuotaQueryFailed')}
                 </div>
               )}
             </>
@@ -422,7 +429,11 @@ export function ContextUsageBadge({
             disabled={isProcessing}
           >
             <Minimize2 className="size-3.5" />
-            {isProcessing ? '对话进行中' : confirming ? '再次点击确认压缩' : '手动压缩'}
+            {isProcessing
+              ? t('agentMisc.processingInProgress')
+              : confirming
+                ? t('agentMisc.confirmCompactAgain')
+                : t('agentMisc.manualCompact')}
           </Button>
         </div>
       </PopoverContent>

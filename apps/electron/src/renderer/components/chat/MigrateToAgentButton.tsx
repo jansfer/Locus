@@ -24,6 +24,7 @@ import {
 import { tabsAtom, activeTabIdAtom, openTab } from '@/atoms/tab-atoms'
 import { activeViewAtom } from '@/atoms/active-view'
 import { appModeAtom } from '@/atoms/app-mode'
+import { useT } from '@/i18n'
 
 interface MigrateToAgentButtonProps {
   /** 当前对话 ID */
@@ -31,6 +32,7 @@ interface MigrateToAgentButtonProps {
 }
 
 export function MigrateToAgentButton({ conversationId }: MigrateToAgentButtonProps): React.ReactElement {
+  const t = useT()
   const store = useStore()
   const [migrating, setMigrating] = React.useState(false)
 
@@ -39,7 +41,7 @@ export function MigrateToAgentButton({ conversationId }: MigrateToAgentButtonPro
 
     const agentChannelId = store.get(agentChannelIdAtom)
     if (!agentChannelId) {
-      toast.error('请先在设置中配置 Agent 渠道')
+      toast.error(t('chat.agentMode.channelNotConfigured'))
       return
     }
 
@@ -76,7 +78,7 @@ export function MigrateToAgentButton({ conversationId }: MigrateToAgentButtonPro
       store.set(activeViewAtom, 'conversations')
 
       // 6. 打开 Agent 会话 Tab 并激活
-      const sessionTitle = session.title ?? '新 Agent 会话'
+      const sessionTitle = session.title ?? t('chat.agentMode.newSessionTitle')
       const tabs = store.get(tabsAtom)
       const result = openTab(tabs, {
         type: 'agent',
@@ -88,12 +90,12 @@ export function MigrateToAgentButton({ conversationId }: MigrateToAgentButtonPro
       store.set(currentAgentSessionIdAtom, session.id)
 
       // 7. 通知用户
-      toast.success('已切换到 Agent 模式', {
-        description: '对话历史已迁移到新的 Agent 会话',
+      toast.success(t('chat.agentMode.switchedTitle'), {
+        description: t('chat.agentMode.switchedDescription'),
       })
     } catch (error) {
       console.error('[MigrateToAgentButton] 迁移失败:', error)
-      toast.error('切换到 Agent 模式失败')
+      toast.error(t('chat.agentMode.switchFailed'))
     } finally {
       setMigrating(false)
     }
@@ -101,7 +103,7 @@ export function MigrateToAgentButton({ conversationId }: MigrateToAgentButtonPro
 
   return (
     <MessageAction
-      tooltip={migrating ? '切换中...' : '切换到 Agent 模式'}
+      tooltip={migrating ? t('chat.agentMode.switching') : t('chat.agentMode.switchAction')}
       onClick={() => { void handleMigrate() }}
       disabled={migrating}
     >

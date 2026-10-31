@@ -1,5 +1,6 @@
 import * as React from 'react'
 import { ExternalLink, Loader2 } from 'lucide-react'
+import { useT } from '@/i18n'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
@@ -12,6 +13,7 @@ interface CredentialDialogProps {
 }
 
 export function CredentialDialog({ integration, onOpenChange, onSave }: CredentialDialogProps): React.ReactElement {
+  const t = useT()
   const inputRef = React.useRef<HTMLInputElement>(null)
   const [saving, setSaving] = React.useState(false)
 
@@ -41,21 +43,21 @@ export function CredentialDialog({ integration, onOpenChange, onSave }: Credenti
         {integration && (
           <>
             <DialogHeader className="space-y-2 text-left">
-              <DialogTitle className="text-xl font-semibold">{integration.name} 授权</DialogTitle>
+              <DialogTitle className="text-xl font-semibold">{t('skills.credentialDialog.title', { name: integration.name })}</DialogTitle>
               <DialogDescription className="text-[15px] leading-6">
-                输入 {integration.name} 提供的 {integration.credential.label}，Locus 会加密保存在系统 Keychain 中，并为当前工作区建立连接。
+                {t('skills.credentialDialog.description', { name: integration.name, label: t(integration.credential.label) })}
               </DialogDescription>
             </DialogHeader>
 
             <div className="mt-7">
               <label htmlFor="catalog-credential" className="text-sm font-medium text-foreground">
-                {integration.credential.label} <span className="text-destructive">*</span>
+                {t(integration.credential.label)} <span className="text-destructive">*</span>
               </label>
               <Input
                 id="catalog-credential"
                 autoComplete="off"
                 className="mt-2 h-12 text-sm"
-                placeholder={integration.credential.placeholder}
+                placeholder={t(integration.credential.placeholder)}
                 type="password"
                 ref={inputRef}
                 onKeyDown={(event) => {
@@ -70,17 +72,17 @@ export function CredentialDialog({ integration, onOpenChange, onSave }: Credenti
                 }}
                 className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-primary transition-colors hover:text-primary/80 hover:underline"
               >
-                <span>{integration.credential.acquisitionLabel}</span>
+                <span>{t(integration.credential.acquisitionLabel)}</span>
                 <ExternalLink size={12} />
               </a>
-              <p className="mt-2 text-xs leading-5 text-muted-foreground">{integration.credential.helpText}</p>
+              <p className="mt-2 text-xs leading-5 text-muted-foreground">{t(integration.credential.helpText)}</p>
             </div>
 
             <DialogFooter className="mt-7 gap-3 sm:justify-end">
-              <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>取消</Button>
+              <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>{t('common.cancel')}</Button>
               <Button onClick={() => { void handleSave() }} disabled={saving}>
                 {saving && <Loader2 size={15} className="animate-spin" />}
-                保存并连接
+                {t('skills.credentialDialog.saveAndConnect')}
               </Button>
             </DialogFooter>
           </>

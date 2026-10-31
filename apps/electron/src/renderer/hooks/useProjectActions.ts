@@ -17,6 +17,7 @@ import {
 } from '@/atoms/agent-atoms'
 import { activeViewAtom } from '@/atoms/active-view'
 import { useOpenSession } from './useOpenSession'
+import { t } from '@/i18n'
 import type { AgentWorkspace, CreateAgentWorkspaceInput } from '@proma/shared'
 
 interface UseProjectActionsResult {
@@ -72,7 +73,7 @@ export function useProjectActions(): UseProjectActionsResult {
         window.electronAPI.updateSettings({ agentWorkspaceId: workspace.id }).catch(console.error)
         return workspace
       } catch (error) {
-        const msg = error instanceof Error ? error.message : '创建失败'
+        const msg = error instanceof Error ? error.message : t('misc.project.createFailed')
         toast.error(msg)
         return null
       } finally {
@@ -88,7 +89,7 @@ export function useProjectActions(): UseProjectActionsResult {
       if (!folder) return null
       return await createProject(folder.name, { projectRootPath: folder.path })
     } catch (error) {
-      const msg = error instanceof Error ? error.message : '选择项目文件夹失败'
+      const msg = error instanceof Error ? error.message : t('misc.project.folderSelectFailed')
       toast.error(msg)
       return null
     }

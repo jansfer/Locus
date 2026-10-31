@@ -12,6 +12,7 @@ import { mergeVoiceDictationTranscript } from './voice-transcript-merge'
 import type { VoiceDictationTranscriptMergeState } from './voice-transcript-merge'
 import { useVoiceWindowLayout } from './use-voice-window-layout'
 import { resumeAudioContextForCapture } from './audio-context'
+import { t, useT } from '@/i18n'
 import {
   VOICE_DICTATION_STATUS_EVENT,
   resolveVoiceDictationSessionInputIds,
@@ -23,9 +24,10 @@ const STOP_COMMIT_TIMEOUT_MS = 1400
 const FINAL_COMMIT_DELAY_MS = 180
 
 export function VoiceDictationApp({ embedded = false }: { embedded?: boolean }): React.ReactElement {
+  const t = useT()
   const [sessionId, setSessionId] = React.useState<string | null>(null)
   const [status, setStatus] = React.useState<VoiceDictationStateEvent['status']>('idle')
-  const [message, setMessage] = React.useState('按快捷键开始语音输入')
+  const [message, setMessage] = React.useState(t('voice.status.initial'))
   const [transcript, setTranscript] = React.useState('')
   const [commitResult, setCommitResult] = React.useState<VoiceDictationCommitResult | null>(null)
   const [volume, setVolume] = React.useState(0)
@@ -187,7 +189,7 @@ export function VoiceDictationApp({ embedded = false }: { embedded?: boolean }):
     const outputContextId = dictationOutputContextRef.current
     discardCurrentTranscript()
     if (!text) {
-      setMessage('没有识别到语音内容')
+      setMessage(t('voice.status.noSpeech'))
       cleanupAudio()
       if (asrSessionId) {
         await window.electronAPI.cancelVoiceDictation({
@@ -207,7 +209,7 @@ export function VoiceDictationApp({ embedded = false }: { embedded?: boolean }):
     }
 
     setStatus('stopping')
-    setMessage('正在输出文本...')
+    setMessage(t('voice.status.outputting'))
     try {
       const result = await window.electronAPI.commitVoiceDictation({
         sessionId: dictationSessionId ?? asrSessionId ?? '',
@@ -230,9 +232,9 @@ export function VoiceDictationApp({ embedded = false }: { embedded?: boolean }):
       cleanupAudio()
     } catch (error) {
       commitInFlightRef.current = false
-      const textMessage = error instanceof Error ? error.message : '未知错误'
+      const textMessage = error instanceof Error ? error.message : t('voice.status.unknownError')
       setStatus('error')
-      setMessage(`输出失败: ${textMessage}`)
+      setMessage(t('voice.status.outputFailed', { message: textMessage }))
     }
   }, [cleanupAudio, discardCurrentTranscript, setDictationOutputContext, setDictationSource, setDictationTarget])
 
@@ -251,7 +253,7 @@ export function VoiceDictationApp({ embedded = false }: { embedded?: boolean }):
     stoppingRef.current = true
     const currentSessionId = sessionIdRef.current
     setStatus('stopping')
-    setMessage('正在收尾识别...')
+    setMessage(t('voice.status.finalizing'))
     cleanupAudio(false)
     flushPendingAudio()
     flushQueuedAudio()
@@ -275,7 +277,7 @@ export function VoiceDictationApp({ embedded = false }: { embedded?: boolean }):
       commitTimerRef.current = null
     }
     setStatus('idle')
-    setMessage('已取消语音输入')
+    setMessage(t('voice.status.cancelled'))
     setDictationSource(null)
     setDictationTarget(null)
     setDictationOutputContext(null)
@@ -336,7 +338,7 @@ export function VoiceDictationApp({ embedded = false }: { embedded?: boolean }):
 
   const requestMicrophoneStream = React.useCallback(async (): Promise<MediaStream> => {
     if (!navigator.mediaDevices?.getUserMedia) {
-      throw new Error('当前环境不支持麦克风采集')
+      throw new Error(t('voice.errors.micUnsupported'))
     }
 
     try {
@@ -360,7 +362,7 @@ export function VoiceDictationApp({ embedded = false }: { embedded?: boolean }):
     if (audioCaptureReadyRef.current) return
     audioCaptureReadyRef.current = true
     setStatus('recording')
-    setMessage('正在听写')
+    setMessage(t('voice.status.listening'))
   }, [])
 
   const startAudioCapture = React.useCallback(async (attempt: number) => {
@@ -373,7 +375,7 @@ export function VoiceDictationApp({ embedded = false }: { embedded?: boolean }):
 
     const AudioContextCtor = window.AudioContext || window.webkitAudioContext
     if (!AudioContextCtor) {
-      throw new Error('当前环境不支持音频处理')
+      throw new Error(t('voice.errors.audioUnsupported'))
     }
 
     const audioContext = new AudioContextCtor()
@@ -421,7 +423,7 @@ export function VoiceDictationApp({ embedded = false }: { embedded?: boolean }):
     processor.connect(audioContext.destination)
     await resumeAudioContextForCapture(audioContext)
     if (!stream.getAudioTracks().some((track) => track.readyState === 'live' && track.enabled)) {
-      throw new Error('麦克风未就绪，请检查系统麦克风权限与设备连接')
+      throw new Error(t('voice.errors.micNotReady'))
     }
 
     // getUserMedia 已授予并启用音轨，且音频图已恢复即可认定采集就绪。
@@ -468,7 +470,7 @@ export function VoiceDictationApp({ embedded = false }: { embedded?: boolean }):
     }
     setCommitResult(null)
     setStatus('connecting')
-    setMessage('准备麦克风...')
+    setMessage(t('voice.status.preparingMic'))
     const recordingAttempt = ++recordingAttemptRef.current
 
     const isCurrentAttempt = (): boolean => recordingAttempt === recordingAttemptRef.current
@@ -479,7 +481,7 @@ export function VoiceDictationApp({ embedded = false }: { embedded?: boolean }):
     settingsRef.current = settings
     if (!settings.enabled) {
       setStatus('error')
-      setMessage('请先在设置中启用语音输入')
+      setMessage(t('voice.status.disabled'))
       cleanupAudio()
       return
     }
@@ -489,7 +491,7 @@ export function VoiceDictationApp({ embedded = false }: { embedded?: boolean }):
     if (!shouldBeginRecording()) return
     if (permission.status === 'denied') {
       setStatus('error')
-      setMessage('麦克风权限已被系统阻止，请在系统设置中允许 Locus 访问麦克风')
+      setMessage(t('voice.status.micBlockedSettings'))
       return
     }
     if (permission.status === 'not-determined') {
@@ -497,7 +499,7 @@ export function VoiceDictationApp({ embedded = false }: { embedded?: boolean }):
       if (!shouldBeginRecording()) return
       if (requested.status !== 'granted') {
         setStatus('error')
-        setMessage('需要麦克风权限才能使用语音输入')
+        setMessage(t('voice.status.micNeeded'))
         return
       }
     }
@@ -536,7 +538,7 @@ export function VoiceDictationApp({ embedded = false }: { embedded?: boolean }):
       })
       .catch((error) => {
         if (!isCurrentAttempt() || sessionIdRef.current !== nextSessionId || stoppingRef.current) return
-        const textMessage = error instanceof Error ? error.message : '未知错误'
+        const textMessage = error instanceof Error ? error.message : t('voice.status.unknownError')
         setStatus('error')
         setMessage(textMessage)
         abortCurrentSession()
@@ -602,7 +604,7 @@ export function VoiceDictationApp({ embedded = false }: { embedded?: boolean }):
       if (event.status === 'connecting' || event.status === 'recording') {
         if (!audioCaptureReadyRef.current) {
           setStatus('connecting')
-          setMessage('准备麦克风...')
+          setMessage(t('voice.status.preparingMic'))
         }
         return
       }
@@ -634,7 +636,7 @@ export function VoiceDictationApp({ embedded = false }: { embedded?: boolean }):
           })
           .catch((error) => {
             if (!isCurrentReconnect() || stoppingRef.current) return
-            const textMessage = error instanceof Error ? error.message : '未知错误'
+            const textMessage = error instanceof Error ? error.message : t('voice.status.unknownError')
             setStatus('error')
             setMessage(textMessage)
           })
@@ -702,7 +704,7 @@ export function VoiceDictationApp({ embedded = false }: { embedded?: boolean }):
                     : <Mic className="size-4" />}
             </div>
             <div className="min-w-0">
-              <div className="truncate text-sm font-medium text-foreground">Locus 语音输入</div>
+              <div className="truncate text-sm font-medium text-foreground">{t('voice.status.appTitle')}</div>
               <div className="truncate text-xs text-muted-foreground">{message}</div>
             </div>
           </div>
@@ -735,7 +737,7 @@ export function VoiceDictationApp({ embedded = false }: { embedded?: boolean }):
           <div className="overflow-hidden rounded-lg bg-muted/45">
             <div ref={hintBarRef} className="flex min-h-8 shrink-0 items-center justify-between gap-3 px-3 py-1.5 text-xs leading-4 text-muted-foreground">
               <span className="truncate">
-                Ctrl+～ 停止 · 外部写入光标 · Locus 激活时写入 Chat / Agent
+                {t('voice.status.hintBar')}
               </span>
               {commitResult && (
                 <span className="flex shrink-0 items-center gap-1.5">
@@ -757,10 +759,10 @@ export function VoiceDictationApp({ embedded = false }: { embedded?: boolean }):
                 {transcript || (
                   <span className="text-muted-foreground/60">
                     {status === 'idle'
-                      ? '等待 Ctrl+～ 唤起'
+                      ? t('voice.status.startHint')
                       : status === 'connecting'
-                        ? '准备麦克风...'
-                        : '请开始说话'}
+                        ? t('voice.status.preparingMic')
+                        : t('voice.status.pleaseSpeak')}
                   </span>
                 )}
               </div>
@@ -788,18 +790,18 @@ function getMicrophoneErrorMessage(error: unknown): string {
     switch (error.name) {
       case 'NotAllowedError':
       case 'PermissionDeniedError':
-        return '麦克风权限被系统阻止，请在 Windows 设置 > 隐私和安全性 > 麦克风中允许 Locus 访问'
+        return t('voice.errors.permissionBlockedWin')
       case 'NotFoundError':
       case 'DevicesNotFoundError':
-        return '没有检测到可用麦克风，请检查输入设备是否已连接并启用'
+        return t('voice.errors.noMicrophone')
       case 'NotReadableError':
       case 'TrackStartError':
-        return '麦克风当前无法读取，可能被其他应用占用或被系统隐私设置阻止'
+        return t('voice.errors.micBusy')
       case 'OverconstrainedError':
       case 'ConstraintNotSatisfiedError':
-        return '当前麦克风不支持请求的采集参数，请切换输入设备后重试'
+        return t('voice.errors.micParamsUnsupported')
       case 'SecurityError':
-        return '当前窗口被系统阻止访问麦克风，请检查应用权限设置'
+        return t('voice.errors.windowBlocked')
       default:
         break
     }
@@ -809,5 +811,5 @@ function getMicrophoneErrorMessage(error: unknown): string {
     return error.message
   }
 
-  return '未知麦克风错误'
+  return t('voice.errors.unknownMicError')
 }

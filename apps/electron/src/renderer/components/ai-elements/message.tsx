@@ -24,6 +24,7 @@ import remarkMath from 'remark-math'
 import rehypeKatex from 'rehype-katex'
 import { CalendarDays, ChevronDown, ChevronUp, Paperclip, FileText, ListTodo, Sparkles, Server, Download, MessageSquareText, Quote } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useT } from '@/i18n'
 import { shouldInspectMermaidCodeBlock, shouldRenderMermaidCodeBlock } from '@/lib/mermaid-detection'
 import { normalizeLatexDelimiters } from '@/lib/normalize-latex'
 import { normalizeMalformedStrongDelimiters } from '@/lib/markdown-emphasis'
@@ -354,6 +355,7 @@ function SkillMentionLabel({ slug }: { slug: string }): React.ReactElement {
 }
 
 function MentionChip({ type, value }: { type: MentionType; value: string }): React.ReactElement {
+  const t = useT()
   const style = MENTION_STYLES[type]
   const Icon = style.icon
   const pathResolutionContext = React.useContext(BasePathsContext)
@@ -382,7 +384,7 @@ function MentionChip({ type, value }: { type: MentionType; value: string }): Rea
           style.className,
           canNavigate ? 'cursor-pointer hover:bg-primary/[0.16]' : 'cursor-default',
         )}
-        title={canNavigate ? '点击跳转到原消息并高亮引用内容' : buildAgentHistoryQuoteLabel(quote)}
+        title={canNavigate ? t('aiElements.message.quoteTitle') : buildAgentHistoryQuoteLabel(quote)}
       >
         <Icon className="size-3 inline shrink-0" />
         {buildAgentHistoryQuoteLabel(quote)}
@@ -402,11 +404,11 @@ function MentionChip({ type, value }: { type: MentionType; value: string }): Rea
   const display = type === 'file'
     ? (decoded.split('/').pop() || decoded)
     : type === 'session'
-      ? (label || `会话 ${referenceId.slice(0, 8)}`)
+      ? (label || t('aiElements.message.fallbackSession', { id: referenceId.slice(0, 8) }))
       : type === 'todo'
-        ? (label || `Todo ${referenceId.slice(0, 8)}`)
+        ? (label || t('aiElements.message.fallbackTodo', { id: referenceId.slice(0, 8) }))
         : type === 'calendar_event'
-          ? (label || `日程 ${referenceId.slice(0, 8)}`)
+          ? (label || t('aiElements.message.fallbackCalendarEvent', { id: referenceId.slice(0, 8) }))
           : decoded
   return (
     <span
@@ -602,6 +604,7 @@ const MarkdownImage = React.memo(function MarkdownImage({
   alt = '',
   ...imageProps
 }: React.ImgHTMLAttributes<HTMLImageElement>): React.ReactElement | null {
+  const t = useT()
   const pathResolutionContext = React.useContext(BasePathsContext)
   const contextBasePaths = pathResolutionContext?.basePaths
   const [resolvedSrc, setResolvedSrc] = React.useState<string | null>(null)
@@ -641,7 +644,7 @@ const MarkdownImage = React.memo(function MarkdownImage({
   if (!resolvedSrc) {
     return (
       <span className="inline-flex max-w-full rounded bg-muted px-2 py-1 text-xs text-muted-foreground" role="img" aria-label={alt || decodedSrc}>
-        {failed ? `图片无法读取：${alt || decodedSrc}` : '正在加载图片…'}
+        {failed ? t('aiElements.message.imageLoadFailed', { name: alt || decodedSrc }) : t('aiElements.message.imageLoading')}
       </span>
     )
   }
@@ -855,6 +858,7 @@ interface UserMessageContentProps extends HTMLAttributes<HTMLDivElement> {
  */
 export const UserMessageContent = React.memo(
   function UserMessageContent({ children, onAgentHistoryQuoteClick, className, ...props }: UserMessageContentProps): React.ReactElement {
+    const t = useT()
     const [isExpanded, setIsExpanded] = React.useState(false)
     const [shouldCollapse, setShouldCollapse] = React.useState(false)
     const contentRef = React.useRef<HTMLDivElement>(null)
@@ -907,12 +911,12 @@ export const UserMessageContent = React.memo(
             {isExpanded ? (
               <>
                 <ChevronUp className="size-3" />
-                <span>收起</span>
+                <span>{t('common.collapse')}</span>
               </>
             ) : (
               <>
                 <ChevronDown className="size-3" />
-                <span>展开全部</span>
+                <span>{t('aiElements.message.expandAll')}</span>
               </>
             )}
           </button>
@@ -931,10 +935,12 @@ type MessageLoadingProps = HTMLAttributes<HTMLDivElement> & { startedAt?: number
 
 /** 等待首个 chunk 的加载动画 */
 export function MessageLoading({ className, startedAt, ...props }: MessageLoadingProps): React.ReactElement {
+  const t = useT()
+
   return (
     <div className={cn('mt-0', className)} {...props}>
       <LoadingIndicator
-        label="正在思考..."
+        label={t('aiElements.message.thinking')}
         size="sm"
         showElapsed={startedAt || true}
         className="text-muted-foreground/60"
@@ -949,13 +955,15 @@ type MessageStoppedProps = HTMLAttributes<HTMLDivElement>
 
 /** "已停止生成" 状态标记 */
 export function MessageStopped({ className, ...props }: MessageStoppedProps): React.ReactElement {
+  const t = useT()
+
   return (
     <div
       className={cn('flex items-center gap-1.5 text-sm text-muted-foreground mt-2', className)}
       {...props}
     >
       <span className="size-2 rounded-full bg-muted-foreground/40" />
-      <span>已停止生成</span>
+      <span>{t('aiElements.message.stopped')}</span>
     </div>
   )
 }
@@ -1061,6 +1069,7 @@ interface MessageAttachmentImageProps {
 
 /** 图片附件展示（单图: max 500px，多图: 280px 方块），点击可预览大图 */
 function MessageAttachmentImage({ attachment, isSingle = false, index, onOpen, onLoaded }: MessageAttachmentImageProps): React.ReactElement {
+  const t = useT()
   const [imageSrc, setImageSrc] = React.useState<string | null>(null)
 
   React.useEffect(() => {
@@ -1113,7 +1122,7 @@ function MessageAttachmentImage({ attachment, isSingle = false, index, onOpen, o
         type="button"
         onClick={handleSave}
         className="absolute bottom-2 right-2 p-1.5 rounded-md bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/70"
-        title="保存图片"
+        title={t('aiElements.message.saveImage')}
       >
         <Download className="size-4" />
       </button>

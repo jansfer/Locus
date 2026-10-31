@@ -7,6 +7,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { currentAgentSessionIdAtom, openWorkspaceComponentAtom, skillDetailNavigationAtomFamily } from '@/atoms/agent-atoms'
 import { focusedVaultFolderAtomFamily, getVaultSessionScope, selectedVaultFileAtomFamily } from '@/atoms/vault-atoms'
 import { ObsidianIcon } from '@/components/obsidian/obsidian-brand'
+import { useT } from '@/i18n'
 import { cn } from '@/lib/utils'
 
 export interface TurnSkillUsageSummaryProps {
@@ -36,6 +37,7 @@ function readVaultFocusAttribution(inputMessage?: SDKUserMessage): VaultFocusAtt
 }
 
 function VaultFocusChip({ attribution }: { attribution: VaultFocusAttribution }): React.ReactElement {
+  const t = useT()
   const sessionId = useAtomValue(currentAgentSessionIdAtom)
   const openWorkspaceComponent = useSetAtom(openWorkspaceComponentAtom)
   const vaultSessionScope = getVaultSessionScope(sessionId ?? undefined)
@@ -61,14 +63,14 @@ function VaultFocusChip({ attribution }: { attribution: VaultFocusAttribution })
           type="button"
           className="inline-flex max-w-[240px] items-center gap-[0.25em] rounded-md bg-[hsl(270_60%_60%/0.15)] px-[0.35em] py-[0.15em] text-[0.875em] font-medium leading-none text-[hsl(270_60%_50%)] transition-colors hover:bg-[hsl(270_60%_60%/0.24)]"
           onClick={handleOpenVault}
-          aria-label={`在 Obsidian 中打开本轮上下文 ${label}`}
+          aria-label={t('agentMisc.skillUsage.openVaultContextAria', { name: label })}
         >
           <ObsidianIcon className="size-3 shrink-0" />
           <span className="truncate">{label}</span>
         </button>
       </TooltipTrigger>
       <TooltipContent side="top">
-        <p>本轮获得的 Obsidian {focus.kind === 'file' ? '文件' : '文件夹'}线索；不代表 Agent 已读取或编辑</p>
+        <p>{focus.kind === 'file' ? t('agentMisc.skillUsage.vaultFocusHintFile') : t('agentMisc.skillUsage.vaultFocusHintFolder')}</p>
         <p className="max-w-80 break-all text-xs text-muted-foreground">{attribution.rootPath}/{focus.relativePath}</p>
       </TooltipContent>
     </Tooltip>
@@ -76,6 +78,7 @@ function VaultFocusChip({ attribution }: { attribution: VaultFocusAttribution })
 }
 
 function SkillUsageChip({ activation }: { activation: SkillActivation }): React.ReactElement {
+  const t = useT()
   const sessionId = useAtomValue(currentAgentSessionIdAtom)
   const openWorkspaceComponent = useSetAtom(openWorkspaceComponentAtom)
   const setSkillDetailNavigation = useSetAtom(skillDetailNavigationAtomFamily(sessionId ?? ''))
@@ -106,18 +109,18 @@ function SkillUsageChip({ activation }: { activation: SkillActivation }): React.
             type="button"
             className={chipClassName}
             onClick={handleOpenSkill}
-            aria-label={`在 Skills 中打开 ${activation.name}`}
+            aria-label={t('agentMisc.skillUsage.openSkillAria', { name: activation.name })}
           >
             {chipContent}
           </button>
         ) : (
-          <span className={chipClassName} aria-label={`已加载 Skill ${activation.name}`}>
+          <span className={chipClassName} aria-label={t('agentMisc.skillUsage.skillLoadedAria', { name: activation.name })}>
             {chipContent}
           </span>
         )}
       </TooltipTrigger>
       <TooltipContent side="top">
-        <p>本轮已使用的 Skill，点击在右侧 Skills 中查看和修改</p>
+        <p>{t('agentMisc.skillUsage.hint')}</p>
       </TooltipContent>
     </Tooltip>
   )

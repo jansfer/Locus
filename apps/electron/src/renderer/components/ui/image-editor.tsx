@@ -8,6 +8,7 @@
 import * as React from 'react'
 import { Crop, RotateCw, Pencil, Square, Undo2, Check, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useT } from '@/i18n'
 
 type Tool = 'crop' | 'rect' | 'draw' | 'none'
 
@@ -21,6 +22,7 @@ interface ImageEditorProps {
 }
 
 export function ImageEditor({ src, onSave, onCancel }: ImageEditorProps): React.ReactElement {
+  const t = useT()
   const [tool, setTool] = React.useState<Tool>('none')
   const [drawColor, setDrawColor] = React.useState('#ff3b30')
   const [brushSize, setBrushSize] = React.useState(3)
@@ -503,7 +505,7 @@ export function ImageEditor({ src, onSave, onCancel }: ImageEditorProps): React.
     }
   }, [tool, cropRect, drawColor, brushSize])
 
-  if (!src) return <div className="flex flex-col items-center gap-3 text-white/50"><span className="text-sm">无图片数据</span><button type="button" onClick={onCancel} className="rounded-full px-4 py-1.5 text-sm bg-white/10 hover:bg-white/20 transition-colors">返回</button></div>
+  if (!src) return <div className="flex flex-col items-center gap-3 text-white/50"><span className="text-sm">{t('uiCommon.editor.noImageData')}</span><button type="button" onClick={onCancel} className="rounded-full px-4 py-1.5 text-sm bg-white/10 hover:bg-white/20 transition-colors">{t('common.back')}</button></div>
 
   return (
     <div className="flex flex-col items-center gap-3 w-full max-w-[90vw]">
@@ -511,13 +513,13 @@ export function ImageEditor({ src, onSave, onCancel }: ImageEditorProps): React.
       <div className="relative flex items-center justify-center">
         {imageError && (
           <div className="flex flex-col items-center gap-3 text-white/50">
-            <span className="text-sm">图片加载失败</span>
+            <span className="text-sm">{t('uiCommon.editor.loadFailed')}</span>
             <button
               type="button"
               onClick={onCancel}
               className="rounded-full px-4 py-1.5 text-sm bg-white/10 hover:bg-white/20 transition-colors"
             >
-              返回
+              {t('common.back')}
             </button>
           </div>
         )}
@@ -559,7 +561,7 @@ export function ImageEditor({ src, onSave, onCancel }: ImageEditorProps): React.
             'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40',
             tool === 'crop' && 'bg-white/20 text-white'
           )}
-          title="裁剪"
+          title={t('uiCommon.editor.crop')}
         >
           <Crop className="size-5" />
         </button>
@@ -573,7 +575,7 @@ export function ImageEditor({ src, onSave, onCancel }: ImageEditorProps): React.
             'hover:bg-white/15 hover:text-white',
             'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40'
           )}
-          title="旋转 90°"
+          title={t('uiCommon.editor.rotate90')}
         >
           <RotateCw className="size-5" />
         </button>
@@ -588,7 +590,7 @@ export function ImageEditor({ src, onSave, onCancel }: ImageEditorProps): React.
             'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40',
             tool === 'rect' && 'bg-white/20 text-white'
           )}
-          title="矩形"
+          title={t('uiCommon.editor.rect')}
         >
           <Square className="size-5" />
         </button>
@@ -603,7 +605,7 @@ export function ImageEditor({ src, onSave, onCancel }: ImageEditorProps): React.
             'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40',
             tool === 'draw' && 'bg-white/20 text-white'
           )}
-          title="画笔"
+          title={t('uiCommon.editor.brush')}
         >
           <Pencil className="size-5" />
         </button>
@@ -635,7 +637,7 @@ export function ImageEditor({ src, onSave, onCancel }: ImageEditorProps): React.
                   'hover:bg-white/15',
                   brushSize === s ? 'bg-white/20 text-white' : ''
                 )}
-                title={`笔触 ${s}px`}
+                title={t('uiCommon.editor.brushSize', { size: s })}
               >
                 <span
                   className="rounded-full bg-current"
@@ -658,7 +660,7 @@ export function ImageEditor({ src, onSave, onCancel }: ImageEditorProps): React.
                 'hover:bg-white/15',
                 'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40'
               )}
-              title="应用裁剪"
+              title={t('uiCommon.editor.applyCrop')}
             >
               <Check className="size-5" />
             </button>
@@ -676,7 +678,7 @@ export function ImageEditor({ src, onSave, onCancel }: ImageEditorProps): React.
             'hover:bg-white/15 hover:text-white',
             'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40'
           )}
-          title="重置"
+          title={t('common.reset')}
         >
           <Undo2 className="size-5" />
         </button>
@@ -690,7 +692,7 @@ export function ImageEditor({ src, onSave, onCancel }: ImageEditorProps): React.
             'hover:bg-white/15 hover:text-white',
             'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40'
           )}
-          title="取消"
+          title={t('common.cancel')}
         >
           <X className="size-5" />
         </button>
@@ -708,7 +710,7 @@ export function ImageEditor({ src, onSave, onCancel }: ImageEditorProps): React.
             !imageLoaded && 'opacity-40 cursor-not-allowed hover:bg-white/15'
           )}
         >
-          保存
+          {t('common.save')}
         </button>
       </div>
     </div>

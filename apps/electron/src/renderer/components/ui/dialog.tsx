@@ -5,6 +5,7 @@ import * as DialogPrimitive from "@radix-ui/react-dialog"
 import { X } from "lucide-react"
 
 import { cn } from "@/lib/utils"
+import { useT } from "@/i18n"
 import { iconButtonNoRingFocusClass } from "@/components/ui/icon-button-styles"
 
 const Dialog = DialogPrimitive.Root
@@ -40,7 +41,9 @@ const DialogContent = React.forwardRef<
     /** 与本地容器配合时覆写 Overlay 的定位方式。 */
     overlayClassName?: string
   }
->(({ className, children, hideClose, container, overlayClassName, ...props }, ref) => (
+>(({ className, children, hideClose, container, overlayClassName, ...props }, ref) => {
+  const t = useT()
+  return (
   <DialogPortal container={container ?? undefined}>
     <DialogOverlay className={overlayClassName} />
     <DialogPrimitive.Content
@@ -69,12 +72,13 @@ const DialogContent = React.forwardRef<
           )}
         >
           <X className="h-4 w-4" />
-          <span className="sr-only">关闭</span>
+          <span className="sr-only">{t('common.close')}</span>
         </DialogPrimitive.Close>
       )}
     </DialogPrimitive.Content>
   </DialogPortal>
-))
+  )
+})
 DialogContent.displayName = DialogPrimitive.Content.displayName
 
 const DialogHeader = ({

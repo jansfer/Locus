@@ -3,10 +3,12 @@
  */
 
 import { MAX_ATTACHMENT_SIZE } from '@proma/shared'
+import { t } from '@/i18n'
 
 export function formatFileNames(names: string[], max = 3): string {
-  if (names.length <= max) return names.join('、')
-  return `${names.slice(0, max).join('、')} 等 ${names.length} 个文件`
+  const joiner = t('misc.files.listJoiner')
+  if (names.length <= max) return names.join(joiner)
+  return t('misc.files.listOverflow', { names: names.slice(0, max).join(joiner), n: names.length })
 }
 
 export function getFileParentPath(filePath: string): string | null {
@@ -23,7 +25,7 @@ export function getFileParentPath(filePath: string): string | null {
 export function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     if (file.size > MAX_ATTACHMENT_SIZE) {
-      reject(new Error(`文件 ${file.name} 超过 100MB 大小限制`))
+      reject(new Error(t('misc.files.sizeLimitExceeded', { name: file.name })))
       return
     }
     const reader = new FileReader()

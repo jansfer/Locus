@@ -1,5 +1,7 @@
 import type * as React from 'react'
 import type { LocalProjectRootStatus } from '@proma/shared'
+import type { MessageKey } from '@/i18n'
+import { t } from '@/i18n'
 import { cn } from '@/lib/utils'
 
 interface LocalProjectBadgeProps {
@@ -8,10 +10,11 @@ interface LocalProjectBadgeProps {
   className?: string
 }
 
-const UNAVAILABLE_STATUS_LABELS: Record<Exclude<LocalProjectRootStatus, 'available'>, string> = {
-  missing: '本地项目根目录已被删除',
-  not_directory: '本地项目根路径不再是文件夹',
-  unavailable: '本地项目根目录无法访问',
+/** 状态 → 词典键映射；渲染时经 t() 求值以响应语言切换。 */
+const UNAVAILABLE_STATUS_KEYS: Record<Exclude<LocalProjectRootStatus, 'available'>, MessageKey> = {
+  missing: 'agentMisc.rootStatus.missing',
+  not_directory: 'agentMisc.rootStatus.notDirectory',
+  unavailable: 'agentMisc.rootStatus.unavailable',
 }
 
 export function LocalProjectBadge({
@@ -22,11 +25,11 @@ export function LocalProjectBadge({
   if (!projectRootPath) return null
 
   const isUnavailable = projectRootStatus !== undefined && projectRootStatus !== 'available'
-  const label = isUnavailable ? '根目录不可用' : '本地项目'
+  const label = isUnavailable ? t('agentMisc.rootUnavailable') : t('agentMisc.localProject')
 
   return (
     <span
-      title={isUnavailable ? UNAVAILABLE_STATUS_LABELS[projectRootStatus] : projectRootPath}
+      title={isUnavailable ? t(UNAVAILABLE_STATUS_KEYS[projectRootStatus]) : projectRootPath}
       className={cn(
         'inline-flex shrink-0 items-center rounded-full px-1.5 py-0 text-[10px] font-medium leading-4',
         isUnavailable ? 'bg-destructive/10 text-destructive' : 'bg-secondary text-muted-foreground',

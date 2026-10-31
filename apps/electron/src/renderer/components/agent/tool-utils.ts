@@ -4,6 +4,8 @@
  */
 
 import type { LucideIcon } from 'lucide-react'
+import type { MessageKey } from '@/i18n'
+import { t } from '@/i18n'
 import {
   BookOpen,
   Bot,
@@ -120,78 +122,81 @@ export function getToolIcon(toolName: string): LucideIcon {
   return Wrench
 }
 
-/** 内置工具显示名称映射 */
-const TOOL_DISPLAY_NAMES: Record<string, string> = {
-  Edit: '编辑文件',
-  Write: '写入文件',
-  Read: '读取文件',
-  Bash: '执行命令',
-  Glob: '搜索文件',
-  Grep: '搜索内容',
-  Task: '任务工具',
-  WebFetch: '抓取网页',
-  WebSearch: '搜索网页',
-  NotebookEdit: '编辑笔记本',
-  Skill: '使用技能',
-  TodoWrite: '更新待办',
-  TodoRead: '阅读待办',
-  TaskCreate: '创建任务',
-  TaskUpdate: '更新任务',
-  TaskGet: '查看任务',
-  TaskList: '任务列表',
-  Agent: 'Agent',
-  EnterPlanMode: '正在生成计划',
-  ExitPlanMode: '正在退出计划',
-  generate_image: '生成图片',
-  TaskOutput: '获取任务输出',
-  TaskStop: '停止任务',
-  AskUserQuestion: '等待用户输入',
-  REPL: '执行 REPL',
-  Workflow: '运行工作流',
-  ScheduleWakeup: '安排唤醒',
-  Monitor: '监控任务',
-  PushNotification: '发送通知',
-  CronCreate: '创建定时任务',
-  CronDelete: '删除定时任务',
-  CronList: '列出定时任务',
-  RemoteTrigger: '远程触发器',
-  EnterWorktree: '进入 Worktree',
-  ExitWorktree: '退出 Worktree',
-  ReadMcpResourceTool: '读取 MCP 资源',
-  ListMcpResourcesTool: '列出 MCP 资源',
-  SendMessage: '发送消息',
-  BrowserObserve: '查看受管浏览器',
-  BrowserFind: '语义定位网页元素',
-  BrowserNavigate: '打开网页',
-  BrowserWaitFor: '等待网页状态',
-  BrowserClick: '点击网页元素',
-  BrowserAct: '点击并等待网页状态',
-  BrowserFill: '填写网页字段',
-  BrowserPress: '按下浏览器按键',
-  BrowserHover: '悬停网页元素',
-  BrowserDrag: '拖拽网页元素',
-  BrowserScroll: '滚动网页或容器',
-  BrowserExtract: '抽取网页内容',
-  BrowserSelectOption: '选择下拉选项',
-  BrowserUpload: '选择网页上传文件',
-  BrowserScreenshot: '截取网页',
-  BrowserListTabs: '列出浏览器标签',
-  BrowserNewTab: '新建浏览器标签',
-  BrowserSelectTab: '切换浏览器标签',
-  BrowserCloseTab: '关闭浏览器标签',
-  BrowserClose: '关闭受管浏览器',
-  BrowserPreviewOpen: '打开本地网页预览',
-  BrowserDomAction: '操作网页 DOM',
-  BrowserExecuteJavaScript: '执行网页 JavaScript',
+/**
+ * 内置工具显示名的词典键映射；调用 getToolDisplayName 时经 t() 求值。
+ * 键为工具名，值为 agentMisc.toolDisplayNames 下的词典键。
+ */
+const TOOL_DISPLAY_NAME_KEYS: Record<string, MessageKey> = {
+  Edit: 'agentMisc.toolDisplayNames.edit',
+  Write: 'agentMisc.toolDisplayNames.write',
+  Read: 'agentMisc.toolDisplayNames.read',
+  Bash: 'agentMisc.toolDisplayNames.bash',
+  Glob: 'agentMisc.toolDisplayNames.glob',
+  Grep: 'agentMisc.toolDisplayNames.grep',
+  Task: 'agentMisc.toolDisplayNames.task',
+  WebFetch: 'agentMisc.toolDisplayNames.webFetch',
+  WebSearch: 'agentMisc.toolDisplayNames.webSearch',
+  NotebookEdit: 'agentMisc.toolDisplayNames.notebookEdit',
+  Skill: 'agentMisc.toolDisplayNames.skill',
+  TodoWrite: 'agentMisc.toolDisplayNames.todoWrite',
+  TodoRead: 'agentMisc.toolDisplayNames.todoRead',
+  TaskCreate: 'agentMisc.toolDisplayNames.taskCreate',
+  TaskUpdate: 'agentMisc.toolDisplayNames.taskUpdate',
+  TaskGet: 'agentMisc.toolDisplayNames.taskGet',
+  TaskList: 'agentMisc.toolDisplayNames.taskList',
+  EnterPlanMode: 'agentMisc.toolDisplayNames.enterPlanMode',
+  ExitPlanMode: 'agentMisc.toolDisplayNames.exitPlanMode',
+  generate_image: 'agentMisc.toolDisplayNames.generateImage',
+  TaskOutput: 'agentMisc.toolDisplayNames.taskOutput',
+  TaskStop: 'agentMisc.toolDisplayNames.taskStop',
+  AskUserQuestion: 'agentMisc.toolDisplayNames.askUserQuestion',
+  REPL: 'agentMisc.toolDisplayNames.repl',
+  Workflow: 'agentMisc.toolDisplayNames.workflow',
+  ScheduleWakeup: 'agentMisc.toolDisplayNames.scheduleWakeup',
+  Monitor: 'agentMisc.toolDisplayNames.monitor',
+  PushNotification: 'agentMisc.toolDisplayNames.pushNotification',
+  CronCreate: 'agentMisc.toolDisplayNames.cronCreate',
+  CronDelete: 'agentMisc.toolDisplayNames.cronDelete',
+  CronList: 'agentMisc.toolDisplayNames.cronList',
+  RemoteTrigger: 'agentMisc.toolDisplayNames.remoteTrigger',
+  EnterWorktree: 'agentMisc.toolDisplayNames.enterWorktree',
+  ExitWorktree: 'agentMisc.toolDisplayNames.exitWorktree',
+  ReadMcpResourceTool: 'agentMisc.toolDisplayNames.readMcpResource',
+  ListMcpResourcesTool: 'agentMisc.toolDisplayNames.listMcpResources',
+  SendMessage: 'agentMisc.toolDisplayNames.sendMessage',
+  BrowserObserve: 'agentMisc.toolDisplayNames.browserObserve',
+  BrowserFind: 'agentMisc.toolDisplayNames.browserFind',
+  BrowserNavigate: 'agentMisc.toolDisplayNames.browserNavigate',
+  BrowserWaitFor: 'agentMisc.toolDisplayNames.browserWaitFor',
+  BrowserClick: 'agentMisc.toolDisplayNames.browserClick',
+  BrowserAct: 'agentMisc.toolDisplayNames.browserAct',
+  BrowserFill: 'agentMisc.toolDisplayNames.browserFill',
+  BrowserPress: 'agentMisc.toolDisplayNames.browserPress',
+  BrowserHover: 'agentMisc.toolDisplayNames.browserHover',
+  BrowserDrag: 'agentMisc.toolDisplayNames.browserDrag',
+  BrowserScroll: 'agentMisc.toolDisplayNames.browserScroll',
+  BrowserExtract: 'agentMisc.toolDisplayNames.browserExtract',
+  BrowserSelectOption: 'agentMisc.toolDisplayNames.browserSelectOption',
+  BrowserUpload: 'agentMisc.toolDisplayNames.browserUpload',
+  BrowserScreenshot: 'agentMisc.toolDisplayNames.browserScreenshot',
+  BrowserListTabs: 'agentMisc.toolDisplayNames.browserListTabs',
+  BrowserNewTab: 'agentMisc.toolDisplayNames.browserNewTab',
+  BrowserSelectTab: 'agentMisc.toolDisplayNames.browserSelectTab',
+  BrowserCloseTab: 'agentMisc.toolDisplayNames.browserCloseTab',
+  BrowserClose: 'agentMisc.toolDisplayNames.browserClose',
+  BrowserPreviewOpen: 'agentMisc.toolDisplayNames.browserPreviewOpen',
+  BrowserDomAction: 'agentMisc.toolDisplayNames.browserDomAction',
+  BrowserExecuteJavaScript: 'agentMisc.toolDisplayNames.browserExecuteJavaScript',
 }
 
 /**
  * 获取工具的显示名称
  * MCP 工具解析为 "serverName / toolName" 格式
- * 内置工具返回中文名称，其余返回原始名称
+ * 内置工具返回本地化名称，其余返回原始名称
  */
 export function getToolDisplayName(toolName: string): string {
-  if (TOOL_DISPLAY_NAMES[toolName]) return TOOL_DISPLAY_NAMES[toolName]
+  const key = TOOL_DISPLAY_NAME_KEYS[toolName]
+  if (key) return t(key)
   // MCP 工具：mcp__serverName__toolName → "SERVERNAME / TOOLNAME"
   const parts = toolName.split('__')
   if (parts[0] === 'mcp' && parts.length >= 3 && parts[1]) {
@@ -313,20 +318,22 @@ export function getInputSummary(
     }
 
     case 'TaskUpdate': {
-      const statusMap: Record<string, string> = {
-        pending: '待处理',
-        in_progress: '正在进行中',
-        completed: '已结束',
-        cancelled: '已取消',
-        blocked: '已阻塞',
-        error: '出错',
+      // 复用任务状态词典键组；与 tool-phrase.ts 的 TaskUpdate 短语保持一致
+      const statusMap: Record<string, MessageKey> = {
+        pending: 'agentMisc.taskStatus.pending',
+        in_progress: 'agentMisc.taskStatus.inProgress',
+        completed: 'agentMisc.taskStatus.completed',
+        cancelled: 'agentMisc.taskStatus.cancelled',
+        blocked: 'agentMisc.taskStatus.blocked',
+        error: 'agentMisc.taskStatus.error',
       }
       const parts: string[] = []
       if (typeof input.taskId === 'string') {
-        parts.push(`任务 #${input.taskId}`)
+        parts.push(t('agentMisc.toolPhrases.taskNumbered', { taskId: input.taskId }))
       }
       if (typeof input.status === 'string') {
-        parts.push(statusMap[input.status] ?? input.status)
+        const statusKey = statusMap[input.status]
+        parts.push(statusKey ? t(statusKey) : input.status)
       }
       if (typeof input.subject === 'string') {
         parts.push(input.subject)
@@ -372,7 +379,7 @@ export function getInputSummary(
     case 'TodoWrite': {
       const todos = input.todos
       if (Array.isArray(todos)) {
-        return `${todos.length} 项待办`
+        return t('agentMisc.inputSummary.todoCount', { n: todos.length })
       }
       return null
     }
@@ -484,8 +491,8 @@ export function getInputSummary(
 
     case 'ExitWorktree': {
       const action = input.action
-      if (action === 'remove') return '移除 Worktree'
-      if (action === 'keep') return '保留 Worktree'
+      if (action === 'remove') return t('agentMisc.inputSummary.removeWorktree')
+      if (action === 'keep') return t('agentMisc.inputSummary.keepWorktree')
       return null
     }
 

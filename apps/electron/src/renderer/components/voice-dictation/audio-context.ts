@@ -3,6 +3,8 @@
  * 这不代表麦克风轨道不可用，不能据此中止刚获授权的听写会话。
  */
 
+import { t } from '@/i18n'
+
 interface ResumableAudioContext {
   readonly state: AudioContextState
   resume(): Promise<void>
@@ -17,10 +19,10 @@ export async function resumeAudioContextForCapture(audioContext: ResumableAudioC
   try {
     await audioContext.resume()
   } catch {
-    throw new Error('音频处理启动失败，请重新触发语音输入或检查系统音频权限')
+    throw new Error(t('voice.errors.audioStartFailed'))
   }
 
   if (audioContext.state === 'closed') {
-    throw new Error('音频处理已关闭，请重新触发语音输入')
+    throw new Error(t('voice.errors.audioClosed'))
   }
 }

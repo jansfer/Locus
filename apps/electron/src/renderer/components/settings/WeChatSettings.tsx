@@ -14,6 +14,8 @@ import { SettingsSection } from './primitives/SettingsSection'
 import { SettingsCard } from './primitives/SettingsCard'
 import { SettingsRow } from './primitives/SettingsRow'
 import { wechatBridgeStateAtom } from '@/atoms/wechat-atoms'
+import { useT } from '@/i18n'
+import type { TranslateFn } from '@/i18n'
 import type { WeChatBridgeStatus } from '@proma/shared'
 
 /** 安全地用系统浏览器打开链接 */
@@ -21,17 +23,25 @@ function openLink(url: string): void {
   window.electronAPI.openExternal(url)
 }
 
-/** 状态指示器配置 */
-const STATUS_CONFIG: Record<WeChatBridgeStatus, { color: string; label: string }> = {
-  disconnected: { color: 'bg-gray-400', label: '未连接' },
-  waiting_scan: { color: 'bg-amber-400 animate-pulse', label: '等待扫码...' },
-  scanned: { color: 'bg-blue-400 animate-pulse', label: '已扫码，确认中...' },
-  connecting: { color: 'bg-amber-400 animate-pulse', label: '连接中...' },
-  connected: { color: 'bg-green-500', label: '已连接' },
-  error: { color: 'bg-red-500', label: '连接错误' },
+/** 状态指示器配置（label 存状态枚举名，渲染处经词典转换） */
+const STATUS_CONFIG: Record<WeChatBridgeStatus, { color: string; label: WeChatBridgeStatus }> = {
+  disconnected: { color: 'bg-gray-400', label: 'disconnected' },
+  waiting_scan: { color: 'bg-amber-400 animate-pulse', label: 'waiting_scan' },
+  scanned: { color: 'bg-blue-400 animate-pulse', label: 'scanned' },
+  connecting: { color: 'bg-amber-400 animate-pulse', label: 'connecting' },
+  connected: { color: 'bg-green-500', label: 'connected' },
+  error: { color: 'bg-red-500', label: 'error' },
+}
+
+/** 状态枚举名转文案：通用状态走 shared，微信特有状态走 wechat 分组 */
+function statusText(t: TranslateFn, status: WeChatBridgeStatus): string {
+  if (status === 'waiting_scan') return t('settingsIntegrations.wechat.status.waitingScan')
+  if (status === 'scanned') return t('settingsIntegrations.wechat.status.scanned')
+  return t(`settingsIntegrations.shared.status.${status}`)
 }
 
 export function WeChatSettings(): React.ReactElement {
+  const t = useT()
   const [bridgeState, setBridgeState] = useAtom(wechatBridgeStateAtom)
   const [hasCredentials, setHasCredentials] = React.useState(false)
   const [loaded, setLoaded] = React.useState(false)
@@ -70,40 +80,40 @@ export function WeChatSettings(): React.ReactElement {
     try {
       await window.electronAPI.startWeChatLogin()
     } catch (error) {
-      toast.error(`登录失败: ${error instanceof Error ? error.message : String(error)}`)
+      toast.error(t('settingsIntegrations.wechat.loginFailed', { message: error instanceof Error ? error.message : String(error) }))
     }
-  }, [])
+  }, [t])
 
   // 启动 Bridge
   const handleStart = React.useCallback(async () => {
     try {
       await window.electronAPI.startWeChatBridge()
-      toast.success('微信 Bridge 已启动')
+      toast.success(t('settingsIntegrations.wechat.bridgeStarted'))
     } catch (error) {
-      toast.error(`启动失败: ${error instanceof Error ? error.message : String(error)}`)
+      toast.error(t('settingsIntegrations.wechat.startFailed', { message: error instanceof Error ? error.message : String(error) }))
     }
-  }, [])
+  }, [t])
 
   // 停止 Bridge
   const handleStop = React.useCallback(async () => {
     try {
       await window.electronAPI.stopWeChatBridge()
-      toast.info('微信 Bridge 已停止')
+      toast.info(t('settingsIntegrations.wechat.bridgeStopped'))
     } catch (error) {
-      toast.error(`停止失败: ${error instanceof Error ? error.message : String(error)}`)
+      toast.error(t('settingsIntegrations.wechat.stopFailed', { message: error instanceof Error ? error.message : String(error) }))
     }
-  }, [])
+  }, [t])
 
   // 登出
   const handleLogout = React.useCallback(async () => {
     try {
       await window.electronAPI.logoutWeChat()
       setHasCredentials(false)
-      toast.info('已退出微信登录')
+      toast.info(t('settingsIntegrations.wechat.loggedOut'))
     } catch (error) {
-      toast.error(`登出失败: ${error instanceof Error ? error.message : String(error)}`)
+      toast.error(t('settingsIntegrations.wechat.logoutFailed', { message: error instanceof Error ? error.message : String(error) }))
     }
-  }, [])
+  }, [t])
 
   const statusConfig = STATUS_CONFIG[bridgeState.status]
   const isConnected = bridgeState.status === 'connected'
@@ -117,25 +127,25 @@ export function WeChatSettings(): React.ReactElement {
     <div className="space-y-8">
       {/* 连接状态 */}
       <SettingsSection
-        title="微信集成"
-        description="扫码登录微信，在微信中控制 Locus Agent"
+        title={t('settingsIntegrations.wechat.title')}
+        description={t('settingsIntegrations.wechat.description')}
       >
         <SettingsCard>
-          <SettingsRow label="Bridge 状态">
+          <SettingsRow label={t('settingsIntegrations.wechat.bridgeStatus')}>
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2">
                 <span className={`w-2 h-2 rounded-full ${statusConfig.color}`} />
-                <span className="text-sm text-muted-foreground">{statusConfig.label}</span>
+                <span className="text-sm text-muted-foreground">{statusText(t, statusConfig.label)}</span>
               </div>
               {isConnected ? (
                 <div className="flex items-center gap-2">
                   <Button size="sm" variant="outline" onClick={handleStop}>
                     <PowerOff size={14} className="mr-1.5" />
-                    停止
+                    {t('settingsIntegrations.shared.stop')}
                   </Button>
                   <Button size="sm" variant="ghost" onClick={handleLogout}>
                     <LogOut size={14} className="mr-1.5" />
-                    登出
+                    {t('settingsIntegrations.wechat.logout')}
                   </Button>
                 </div>
               ) : hasCredentials && !isLoggingIn ? (
@@ -151,17 +161,17 @@ export function WeChatSettings(): React.ReactElement {
                     ) : (
                       <Power size={14} className="mr-1.5" />
                     )}
-                    启动
+                    {t('settingsIntegrations.shared.start')}
                   </Button>
                   <Button size="sm" variant="ghost" onClick={handleLogout}>
                     <LogOut size={14} className="mr-1.5" />
-                    登出
+                    {t('settingsIntegrations.wechat.logout')}
                   </Button>
                 </div>
               ) : !isLoggingIn ? (
                 <Button size="sm" onClick={handleLogin}>
                   <QrCode size={14} className="mr-1.5" />
-                  扫码登录
+                  {t('settingsIntegrations.wechat.scanLogin')}
                 </Button>
               ) : null}
             </div>
@@ -178,7 +188,7 @@ export function WeChatSettings(): React.ReactElement {
         {/* 连接成功提示 */}
         {isConnected && (
           <div className="mt-2 px-3 py-2.5 rounded-lg bg-green-500/10 text-green-700 dark:text-green-400 text-sm">
-            微信已连接，消息将自动接收。
+            {t('settingsIntegrations.wechat.connectedNote')}
           </div>
         )}
       </SettingsSection>
@@ -186,23 +196,23 @@ export function WeChatSettings(): React.ReactElement {
       {/* QR 码显示区域 */}
       {showQRCode && (
         <SettingsSection
-          title="扫码登录"
-          description="使用微信扫描下方二维码"
+          title={t('settingsIntegrations.wechat.scanLoginTitle')}
+          description={t('settingsIntegrations.wechat.scanLoginDesc')}
         >
           <SettingsCard divided={false}>
             <div className="flex flex-col items-center py-8 px-4">
               <div className="bg-white rounded-xl p-4 shadow-sm">
                 <img
                   src={bridgeState.qrCodeData}
-                  alt="微信登录二维码"
+                  alt={t('settingsIntegrations.wechat.qrAlt')}
                   className="w-52 h-52"
                 />
               </div>
               <p className="mt-4 text-sm text-muted-foreground">
                 {bridgeState.status === 'scanned' ? (
-                  <span className="text-blue-500 font-medium">已扫码，请在手机上确认登录</span>
+                  <span className="text-blue-500 font-medium">{t('settingsIntegrations.wechat.scannedConfirm')}</span>
                 ) : (
-                  '打开微信，扫描二维码登录'
+                  t('settingsIntegrations.wechat.scanHint')
                 )}
               </p>
               <Button
@@ -211,7 +221,7 @@ export function WeChatSettings(): React.ReactElement {
                 className="mt-2"
                 onClick={handleLogin}
               >
-                刷新二维码
+                {t('settingsIntegrations.wechat.refreshQr')}
               </Button>
             </div>
           </SettingsCard>
@@ -220,8 +230,8 @@ export function WeChatSettings(): React.ReactElement {
 
       {/* 使用说明 */}
       <SettingsSection
-        title="使用说明"
-        description="微信机器人的工作方式"
+        title={t('settingsIntegrations.wechat.guideTitle')}
+        description={t('settingsIntegrations.wechat.guideDesc')}
       >
         <SettingsCard divided={false}>
           <div className="px-4 py-4 space-y-5 text-sm">
@@ -229,11 +239,10 @@ export function WeChatSettings(): React.ReactElement {
             <div className="space-y-1.5">
               <div className="flex items-center gap-2">
                 <span className="flex-shrink-0 w-5 h-5 rounded-full bg-primary/10 text-primary text-xs font-semibold flex items-center justify-center">1</span>
-                <span className="font-medium text-foreground">扫码登录</span>
+                <span className="font-medium text-foreground">{t('settingsIntegrations.wechat.scanLogin')}</span>
               </div>
               <p className="pl-7 text-muted-foreground">
-                点击上方「扫码登录」，用微信扫描二维码。
-                这会将你的微信账号作为 Bot 接入 Locus。
+                {t('settingsIntegrations.wechat.stepScanDesc')}
               </p>
             </div>
 
@@ -241,11 +250,10 @@ export function WeChatSettings(): React.ReactElement {
             <div className="space-y-1.5">
               <div className="flex items-center gap-2">
                 <span className="flex-shrink-0 w-5 h-5 rounded-full bg-primary/10 text-primary text-xs font-semibold flex items-center justify-center">2</span>
-                <span className="font-medium text-foreground">自动连接</span>
+                <span className="font-medium text-foreground">{t('settingsIntegrations.wechat.stepAutoConnect')}</span>
               </div>
               <p className="pl-7 text-muted-foreground">
-                扫码成功后，Locus 会自动建立长连接。
-                凭证会加密保存，下次启动 Locus 时自动重连。
+                {t('settingsIntegrations.wechat.stepConnectDesc')}
               </p>
             </div>
 
@@ -253,17 +261,16 @@ export function WeChatSettings(): React.ReactElement {
             <div className="space-y-1.5">
               <div className="flex items-center gap-2">
                 <span className="flex-shrink-0 w-5 h-5 rounded-full bg-primary/10 text-primary text-xs font-semibold flex items-center justify-center">3</span>
-                <span className="font-medium text-foreground">收发消息</span>
+                <span className="font-medium text-foreground">{t('settingsIntegrations.wechat.stepMessaging')}</span>
               </div>
               <p className="pl-7 text-muted-foreground">
-                连接成功后，通过微信发送消息即可与 Locus Agent 交互。
-                支持文本、图片、文件等消息类型。
+                {t('settingsIntegrations.wechat.stepMessagingDesc')}
               </p>
             </div>
 
             {/* 提示 */}
             <div className="pl-7 p-3 rounded-lg bg-amber-500/10 text-amber-700 dark:text-amber-400 text-xs">
-              微信集成基于{' '}
+              {t('settingsIntegrations.wechat.noteBefore')}
               <button
                 type="button"
                 className="inline-flex items-center gap-0.5 underline hover:no-underline cursor-pointer"
@@ -272,8 +279,7 @@ export function WeChatSettings(): React.ReactElement {
                 iLink Bot API
                 <ExternalLink className="size-2.5" />
               </button>
-              ，这是微信官方提供的 Bot 接口。
-              会话凭证使用系统级加密存储。
+              {t('settingsIntegrations.wechat.noteAfter')}
             </div>
           </div>
         </SettingsCard>

@@ -20,6 +20,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { ToolActivity } from '@/atoms/agent-atoms'
+import { getI18nLanguage, useT } from '@/i18n'
 import { aggregateTaskItems, getTaskProgressCounts, type TaskItem } from './task-progress'
 
 // ===== 任务行 =====
@@ -114,7 +115,12 @@ interface TaskProgressCardProps {
 }
 
 export function TaskProgressCard({ activities, animate = false, streamEnded = false, historicalTaskSubjects, alwaysExpanded = false }: TaskProgressCardProps): React.ReactElement | null {
-  const items = React.useMemo(() => aggregateTaskItems(activities, streamEnded, historicalTaskSubjects), [activities, streamEnded, historicalTaskSubjects])
+  const t = useT()
+  // 语言变化时 getI18nLanguage() 返回新值，触发重算（subject 兜底文案经模块级 t() 生成）
+  const items = React.useMemo(
+    () => aggregateTaskItems(activities, streamEnded, historicalTaskSubjects),
+    [activities, streamEnded, historicalTaskSubjects, getI18nLanguage()],
+  )
   const [expanded, setExpanded] = React.useState(false)
 
   if (items.length === 0) return null
@@ -131,7 +137,7 @@ export function TaskProgressCard({ activities, animate = false, streamEnded = fa
         <div className="flex items-center gap-1.5 mb-1.5">
           <ListTodo className="size-3.5 text-muted-foreground" />
           <span className="text-[13px] font-medium text-muted-foreground">
-            任务进度
+            {t('agentMisc.taskProgressTitle')}
           </span>
           <span className="text-[11px] text-muted-foreground/50 tabular-nums">
             {completedCount}/{totalCount}
@@ -158,12 +164,12 @@ export function TaskProgressCard({ activities, animate = false, streamEnded = fa
             {expanded ? (
               <>
                 <ChevronUp className="size-3" />
-                <span>收起</span>
+                <span>{t('common.collapse')}</span>
               </>
             ) : (
               <>
                 <ChevronDown className="size-3" />
-                <span>展开全部 {totalCount} 项</span>
+                <span>{t('agentMisc.expandAllItems', { count: totalCount })}</span>
               </>
             )}
           </button>

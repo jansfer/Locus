@@ -20,8 +20,10 @@ import {
 } from '@/atoms/system-prompt-atoms'
 import { useConversationPromptId } from '@/hooks/useConversationSettings'
 import { cn } from '@/lib/utils'
+import { useT } from '@/i18n'
 
 export function SystemPromptSelector(): React.ReactElement {
+  const t = useT()
   const [config, setConfig] = useAtom(promptConfigAtom)
   const [selectedId, setSelectedId] = useConversationPromptId()
   const defaultPromptId = useAtomValue(defaultPromptIdAtom)
@@ -36,7 +38,7 @@ export function SystemPromptSelector(): React.ReactElement {
   }, [setConfig])
 
   const selectedPrompt = config.prompts.find((p) => p.id === selectedId)
-  const tooltipText = selectedPrompt ? `提示词: ${selectedPrompt.name}` : '选择提示词'
+  const tooltipText = selectedPrompt ? t('chat.prompt.tooltip', { name: selectedPrompt.name }) : t('chat.prompt.select')
 
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
@@ -71,7 +73,7 @@ export function SystemPromptSelector(): React.ReactElement {
 
             {/* 标记 */}
             {prompt.isBuiltin && (
-              <span className="text-xs text-muted-foreground shrink-0">(内置)</span>
+              <span className="text-xs text-muted-foreground shrink-0">{t('chat.prompt.builtin')}</span>
             )}
             {prompt.id === defaultPromptId && (
               <Star className="size-3 text-amber-500 fill-amber-500 shrink-0" />
@@ -87,7 +89,7 @@ export function SystemPromptSelector(): React.ReactElement {
           className="relative flex cursor-pointer select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground"
         >
           <Pencil className="size-4" />
-          <span>编辑提示词</span>
+          <span>{t('chat.prompt.edit')}</span>
         </div>
       </DropdownMenuContent>
     </DropdownMenu>

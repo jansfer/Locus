@@ -16,6 +16,7 @@ import { UserAvatar } from '@/components/chat/UserAvatar'
 import { getModelLogo, resolveModelProvider } from '@/lib/model-logo'
 import { channelsAtom } from '@/atoms/chat-atoms'
 import { cn } from '@/lib/utils'
+import { useT } from '@/i18n'
 import type { TabMinimapItem } from '@/atoms/tab-atoms'
 
 interface TabPreviewPanelProps {
@@ -60,8 +61,9 @@ function ItemIcon({ item }: { item: TabMinimapItem }): React.ReactElement {
 }
 
 function Preview({ text }: { text: string }): React.ReactElement {
+  const t = useT()
   if (!text) {
-    return <span className="text-xs opacity-40">(空消息)</span>
+    return <span className="text-xs opacity-40">{t('appShell.previewEmptyMessage')}</span>
   }
 
   return (
@@ -76,6 +78,7 @@ function Preview({ text }: { text: string }): React.ReactElement {
 // ── 主组件 ──
 
 export function TabPreviewPanel({ title, items, isLeaving }: TabPreviewPanelProps): React.ReactElement {
+  const t = useT()
   return (
     <div
       className={cn(
@@ -100,7 +103,7 @@ export function TabPreviewPanel({ title, items, isLeaving }: TabPreviewPanelProp
       <div className="overflow-y-auto flex-1 p-1.5 space-y-0.5 scrollbar-thin">
         {items.length === 0 ? (
           <div className="py-6 text-center text-xs text-muted-foreground">
-            暂无消息
+            {t('appShell.previewNoMessages')}
           </div>
         ) : (
           items.map((item) => (

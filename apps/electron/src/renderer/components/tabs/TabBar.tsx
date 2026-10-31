@@ -38,6 +38,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { TabBarItem } from './TabBarItem'
 import { getTabBarActionLayout } from './tab-bar-action-layout'
 import { useCloseTab } from '@/hooks/useCloseTab'
+import { useT } from '@/i18n'
 import { cn } from '@/lib/utils'
 import { shortcutGuideOpenAtom } from '@/atoms/shortcut-guide'
 import { faqDialogOpenAtom } from '@/atoms/faq-dialog'
@@ -476,6 +477,7 @@ function ShortcutGuideButton({
   onOpen: () => void
   onOpenFaq: () => void
 }): React.ReactElement {
+  const t = useT()
   return (
     <div
       className={cn(
@@ -494,11 +496,11 @@ function ShortcutGuideButton({
             onClick={onOpenFaq}
           >
             <HelpCircle className="size-3.5" />
-            <span className="sr-only">查看常见问题</span>
+            <span className="sr-only">{t('appShell.openFaq')}</span>
           </Button>
         </TooltipTrigger>
         <TooltipContent side="bottom">
-          <p>查看常见问题</p>
+          <p>{t('appShell.openFaq')}</p>
         </TooltipContent>
       </Tooltip>
 
@@ -516,11 +518,11 @@ function ShortcutGuideButton({
               onClick={() => void onOpenBrowser()}
             >
               <Globe className="size-3.5" />
-              <span className="sr-only">打开受管浏览器</span>
+              <span className="sr-only">{t('appShell.openManagedBrowser')}</span>
             </Button>
           </TooltipTrigger>
           <TooltipContent side="bottom">
-            <p>打开受管浏览器</p>
+            <p>{t('appShell.openManagedBrowser')}</p>
           </TooltipContent>
         </Tooltip>
       )}
@@ -534,11 +536,11 @@ function ShortcutGuideButton({
             onClick={onOpen}
           >
             <Keyboard className="size-3.5" />
-            <span className="sr-only">查看快捷键地图</span>
+            <span className="sr-only">{t('appShell.openShortcutGuide')}</span>
           </Button>
         </TooltipTrigger>
         <TooltipContent side="bottom">
-          <p>查看快捷键地图</p>
+          <p>{t('appShell.openShortcutGuide')}</p>
         </TooltipContent>
       </Tooltip>
     </div>
@@ -553,6 +555,7 @@ function AgentPanelOpenButton({
   positionClassName: string
   onToggle: () => void
 }): React.ReactElement {
+  const t = useT()
   return (
     <div
       className={cn(
@@ -573,7 +576,7 @@ function AgentPanelOpenButton({
           </Button>
         </TooltipTrigger>
         <TooltipContent side="bottom">
-          <p>打开文件面板 ({navigator.platform.includes('Mac') ? '⌘⇧B' : 'Ctrl+Shift+B'})</p>
+          <p>{t('appShell.openFilePanelWithShortcut', { shortcut: navigator.platform.includes('Mac') ? '⌘⇧B' : 'Ctrl+Shift+B' })}</p>
         </TooltipContent>
       </Tooltip>
     </div>

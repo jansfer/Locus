@@ -6,6 +6,7 @@
  */
 
 import React, { useState, useRef, useEffect, useCallback } from 'react'
+import { useT } from '@/i18n'
 import { fileToBase64, formatFileNames } from '@/lib/file-utils'
 import { MAX_ATTACHMENT_SIZE } from '@proma/shared'
 import { toast } from 'sonner'
@@ -31,6 +32,7 @@ interface ModelInfo {
 }
 
 export function QuickTaskApp(): React.ReactElement {
+  const t = useT()
   const [mode, setMode] = useState<TaskMode>('agent')
   const [text, setText] = useState('')
   const [attachments, setAttachments] = useState<QuickAttachment[]>([])
@@ -194,17 +196,17 @@ export function QuickTaskApp(): React.ReactElement {
       }
     }
     if (pathBackedFiles.length > 0) {
-      toast.success(`已将大文件作为附加文件引用：${formatFileNames(pathBackedFiles)}`)
+      toast.success(t('quickTask.toast.largeFileReferenced', { names: formatFileNames(pathBackedFiles) }))
     }
     if (rejectedLargeFiles.length > 0) {
-      toast.error(`以下文件超过 100MB，已跳过：${formatFileNames(rejectedLargeFiles)}`, {
-        description: mode === 'chat' ? 'Chat 附件暂不支持大文件。' : '无法取得本地路径，不能作为附加文件引用。',
+      toast.error(t('quickTask.toast.tooLargeSkipped', { names: formatFileNames(rejectedLargeFiles) }), {
+        description: mode === 'chat' ? t('quickTask.toast.chatLargeFileUnsupported') : t('quickTask.toast.noLocalPath'),
       })
     }
     if (newAttachments.length > 0) {
       setAttachments((prev) => [...prev, ...newAttachments])
     }
-  }, [mode])
+  }, [mode, t])
 
   // 移除附件
   const removeAttachment = useCallback((id: string) => {
@@ -255,7 +257,7 @@ export function QuickTaskApp(): React.ReactElement {
     if ((!trimmed && attachments.length === 0) || isSubmitting) return
     const pathOnlyAttachments = attachments.filter((att) => att.sourcePath && !att.base64)
     if (mode === 'chat' && pathOnlyAttachments.length > 0) {
-      toast.error(`Chat 暂不支持大文件附加，已保留在快速任务窗口：${formatFileNames(pathOnlyAttachments.map((att) => att.filename))}`)
+      toast.error(t('quickTask.toast.chatLargeFileKept', { names: formatFileNames(pathOnlyAttachments.map((att) => att.filename)) }))
       return
     }
 
@@ -275,7 +277,7 @@ export function QuickTaskApp(): React.ReactElement {
     } finally {
       setIsSubmitting(false)
     }
-  }, [text, mode, attachments, isSubmitting])
+  }, [text, mode, attachments, isSubmitting, t])
 
   // Enter 提交，Shift+Enter 换行
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
@@ -283,7 +285,7 @@ export function QuickTaskApp(): React.ReactElement {
       e.preventDefault()
       handleSubmit()
     }
-  }, [handleSubmit])
+  }, [handleSubmit, t])
 
   const hasContent = text.trim().length > 0 || attachments.length > 0
 
@@ -336,7 +338,7 @@ export function QuickTaskApp(): React.ReactElement {
           <div className="flex items-center gap-2 text-[10px] text-muted-foreground/40">
             <span>⌘1 Chat</span>
             <span>⌘2 Agent</span>
-            <span>Esc 关闭</span>
+            <span>{t('quickTask.shortcutClose')}</span>
           </div>
         </div>
 
@@ -348,7 +350,7 @@ export function QuickTaskApp(): React.ReactElement {
             onChange={(e) => setText(e.target.value)}
             onKeyDown={handleKeyDown}
             onPaste={handlePaste}
-            placeholder={mode === 'agent' ? '向 Locus 描述你的任务，Enter 发送...' : '向 Locus 发送消息，Enter 发送...'}
+            placeholder={mode === 'agent' ? t('quickTask.placeholderAgent') : t('quickTask.placeholderChat')}
             className="w-full resize-none bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground/50 leading-relaxed"
             style={{ minHeight: '60px', maxHeight: '160px' }}
             disabled={isSubmitting}
@@ -379,12 +381,12 @@ export function QuickTaskApp(): React.ReactElement {
               type="button"
               onClick={() => fileInputRef.current?.click()}
               className="flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs text-muted-foreground hover:bg-muted/60 hover:text-foreground transition-colors"
-              title="添加附件"
+              title={t('quickTask.addAttachment')}
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48" />
               </svg>
-              附件
+              {t('quickTask.attachment')}
             </button>
             <input
               ref={fileInputRef}
@@ -396,7 +398,7 @@ export function QuickTaskApp(): React.ReactElement {
 
             {/* 拖拽/粘贴提示 */}
             <span className="text-[10px] text-muted-foreground/30 ml-1">
-              支持粘贴或拖拽文件
+              {t('quickTask.dropHint')}
             </span>
           </div>
 
@@ -415,7 +417,7 @@ export function QuickTaskApp(): React.ReactElement {
                 <path d="m12 5 7 7-7 7" />
               </svg>
             )}
-            发送
+            {t('quickTask.send')}
           </button>
         </div>
       </div>

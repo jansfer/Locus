@@ -12,6 +12,7 @@ import * as React from 'react'
 import { useAtomValue } from 'jotai'
 import { MultiFileDiff } from '@pierre/diffs/react'
 import type { FileContents } from '@pierre/diffs'
+import { useT } from '@/i18n'
 import { resolvedThemeAtom } from '@/atoms/theme'
 import './diff-scroll.css'
 
@@ -35,6 +36,7 @@ function countLines(content: string): number {
 }
 
 export const DiffView = React.memo(function DiffView({ oldContent, newContent, filePath, viewMode }: DiffViewProps): React.ReactElement {
+  const t = useT()
   const theme = useAtomValue(resolvedThemeAtom)
 
   const oldLines = React.useMemo(() => countLines(oldContent), [oldContent])
@@ -128,12 +130,14 @@ export const DiffView = React.memo(function DiffView({ oldContent, newContent, f
       <div className="h-full bg-content-area overflow-auto">
         <div className="flex items-center justify-center h-full">
           <div className="text-center text-muted-foreground px-4">
-            <p className="text-[13px] font-medium mb-1">文件过大，无法显示差异对比</p>
+            <p className="text-[13px] font-medium mb-1">{t('diff.view.tooLargeTitle')}</p>
             <p className="text-[12px]">
-              旧文件 {oldLines.toLocaleString()} 行，新文件 {newLines.toLocaleString()} 行
+              {t('diff.view.tooLargeLines', { old: oldLines.toLocaleString(), new: newLines.toLocaleString() })}
             </p>
             <p className="text-[12px] text-muted-foreground/60 mt-2">
-              请使用命令行 <code className="px-1 py-0.5 rounded bg-muted text-[11px]">git diff</code> 查看
+              {t('diff.view.useCliBefore')}
+              <code className="px-1 py-0.5 rounded bg-muted text-[11px]">git diff</code>
+              {t('diff.view.useCliAfter')}
             </p>
           </div>
         </div>

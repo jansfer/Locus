@@ -10,6 +10,7 @@
 import * as React from 'react'
 import { useAtomValue, useSetAtom } from 'jotai'
 import { toast } from 'sonner'
+import { useT } from '@/i18n'
 import {
   agentWorkspacesAtom,
   currentAgentWorkspaceIdAtom,
@@ -75,6 +76,7 @@ export interface AgentSkillsData {
  * 会话的项目，不能跟随全局项目选择器切换。
  */
 export function useAgentSkillsData(workspaceId?: string): AgentSkillsData {
+  const t = useT()
   const workspaces = useAtomValue(agentWorkspacesAtom)
   const selectedWorkspaceId = useAtomValue(currentAgentWorkspaceIdAtom)
   const capabilitiesVersion = useAtomValue(workspaceCapabilitiesVersionAtom)
@@ -209,23 +211,23 @@ export function useAgentSkillsData(workspaceId?: string): AgentSkillsData {
       setSkills((prev) => prev.map((s) => (s.slug === slug ? { ...s, enabled } : s)))
     } catch (error) {
       console.error('[Agent 技能] 切换 Skill 状态失败:', error)
-      toast.error('切换 Skill 状态失败')
+      toast.error(t('skills.data.toggleSkillFailed'))
     }
-  }, [workspaceSlug])
+  }, [workspaceSlug, t])
 
   const deleteSkill = React.useCallback(async (slug: string, name: string): Promise<boolean> => {
     try {
       await window.electronAPI.deleteWorkspaceSkill(workspaceSlug, slug)
       setSkills((prev) => prev.filter((s) => s.slug !== slug))
       bumpCapabilitiesVersion((v) => v + 1)
-      toast.success(`已删除 Skill：${name}`)
+      toast.success(t('skills.data.skillDeleted', { name }))
       return true
     } catch (error) {
       console.error('[Agent 技能] 删除 Skill 失败:', error)
-      toast.error('删除 Skill 失败')
+      toast.error(t('skills.data.deleteSkillFailed'))
       return false
     }
-  }, [workspaceSlug, bumpCapabilitiesVersion])
+  }, [workspaceSlug, bumpCapabilitiesVersion, t])
 
   const updateSkill = React.useCallback(async (slug: string) => {
     if (!workspaceSlug || updatingSkill) return
@@ -234,15 +236,15 @@ export function useAgentSkillsData(workspaceId?: string): AgentSkillsData {
       const updated = await window.electronAPI.updateSkillFromSource(workspaceSlug, slug)
       setSkills((prev) => prev.map((s) => (s.slug === slug ? updated : s)))
       bumpCapabilitiesVersion((v) => v + 1)
-      toast.success(`已同步更新 Skill：${updated.name}`)
+      toast.success(t('skills.data.skillUpdated', { name: updated.name }))
     } catch (error) {
       console.error('[Agent 技能] 更新 Skill 失败:', error)
-      const message = error instanceof Error ? error.message : '未知错误'
-      toast.error('更新 Skill 失败', { description: message })
+      const message = error instanceof Error ? error.message : t('skills.importDialog.unknownError')
+      toast.error(t('skills.data.updateSkillFailed'), { description: message })
     } finally {
       setUpdatingSkill(null)
     }
-  }, [workspaceSlug, updatingSkill, bumpCapabilitiesVersion])
+  }, [workspaceSlug, updatingSkill, bumpCapabilitiesVersion, t])
 
   const refreshMcpConfig = React.useCallback(async () => {
     if (!workspaceSlug) return
@@ -289,7 +291,7 @@ export function useAgentSkillsData(workspaceId?: string): AgentSkillsData {
           if (!entry) return current
           return { ...current, servers: { ...current.servers, [name]: { ...entry, enabled: false } } }
         })
-        toast.error(`${name} 启用失败`, { description: result.verification.message })
+        toast.error(t('skills.data.mcpEnableFailed', { name }), { description: result.verification.message })
       }
       return result.verification
     } catch (error) {
@@ -301,12 +303,12 @@ export function useAgentSkillsData(workspaceId?: string): AgentSkillsData {
           if (!entry) return current
           return { ...current, servers: { ...current.servers, [name]: { ...entry, enabled: !enabled } } }
         })
-        toast.error('切换 MCP 状态失败')
+        toast.error(t('skills.data.toggleMcpFailed'))
       }
       console.error('[Agent 技能] 切换 MCP 服务器状态失败:', error)
-      return { success: false, message: error instanceof Error ? error.message : '切换 MCP 状态失败' }
+      return { success: false, message: error instanceof Error ? error.message : t('skills.data.toggleMcpFailed') }
     }
-  }, [workspaceSlug, bumpCapabilitiesVersion])
+  }, [workspaceSlug, bumpCapabilitiesVersion, t])
 
   const installMcp = React.useCallback(async (name: string, entry: McpServerEntry): Promise<boolean> => {
     try {
@@ -318,10 +320,10 @@ export function useAgentSkillsData(workspaceId?: string): AgentSkillsData {
       return result.installed
     } catch (error) {
       console.error('[Agent 技能] 安装 MCP 失败:', error)
-      toast.error('安装 MCP 失败')
+      toast.error(t('skills.data.installMcpFailed'))
       return false
     }
-  }, [workspaceSlug, bumpCapabilitiesVersion])
+  }, [workspaceSlug, bumpCapabilitiesVersion, t])
 
   const deleteMcp = React.useCallback(async (name: string) => {
     const entry = mcpConfig.servers[name]
@@ -336,15 +338,15 @@ export function useAgentSkillsData(workspaceId?: string): AgentSkillsData {
         await window.electronAPI.deleteMcpCredential(workspaceSlug, name)
       } catch (error) {
         console.error('[Agent 技能] MCP 配置已删除，但安全凭据清理失败:', error)
-        toast.warning('MCP 配置已删除，但安全凭据清理失败')
+        toast.warning(t('skills.data.credentialCleanupFailed'))
         return
       }
-      toast.success(`已删除 MCP 服务器：${name}`)
+      toast.success(t('skills.data.mcpDeleted', { name }))
     } catch (error) {
       console.error('[Agent 技能] 删除 MCP 服务器失败:', error)
-      toast.error('删除 MCP 服务器失败')
+      toast.error(t('skills.data.deleteMcpFailed'))
     }
-  }, [workspaceSlug, mcpConfig, bumpCapabilitiesVersion])
+  }, [workspaceSlug, mcpConfig, bumpCapabilitiesVersion, t])
 
   return {
     workspaceSlug,

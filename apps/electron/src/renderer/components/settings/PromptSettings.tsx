@@ -18,6 +18,7 @@ import {
   SettingsCard,
   SettingsToggle,
 } from './primitives'
+import { useT } from '@/i18n'
 import {
   promptConfigAtom,
   selectedPromptIdAtom,
@@ -29,6 +30,7 @@ import type { SystemPrompt, SystemPromptCreateInput, SystemPromptUpdateInput } f
 const DEBOUNCE_DELAY = 500
 
 export function PromptSettings(): React.ReactElement {
+  const t = useT()
   const [config, setConfig] = useAtom(promptConfigAtom)
   const [selectedId, setSelectedId] = useAtom(selectedPromptIdAtom)
   const defaultPromptId = useAtomValue(defaultPromptIdAtom)
@@ -68,7 +70,7 @@ export function PromptSettings(): React.ReactElement {
   /** 新建提示词 */
   const handleCreate = async (): Promise<void> => {
     const input: SystemPromptCreateInput = {
-      name: '新提示词',
+      name: t('settingsMisc.prompt.newName'),
       content: '',
     }
     try {
@@ -160,12 +162,12 @@ export function PromptSettings(): React.ReactElement {
     <div className="space-y-6">
       {/* 提示词列表 */}
       <SettingsSection
-        title="系统提示词"
-        description="管理 Chat 模式的系统提示词"
+        title={t('settingsMisc.prompt.title')}
+        description={t('settingsMisc.prompt.description')}
         action={
           <Button size="sm" onClick={handleCreate}>
             <Plus className="size-4 mr-1" />
-            新建
+            {t('settingsMisc.prompt.create')}
           </Button>
         }
       >
@@ -190,11 +192,11 @@ export function PromptSettings(): React.ReactElement {
 
       {/* 编辑区 */}
       {selectedPrompt && (
-        <SettingsSection title="提示词内容">
+        <SettingsSection title={t('settingsMisc.prompt.contentTitle')}>
           <SettingsCard divided={false} className="p-4 space-y-3">
             <div>
               <label className="text-sm font-medium text-foreground mb-1.5 block">
-                名称
+                {t('settingsMisc.prompt.nameLabel')}
               </label>
               <Input
                 value={editName}
@@ -206,7 +208,7 @@ export function PromptSettings(): React.ReactElement {
             </div>
             <div>
               <label className="text-sm font-medium text-foreground mb-1.5 block">
-                内容
+                {t('settingsMisc.prompt.contentLabel')}
               </label>
               <Textarea
                 value={editContent}
@@ -216,7 +218,7 @@ export function PromptSettings(): React.ReactElement {
                   'min-h-[280px] resize-y',
                   selectedPrompt.isBuiltin && 'opacity-60 cursor-not-allowed'
                 )}
-                placeholder="输入系统提示词内容..."
+                placeholder={t('settingsMisc.prompt.contentPlaceholder')}
               />
             </div>
           </SettingsCard>
@@ -224,11 +226,11 @@ export function PromptSettings(): React.ReactElement {
       )}
 
       {/* 增强选项 */}
-      <SettingsSection title="增强选项">
+      <SettingsSection title={t('settingsMisc.prompt.enhancements')}>
         <SettingsCard>
           <SettingsToggle
-            label="追加日期时间和用户名"
-            description="在提示词末尾自动追加当前日期时间和用户名"
+            label={t('settingsMisc.prompt.appendToggle')}
+            description={t('settingsMisc.prompt.appendDesc')}
             checked={config.appendDateTimeAndUserName}
             onCheckedChange={handleAppendChange}
           />
@@ -260,6 +262,7 @@ function PromptListItem({
   onSetDefault,
   onHoverChange,
 }: PromptListItemProps): React.ReactElement {
+  const t = useT()
   return (
     <div
       className={cn(
@@ -274,7 +277,7 @@ function PromptListItem({
       <div className="flex-1 min-w-0 flex items-center gap-1.5">
         <span className="text-sm font-medium truncate">{prompt.name}</span>
         {prompt.isBuiltin && (
-          <span className="text-xs text-muted-foreground shrink-0">(内置)</span>
+          <span className="text-xs text-muted-foreground shrink-0">{t('settingsMisc.prompt.builtinTag')}</span>
         )}
         {isDefault && (
           <Star className="size-3.5 text-amber-500 fill-amber-500 shrink-0" />
@@ -295,7 +298,7 @@ function PromptListItem({
               e.stopPropagation()
               onSetDefault(prompt.id)
             }}
-            title="设为默认"
+            title={t('settingsMisc.prompt.setDefault')}
           >
             <Star className="size-3.5 text-muted-foreground" />
           </Button>
@@ -309,7 +312,7 @@ function PromptListItem({
               e.stopPropagation()
               onDelete(prompt.id)
             }}
-            title="删除"
+            title={t('common.delete')}
           >
             <Trash2 className="size-3.5" />
           </Button>

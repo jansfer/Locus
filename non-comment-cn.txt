@@ -1,0 +1,132 @@
+apps/electron/src/renderer/App.tsx:43:         console.error('[App] 初始化失败:', error)
+apps/electron/src/renderer/App.tsx:106:  * 应用启动时复用 Onboarding 首屏的画作，让冷启动阶段也保持一致的品牌体验。
+apps/electron/src/renderer/App.tsx:151:  * 全局环境检测 Dialog，由错误卡片的 recovery action 按钮打开。
+apps/electron/src/renderer/main.tsx:2:  * 渲染进程入口
+apps/electron/src/renderer/main.tsx:4:  * 挂载 React 应用，初始化主题系统。
+apps/electron/src/renderer/main.tsx:113:  * 主题初始化组件
+apps/electron/src/renderer/main.tsx:115:  * 负责从主进程加载主题设置、监听系统主题变化、
+apps/electron/src/renderer/main.tsx:116:  * 并将最终主题同步到 DOM。
+apps/electron/src/renderer/main.tsx:169:  * 语言初始化组件
+apps/electron/src/renderer/main.tsx:171:  * 负责从主进程加载语言偏好、监听跨窗口语言变更，
+apps/electron/src/renderer/main.tsx:172:  * 并把解析后的有效语言同步到 i18n 模块。
+apps/electron/src/renderer/main.tsx:200:  * Agent 设置初始化组件
+apps/electron/src/renderer/main.tsx:202:  * 从主进程加载 Agent 渠道/模型设置并写入 atoms。
+apps/electron/src/renderer/main.tsx:247:         console.warn('[AgentSettings] Chat selectedModel 指向已删除的渠道，清除')
+apps/electron/src/renderer/main.tsx:263:         console.warn('[AgentSettings] agentChannelId 指向当前 Core 不可用的渠道，清除')
+apps/electron/src/renderer/main.tsx:370:  * 自动更新初始化组件
+apps/electron/src/renderer/main.tsx:372:  * 订阅主进程推送的更新状态变化事件。
+apps/electron/src/renderer/main.tsx:516:  * 定时任务初始化组件
+apps/electron/src/renderer/main.tsx:518:  * 加载全部定时任务，并订阅主进程的变更事件（运行完成/状态变化）刷新列表。
+apps/electron/src/renderer/main.tsx:526:       console.error('[任务/日程] 加载快捷键设置失败:', error)
+apps/electron/src/renderer/main.tsx:546:       }).catch((error: unknown) => console.error('[任务/日程] 加载 Todo 失败:', error))
+apps/electron/src/renderer/main.tsx:552:       }).catch((error: unknown) => console.error('[任务/日程] 加载日程失败:', error))
+apps/electron/src/renderer/main.tsx:558:       }).catch((error: unknown) => console.error('[任务/日程] 加载 Todo 分组失败:', error))
+apps/electron/src/renderer/main.tsx:564:       }).catch((error: unknown) => console.error('[任务/日程] 加载日程分组失败:', error))
+apps/electron/src/renderer/main.tsx:570:       }).catch((error: unknown) => console.error('[任务/日程] 加载标签失败:', error))
+apps/electron/src/renderer/main.tsx:614:  * 通知初始化组件
+apps/electron/src/renderer/main.tsx:616:  * 从主进程加载通知开关设置。
+apps/electron/src/renderer/main.tsx:631:  * Dock/Launcher 角标同步组件
+apps/electron/src/renderer/main.tsx:633:  * 将需要用户处理或查看的事项数量同步到系统应用图标。
+apps/electron/src/renderer/main.tsx:651:       console.error('[Dock 角标] 同步失败:', error)
+apps/electron/src/renderer/main.tsx:682:  * UI 偏好初始化组件
+apps/electron/src/renderer/main.tsx:684:  * 从主进程加载 UI 偏好设置（输入框 Markdown 渲染等）。
+apps/electron/src/renderer/main.tsx:705:  * Markdown 字号初始化组件
+apps/electron/src/renderer/main.tsx:707:  * 从主进程加载字号档位，写入 :root CSS 变量驱动 Markdown 预览。
+apps/electron/src/renderer/main.tsx:720:  * Chat IPC 监听器初始化组件
+apps/electron/src/renderer/main.tsx:722:  * 全局挂载，永不销毁。确保 Chat 流式事件
+apps/electron/src/renderer/main.tsx:723:  * 在页面切换时不丢失。
+apps/electron/src/renderer/main.tsx:731:  * Agent IPC 监听器初始化组件
+apps/electron/src/renderer/main.tsx:733:  * 全局挂载，永不销毁。确保 Agent 流式事件、权限请求
+apps/electron/src/renderer/main.tsx:734:  * 在页面切换时不丢失。
+apps/electron/src/renderer/main.tsx:742:  * Chat 工具初始化组件
+apps/electron/src/renderer/main.tsx:744:  * 启动时从主进程加载所有工具信息到 atom。
+apps/electron/src/renderer/main.tsx:745:  * 订阅 chat-tools.json 文件变更通知，自动刷新工具列表。
+apps/electron/src/renderer/main.tsx:753:       .catch((err: unknown) => console.error('[ChatToolInitializer] 加载工具列表失败:', err))
+apps/electron/src/renderer/main.tsx:762:         .catch((err: unknown) => console.error('[ChatToolInitializer] 刷新工具列表失败:', err))
+apps/electron/src/renderer/main.tsx:771:  * 飞书集成初始化组件
+apps/electron/src/renderer/main.tsx:773:  * - 订阅飞书 Bridge 状态变化
+apps/electron/src/renderer/main.tsx:774:  * - 定期上报用户在场状态（用于智能通知路由）
+apps/electron/src/renderer/main.tsx:775:  * - 监听通知已发送事件（显示 Sonner + 桌面通知）
+apps/electron/src/renderer/main.tsx:792:             store.set(feishuBotStatesAtom, { [botId]: { ...s, botId, botName: s.botName ?? '飞书助手' } })
+apps/electron/src/renderer/main.tsx:794:           .catch((err: unknown) => console.error('[FeishuInitializer] 加载状态失败:', err))
+apps/electron/src/renderer/main.tsx:803:         [botId]: { ...state, botId, botName: state.botName ?? '飞书助手' },
+apps/electron/src/renderer/main.tsx:833:  * - 加载多 Bot 初始状态
+apps/electron/src/renderer/main.tsx:834:  * - 订阅钉钉 Bridge 状态变化
+apps/electron/src/renderer/main.tsx:842:       .catch((error: unknown) => console.error('[SlackInitializer] 加载状态失败:', error))
+apps/electron/src/renderer/main.tsx:867:             store.set(dingtalkBotStatesAtom, { [botId]: { ...s, botId, botName: s.botName ?? '钉钉助手' } })
+apps/electron/src/renderer/main.tsx:869:           .catch((err: unknown) => console.error('[DingTalkInitializer] 加载状态失败:', err))
+apps/electron/src/renderer/main.tsx:878:         [botId]: { ...state, botId, botName: state.botName ?? '钉钉助手' },
+apps/electron/src/renderer/main.tsx:891:  * 标签页持久化组件
+apps/electron/src/renderer/main.tsx:893:  * 启动时从 settings.tabState 恢复上次打开的标签页；
+apps/electron/src/renderer/main.tsx:894:  * 运行时监听标签页变化，自动保存到 settings.json。
+apps/electron/src/renderer/main.tsx:898:  * 旧版（分屏时代）持久化结构——仅用于向后兼容读取迁移。
+apps/electron/src/renderer/main.tsx:899:  * 新版已扁平化为 { tabs, activeTabId }；旧版是 { tabs, splitLayout }。
+apps/electron/src/renderer/main.tsx:994:       console.log(`[TabRestore] 已恢复当前会话入口，历史标签 ${validTabs.length} 个已收敛到左侧列表`)
+apps/electron/src/renderer/main.tsx:997:     restore().catch((err) => console.error('[TabRestore] 恢复标签页失败:', err))
+apps/electron/src/renderer/lib/tips.ts:2:  * Tips 管理模块 — 平台感知的使用技巧
+apps/electron/src/renderer/lib/tips.ts:4:  * 区分 macOS / Windows 平台，提供随机轮换的小贴士。
+apps/electron/src/renderer/lib/tips.ts:5:  * 文案存放在 welcome 词典（welcome.tips.*），渲染时经 t() 解析为当前语言。
+apps/electron/src/renderer/components/welcome/WelcomeView.tsx:2:  * WelcomeView — 主区域空状态启动器
+apps/electron/src/renderer/components/welcome/WelcomeView.tsx:4:  * 当没有打开任何标签页时：
+apps/electron/src/renderer/components/welcome/WelcomeView.tsx:5:  * 1. 优先复用现有会话（打开最近的一个）
+apps/electron/src/renderer/components/welcome/WelcomeView.tsx:6:  * 2. 没有现有会话时，创建一个 draft 会话（不在侧边栏显示）
+apps/electron/src/renderer/components/welcome/WelcomeView.tsx:8:  * 这样用户直接看到完整的 ChatView/AgentView（含全功能输入框），
+apps/electron/src/renderer/components/welcome/WelcomeView.tsx:9:  * 发送第一条消息后 draft 标记自动移除，会话出现在侧边栏。
+apps/electron/src/renderer/components/welcome/WelcomeEmptyState.tsx:2:  * WelcomeEmptyState — 对话/会话空状态引导
+apps/electron/src/renderer/components/welcome/WelcomeEmptyState.tsx:4:  * 在没有会话时展示：
+apps/electron/src/renderer/components/welcome/WelcomeEmptyState.tsx:5:  * 1. 个性化时段问候
+apps/electron/src/renderer/components/welcome/WelcomeEmptyState.tsx:6:  * 2. 平台感知的小 Tips
+apps/electron/src/renderer/components/welcome/WelcomeEmptyState.tsx:7:  * 3. Chat/Agent 模式切换 Tab
+apps/electron/src/renderer/components/quick-task/QuickTaskApp.tsx:2:  * QuickTaskApp — 快速任务窗口根组件
+apps/electron/src/renderer/components/quick-task/QuickTaskApp.tsx:4:  * 当 URL 含 ?window=quick-task 时渲染此组件（替代主 App）。
+apps/electron/src/renderer/components/quick-task/QuickTaskApp.tsx:5:  * 轻量级独立窗口：多行输入 + 附件粘贴 + 模式切换 + 默认模型展示。
+apps/electron/src/renderer/components/quick-task/QuickTaskApp.tsx:195:         console.error('[快速任务] 读取文件失败:', err)
+apps/electron/src/renderer/components/quick-task/QuickTaskApp.tsx:276:       console.error('[快速任务] 提交失败:', err)
+apps/electron/src/renderer/components/shortcuts/ShortcutGuideDialog.tsx:2:  * ShortcutGuideDialog - 只读快捷键地图。
+apps/electron/src/renderer/components/shortcuts/ShortcutGuideDialog.tsx:4:  * 与设置中的快捷键管理保持分离：这里用于快速学习和查阅，始终展示当前平台实际生效的按键。
+apps/electron/src/renderer/components/shortcuts/ShortcutGuideDialog.tsx:156:         console.error('[快捷键地图] 查询全局快捷键状态失败:', error)
+apps/electron/src/renderer/components/shortcuts/FaqDialog.tsx:2:  * FaqDialog - 全局 FAQ 弹窗。
+apps/electron/src/renderer/components/shortcuts/FaqDialog.tsx:4:  * 左侧显示主题目录（可点击跳转），右侧按主题展示全部常见问题。
+apps/electron/src/renderer/components/shortcuts/FaqDialog.tsx:5:  * 数据与 Onboarding FAQ 页共用（faq-content.ts）。
+apps/electron/src/renderer/components/shortcuts/GlobalShortcuts.tsx:2:  * GlobalShortcuts — 全局快捷键注册 + 初始化组件
+apps/electron/src/renderer/components/shortcuts/GlobalShortcuts.tsx:4:  * 在 main.tsx 顶层挂载（类似 AgentListenersInitializer），永不销毁。
+apps/electron/src/renderer/components/shortcuts/GlobalShortcuts.tsx:5:  * 负责：
+apps/electron/src/renderer/components/shortcuts/GlobalShortcuts.tsx:6:  * 1. 初始化快捷键注册表
+apps/electron/src/renderer/components/shortcuts/GlobalShortcuts.tsx:7:  * 2. 从 settings 加载用户自定义配置
+apps/electron/src/renderer/components/shortcuts/GlobalShortcuts.tsx:8:  * 3. 注册所有应用级快捷键的 handler
+apps/electron/src/renderer/components/shortcuts/GlobalShortcuts.tsx:9:  * 4. 监听菜单 IPC 事件（Cmd+W 关闭标签）
+apps/electron/src/renderer/components/shortcuts/GlobalShortcuts.tsx:71:  * 快捷键初始化 + 全局 Handler 注册
+apps/electron/src/renderer/components/shortcuts/GlobalShortcuts.tsx:73:  * 挂载后从 settings 加载自定义配置，并注册所有应用级快捷键。
+apps/electron/src/renderer/components/shortcuts/GlobalShortcuts.tsx:327:                 console.error('[快速任务] 保存 Agent 附件失败:', error)
+apps/electron/src/renderer/components/shortcuts/GlobalShortcuts.tsx:365:                 console.warn('[快速任务] Chat 附件缺少 base64，已跳过:', file.filename)
+apps/electron/src/renderer/components/shortcuts/GlobalShortcuts.tsx:377:                 console.error('[快速任务] 保存 Chat 附件失败:', error)
+apps/electron/src/renderer/components/shortcuts/GlobalShortcuts.tsx:400:         console.error('[快速任务] 创建会话失败:', error)
+apps/electron/src/renderer/components/shortcuts/GlobalShortcuts.tsx:440:         console.warn('[语音输入] 冻结的输入目标已不可用，已丢弃听写结果:', data.targetInputId)
+apps/electron/src/renderer/components/shortcuts/GlobalShortcuts.tsx:546:         console.error('[菜单栏] 打开 Agent 会话失败:', error)
+apps/electron/src/renderer/components/onboarding/OnboardingView.tsx:2:  * Onboarding 视图组件
+apps/electron/src/renderer/components/onboarding/OnboardingView.tsx:4:  * 首次启动时显示的全屏引导界面。
+apps/electron/src/renderer/components/onboarding/OnboardingView.tsx:6:  * 流程：
+apps/electron/src/renderer/components/onboarding/OnboardingView.tsx:7:  *  Step 1：欢迎（点击「进入引导界面」→ 白色闪屏淡出）
+apps/electron/src/renderer/components/onboarding/OnboardingView.tsx:8:  *  Step 2：Agent vs Chat 科普（绿色指针指向界面截图中的切换按钮）
+apps/electron/src/renderer/components/onboarding/OnboardingView.tsx:9:  *  Step 3：会话文件/项目文件区别
+apps/electron/src/renderer/components/onboarding/OnboardingView.tsx:10:  *  Step 4：项目概念
+apps/electron/src/renderer/components/onboarding/OnboardingView.tsx:11:  *  Step 5：子会话科普（图：collaboration 子会话）
+apps/electron/src/renderer/components/onboarding/OnboardingView.tsx:12:  *  Step 6：自动任务科普（图：自动任务配置页）
+apps/electron/src/renderer/components/onboarding/OnboardingView.tsx:13:  *  Step 7：记忆功能科普（图：Agent 技能的记忆页面）
+apps/electron/src/renderer/components/onboarding/OnboardingView.tsx:14:  *  Step 8：侧边回答科普（图：历史选区问答）
+apps/electron/src/renderer/components/onboarding/OnboardingView.tsx:15:  *  Step 9：FAQ 汇总页（按主题分组）
+apps/electron/src/renderer/components/onboarding/OnboardingView.tsx:100:  * 圆形放大镜：覆盖在图片锚点位置，圈内放大显示被讲解的 UI 元素。
+apps/electron/src/renderer/components/onboarding/OnboardingView.tsx:102:  * 原理：在锚点位置放一个圆形裁剪容器（clip-path: circle），
+apps/electron/src/renderer/components/onboarding/OnboardingView.tsx:103:  * 容器内再渲染同一张图片，但以锚点为中心放大 2 倍，
+apps/electron/src/renderer/components/onboarding/OnboardingView.tsx:104:  * 视觉效果就像把对应区域的内容放大到圆圈里。
+apps/electron/src/renderer/components/onboarding/OnboardingView.tsx:216:  * 引导科普页：左侧显示界面截图，从锚点画绿色指针指向右侧讲解区。
+apps/electron/src/renderer/components/onboarding/OnboardingView.tsx:498:  * FAQ 页面：左侧可点击目录地图 + 右侧按主题展开全部问题。
+apps/electron/src/renderer/components/onboarding/OnboardingView.tsx:606:  * 底部进度地图：仅显示当前章节的步骤，并保持章节内的宽松间距。
+apps/electron/src/renderer/components/onboarding/OnboardingView.tsx:687:    * 页面切换：
+apps/electron/src/renderer/components/onboarding/OnboardingView.tsx:688:    * - welcome 进出（画作显隐）用白色闪屏遮挡
+apps/electron/src/renderer/components/onboarding/OnboardingView.tsx:689:    * - guide 之后的科普页之间用淡入淡出
+apps/electron/src/renderer/components/onboarding/faq-content.ts:2:  * FAQ 内容数据：按主题分组，供 Onboarding FAQ 页与全局 FAQ 弹窗共用。
+apps/electron/src/renderer/components/onboarding/faq-content.ts:4:  * 文案存放在 onboarding 词典（onboarding.faq.*），渲染处经 t() 解析为当前语言；
+apps/electron/src/renderer/components/onboarding/faq-content.ts:5:  * slug 是与语言无关的稳定标识，用于 React key、DOM id 与锚点跳转。
+apps/electron/src/renderer/components/onboarding/FileGuideExamples.tsx:22:  * 截图上的标签位置以归一化坐标保存，ResizeObserver 会在容器尺寸变化时重算与首屏一致的镜片大小与取景位置。
+apps/electron/src/renderer/components/onboarding/MemoryGuideExamples.tsx:12:  * 记忆文件列表的放大镜独立观察截图容器，在不同图宽下保持与其他 onboarding 案例一致的尺寸。

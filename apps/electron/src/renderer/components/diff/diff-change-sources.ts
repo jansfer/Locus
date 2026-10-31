@@ -12,12 +12,15 @@ const DIFF_CHANGE_SOURCE_ORDER: readonly ChangeSource[] = [
   'none',
 ]
 
-/** 文件来源 badge 的颜色和文案。 */
-export const DIFF_CHANGE_SOURCE_CONFIG: Record<ChangeSource, { color: string; label: string }> = {
-  session: { color: 'bg-blue-500/10 text-blue-500', label: '会话文件' },
-  workspace: { color: 'bg-purple-500/10 text-purple-500', label: '项目文件' },
-  both: { color: 'bg-cyan-500/10 text-cyan-500', label: '会话+项目文件' },
-  none: { color: 'bg-muted text-muted-foreground', label: '附加目录文件' },
+/** 改动来源 badge 在 diff 域词典中的文案键；渲染处用 t(labelKey) 取本地化文案。 */
+export type DiffChangeSourceLabelKey = 'diff.source.session' | 'diff.source.workspace' | 'diff.source.both' | 'diff.source.extra'
+
+/** 文件来源 badge 的颜色和词典键（文案在渲染处经 t() 解析）。 */
+export const DIFF_CHANGE_SOURCE_CONFIG: Record<ChangeSource, { color: string; labelKey: DiffChangeSourceLabelKey }> = {
+  session: { color: 'bg-blue-500/10 text-blue-500', labelKey: 'diff.source.session' },
+  workspace: { color: 'bg-purple-500/10 text-purple-500', labelKey: 'diff.source.workspace' },
+  both: { color: 'bg-cyan-500/10 text-cyan-500', labelKey: 'diff.source.both' },
+  none: { color: 'bg-muted text-muted-foreground', labelKey: 'diff.source.extra' },
 }
 
 /** 聚合一个 Git 仓库内的来源类型；未追踪文件不会伪造来源。 */

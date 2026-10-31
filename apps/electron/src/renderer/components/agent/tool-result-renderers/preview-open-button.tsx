@@ -11,6 +11,7 @@ import { useAtomValue } from 'jotai'
 import { currentAgentSessionIdAtom } from '@/atoms/agent-atoms'
 import { useOpenPreview } from '@/components/diff/preview-opener'
 import { cn } from '@/lib/utils'
+import { useT } from '@/i18n'
 
 interface PreviewOpenButtonProps {
   filePath: string
@@ -18,6 +19,7 @@ interface PreviewOpenButtonProps {
 }
 
 export function PreviewOpenButton({ filePath, className }: PreviewOpenButtonProps): React.ReactElement | null {
+  const t = useT()
   const sessionId = useAtomValue(currentAgentSessionIdAtom)
   const openPreview = useOpenPreview()
 
@@ -49,9 +51,9 @@ export function PreviewOpenButton({ filePath, className }: PreviewOpenButtonProp
           handleOpen()
         }
       }}
-      title="预览文件"
+      title={t('agentMisc.toolResult.previewFile')}
     >
-      预览
+      {t('agentMisc.toolResult.preview')}
     </span>
   )
 }

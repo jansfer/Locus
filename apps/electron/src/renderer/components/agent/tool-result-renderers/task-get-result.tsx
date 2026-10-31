@@ -7,6 +7,7 @@
 import * as React from 'react'
 import { CheckCircle2, Circle, Clock3, FileText, Layers3, XCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { t, useT } from '@/i18n'
 import { DefaultResultRenderer } from './default-result'
 
 interface TaskGetResultRendererProps {
@@ -118,21 +119,21 @@ export function parseTaskGetResult(text: string): ParsedTaskGetResult | null {
 export function getTaskGetStatusLabel(status: string | undefined): string {
   switch (status) {
     case 'in_progress':
-      return '进行中'
+      return t('agentMisc.taskStatus.inProgress')
     case 'completed':
-      return '已完成'
+      return t('agentMisc.taskStatus.completed')
     case 'blocked':
-      return '已阻塞'
+      return t('agentMisc.taskStatus.blocked')
     case 'deleted':
-      return '已删除'
+      return t('agentMisc.taskStatus.deleted')
     case 'cancelled':
-      return '已取消'
+      return t('agentMisc.taskStatus.cancelled')
     case 'error':
-      return '出错'
+      return t('agentMisc.taskStatus.error')
     case 'pending':
-      return '待处理'
+      return t('agentMisc.taskStatus.pending')
     default:
-      return status || '未知状态'
+      return status || t('agentMisc.taskStatus.unknown')
   }
 }
 
@@ -184,6 +185,7 @@ function statusMeta(status: string | undefined): {
 }
 
 export function TaskGetResultRenderer({ result, isError }: TaskGetResultRendererProps): React.ReactElement {
+  const t = useT()
   const task = React.useMemo(() => parseTaskGetResult(result), [result])
 
   if (isError) return <DefaultResultRenderer result={result} isError />
@@ -203,7 +205,7 @@ export function TaskGetResultRenderer({ result, isError }: TaskGetResultRenderer
               </span>
             )}
             <h4 className="truncate text-[13px] font-medium text-foreground/90">
-              {task.subject || '任务详情'}
+              {task.subject || t('agentMisc.taskDetailTitle')}
             </h4>
           </div>
           {task.description && (
@@ -226,7 +228,7 @@ export function TaskGetResultRenderer({ result, isError }: TaskGetResultRenderer
         <div className="flex flex-wrap items-center gap-1.5 border-t border-border/30 px-3 py-2">
           <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground/70">
             <Layers3 className="size-3" />
-            关联块
+            {t('agentMisc.relatedBlocks')}
           </span>
           {task.blocks.map((blockId) => (
             <span
@@ -242,7 +244,7 @@ export function TaskGetResultRenderer({ result, isError }: TaskGetResultRenderer
       {!task.description && task.blocks.length === 0 && (
         <div className="flex items-center gap-1.5 border-t border-border/30 px-3 py-2 text-[11px] text-muted-foreground/60">
           <FileText className="size-3" />
-          没有更多任务详情
+          {t('agentMisc.noMoreTaskDetails')}
         </div>
       )}
     </section>

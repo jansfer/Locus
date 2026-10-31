@@ -1,10 +1,13 @@
 export type MemoryHistoryRange = '1m' | '2m' | '3m' | 'all'
 
-export const MEMORY_HISTORY_RANGE_OPTIONS: Array<{ value: MemoryHistoryRange; label: string; promptLabel: string }> = [
-  { value: '1m', label: '近 1 个月', promptLabel: '最近 1 个月内' },
-  { value: '2m', label: '近 2 个月', promptLabel: '最近 2 个月内' },
-  { value: '3m', label: '近 3 个月', promptLabel: '最近 3 个月内' },
-  { value: 'all', label: '全部', promptLabel: '全部可用历史' },
+/** 下拉选项显示文案的词典键（skills.memory.historyRange 分组）；promptLabel 仅用于 Agent 提示词，不翻译。 */
+export type MemoryHistoryRangeLabelKey = 'last1Month' | 'last2Months' | 'last3Months' | 'all'
+
+export const MEMORY_HISTORY_RANGE_OPTIONS: Array<{ value: MemoryHistoryRange; labelKey: MemoryHistoryRangeLabelKey; promptLabel: string }> = [
+  { value: '1m', labelKey: 'last1Month', promptLabel: '最近 1 个月内' },
+  { value: '2m', labelKey: 'last2Months', promptLabel: '最近 2 个月内' },
+  { value: '3m', labelKey: 'last3Months', promptLabel: '最近 3 个月内' },
+  { value: 'all', labelKey: 'all', promptLabel: '全部可用历史' },
 ]
 
 /** This block is project-portable policy, while exact Locus paths remain in the workspace prompt. */

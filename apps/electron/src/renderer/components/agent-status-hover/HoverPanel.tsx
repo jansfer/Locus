@@ -7,6 +7,8 @@ import type {
 } from '@proma/shared'
 import { Lock, HelpCircle, ClipboardList } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import type { MessageKey } from '@/i18n'
+import { useT } from '@/i18n'
 
 const PHASE_DOT_CLASS: Record<AgentIslandPhase, string> = {
   idle: 'bg-transparent',
@@ -16,12 +18,13 @@ const PHASE_DOT_CLASS: Record<AgentIslandPhase, string> = {
   completed: 'bg-green-500',
 }
 
-const PHASE_LABEL: Record<AgentIslandPhase, string> = {
-  idle: '空闲',
-  running: '执行中',
-  'needs-interaction': '待处理',
-  error: '需关注',
-  completed: '已完成',
+/** 阶段 → 词典键映射；渲染处经 t() 求值以响应语言切换。 */
+const PHASE_LABEL_KEY: Record<AgentIslandPhase, MessageKey> = {
+  idle: 'agentMisc.phase.idle',
+  running: 'agentMisc.phase.running',
+  'needs-interaction': 'agentMisc.phase.needsInteraction',
+  error: 'agentMisc.phase.error',
+  completed: 'agentMisc.phase.completed',
 }
 
 const INTERACTION_ICON: Partial<Record<AgentIslandInteractionKind, React.ComponentType<{ className?: string }>>> = {
@@ -39,6 +42,7 @@ function SessionIndicator({ session }: { session: AgentIslandSessionSnapshot }):
 }
 
 export function HoverPanel(): React.ReactElement {
+  const t = useT()
   const [snapshot, setSnapshot] = React.useState<NativeAgentIslandSnapshot | null>(null)
 
   React.useEffect(() => {
@@ -55,10 +59,13 @@ export function HoverPanel(): React.ReactElement {
 
   const headerLabel = pill
     ? pill.activeSessionCount > 0
-      ? `${PHASE_LABEL[pill.priorityStatus]} · ${pill.activeSessionCount} 个会话`
+      ? t('agentMisc.hover.activeSummary', {
+          status: t(PHASE_LABEL_KEY[pill.priorityStatus]),
+          count: pill.activeSessionCount,
+        })
       : pill.unreadCompletedCount > 0
-        ? `${pill.unreadCompletedCount} 个已完成`
-        : '空闲'
+        ? t('agentMisc.hover.unreadCompleted', { count: pill.unreadCompletedCount })
+        : t('agentMisc.phase.idle')
     : ''
 
   return (
@@ -79,7 +86,7 @@ export function HoverPanel(): React.ReactElement {
       <div className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto">
         {sessions.length === 0 ? (
           <div className="flex flex-1 items-center justify-center py-6">
-            <span className="text-xs text-muted-foreground">暂无活跃 Agent</span>
+            <span className="text-xs text-muted-foreground">{t('agentMisc.hover.noActiveSessions')}</span>
           </div>
         ) : (
           sessions.map((session) => (
@@ -92,10 +99,10 @@ export function HoverPanel(): React.ReactElement {
               <SessionIndicator session={session} />
               <div className="min-w-0 flex-1">
                 <div className="text-[11px] font-medium text-muted-foreground">
-                  {PHASE_LABEL[session.phase]}
+                  {t(PHASE_LABEL_KEY[session.phase])}
                 </div>
                 <p className="line-clamp-2 text-xs font-medium leading-snug">
-                  {session.title || '未命名会话'}
+                  {session.title || t('agentMisc.hover.untitledSession')}
                 </p>
                 {session.detail ? (
                   <p className="mt-0.5 line-clamp-1 text-[11px] leading-snug text-muted-foreground">

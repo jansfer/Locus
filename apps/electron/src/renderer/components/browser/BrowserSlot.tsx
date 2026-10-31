@@ -1,4 +1,5 @@
 import * as React from 'react'
+import { useT } from '@/i18n'
 import { nextBrowserLayoutRevision } from './browser-layout-revision'
 
 // 每次 publish（包括卸载隐藏）分配全局单调 revision。旧 slot 的 IPC 即使晚到，
@@ -8,6 +9,7 @@ import { nextBrowserLayoutRevision } from './browser-layout-revision'
 //（Dialog、Popover、Dropdown、Toast 等）出现而隐藏，避免右侧浏览器白屏。
 
 export function BrowserSlot({ sessionId, tabId }: { sessionId: string; tabId: string }): React.ReactElement {
+  const t = useT()
   const ref = React.useRef<HTMLDivElement>(null)
 
   React.useLayoutEffect(() => {
@@ -57,5 +59,5 @@ export function BrowserSlot({ sessionId, tabId }: { sessionId: string; tabId: st
     }
   }, [sessionId, tabId])
 
-  return <div ref={ref} className="flex-1 min-h-0 bg-muted/15 titlebar-no-drag" aria-label="受管浏览器页面" />
+  return <div ref={ref} className="flex-1 min-h-0 bg-muted/15 titlebar-no-drag" aria-label={t('browser.panel.slotAria')} />
 }

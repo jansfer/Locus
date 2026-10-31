@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils'
 import { FileTypeIcon } from '@/components/file-browser/FileTypeIcon'
 import { useOpenPreview } from '@/components/diff/preview-opener'
 import { currentAgentSessionIdAtom } from '@/atoms/agent-atoms'
+import { useT } from '@/i18n'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import {
   ContextMenu,
@@ -95,6 +96,7 @@ export function FilePathChip({ filePath, basePath, basePaths, sessionId, classNa
   const [resolvedPath, setResolvedPath] = React.useState<string | undefined>()
   const store = useStore()
   const openPreview = useOpenPreview()
+  const t = useT()
 
   const candidateBases = React.useMemo<string[]>(() => {
     if (basePaths && basePaths.length > 0) return basePaths.filter(Boolean)
@@ -188,9 +190,9 @@ export function FilePathChip({ filePath, basePath, basePaths, sessionId, classNa
   const handleShowInFolder = React.useCallback(() => {
     const bases = candidateBases.length > 0 ? candidateBases : undefined
     window.electronAPI.showItemInFolder(cleanPath, bases)
-      .then((ok) => { if (!ok) toast.error(`未找到文件：${filename}`) })
-      .catch(() => toast.error(`未找到文件：${filename}`))
-  }, [cleanPath, candidateBases, filename])
+      .then((ok) => { if (!ok) toast.error(t('aiElementsMisc.filePathChip.fileNotFound', { name: filename })) })
+      .catch(() => toast.error(t('aiElementsMisc.filePathChip.fileNotFound', { name: filename })))
+  }, [cleanPath, candidateBases, filename, t])
 
   return (
     <ContextMenu>
@@ -217,16 +219,16 @@ export function FilePathChip({ filePath, basePath, basePaths, sessionId, classNa
           </TooltipTrigger>
         </ContextMenuTrigger>
         <TooltipContent side="bottom" className="max-w-[400px] break-all font-mono text-[11px]">
-          {fileStatus === 'broken' ? `文件不存在: ${displayPath}` : displayPath}
+          {fileStatus === 'broken' ? t('aiElementsMisc.filePathChip.fileMissing', { path: displayPath }) : displayPath}
         </TooltipContent>
       </Tooltip>
       <ContextMenuContent className="w-48 z-[9999]">
         <ContextMenuItem onClick={handleClick}>
-          打开预览
+          {t('aiElementsMisc.filePathChip.openPreview')}
         </ContextMenuItem>
         <ContextMenuSeparator />
         <ContextMenuItem onClick={handleShowInFolder}>
-          在文件管理器中显示
+          {t('aiElementsMisc.filePathChip.showInFolder')}
         </ContextMenuItem>
       </ContextMenuContent>
     </ContextMenu>

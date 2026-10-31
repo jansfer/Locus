@@ -10,6 +10,7 @@
 
 import * as React from 'react'
 import { cn } from '@/lib/utils'
+import { useT } from '@/i18n'
 
 interface UserAvatarProps {
   /** 头像内容（emoji 字符串 或 data:image/* URL） */
@@ -31,6 +32,7 @@ export function UserAvatar({
   className,
   onClick,
 }: UserAvatarProps): React.ReactElement {
+  const t = useT()
   const fontSize = Math.round(size * 0.5)
 
   if (isImageUrl(avatar)) {
@@ -46,7 +48,7 @@ export function UserAvatar({
       >
         <img
           src={avatar}
-          alt="用户头像"
+          alt={t('chat.message.userAvatarAlt')}
           className="size-full object-cover"
         />
       </div>

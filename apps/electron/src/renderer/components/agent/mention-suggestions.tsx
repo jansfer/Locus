@@ -13,6 +13,8 @@ import { MentionList } from './MentionList'
 import type { MentionListRef } from './MentionList'
 import { createDebouncedSuggestionLoader, createLatestSuggestionRequestGuard, createMentionPopup, positionPopup, isSuggestionTriggerPresent, shouldSuppressEscTrigger, shouldClearEscSuppressionOnExit, type EscSuppressedTrigger } from './mention-popup-utils'
 import type { AgentSessionReferenceSearchResult, WorkspaceCapabilities } from '@proma/shared'
+import type { MessageKey } from '@/i18n'
+import { t } from '@/i18n'
 import { shouldAllowMentionTrigger, shouldShowMentionSuggestion } from '@/components/ai-elements/mention-utils'
 import {
   buildPlanningReferenceItems,
@@ -27,10 +29,10 @@ import {
 interface MentionSuggestionConfig<T> {
   /** 触发字符 */
   char: string
-  /** 标题栏左侧标签（面板类型） */
-  headerLabel: string
-  /** 空列表占位文字 */
-  emptyText: string
+  /** 标题栏左侧标签的词典键（面板类型），渲染处经 t() 求值 */
+  headerLabel: MessageKey
+  /** 空列表占位文案的词典键 */
+  emptyText: MessageKey
   /** 异步获取列表项 */
   fetchItems: (slug: string, query: string) => Promise<T[]>
   /** 无需工作区上下文的全局引用（会话、规划）可跳过 context 校验。 */
@@ -224,8 +226,8 @@ export function createSkillMentionSuggestion(
   return createMentionSuggestion<SkillMentionItem>(
     {
       char: '/',
-      headerLabel: '调用 skill',
-      emptyText: '无匹配 Skill',
+      headerLabel: 'agentMisc.mention.headerSkill',
+      emptyText: 'agentMisc.mention.emptySkill',
       fetchItems: async (slug, q) => {
         const caps = await window.electronAPI.getWorkspaceCapabilities(slug)
         return caps.skills
@@ -292,8 +294,8 @@ export function createMcpMentionSuggestion(
   return createMentionSuggestion<McpMentionItem>(
     {
       char: '#',
-      headerLabel: 'MCP 服务',
-      emptyText: '没有可引用的 MCP；请先在 MCP 管理中完成启用和连接验证。',
+      headerLabel: 'agentMisc.mention.headerMcp',
+      emptyText: 'agentMisc.mention.emptyMcp',
       fetchItems: async (slug, q) => {
         const caps = await window.electronAPI.getWorkspaceCapabilities(slug)
         return getMcpMentionItems(caps.mcpServers, q)
@@ -331,8 +333,8 @@ export function createSessionMentionSuggestion(
   return createMentionSuggestion<SessionMentionItem>(
     {
       char: '&',
-      headerLabel: '引用会话',
-      emptyText: '无匹配会话',
+      headerLabel: 'agentMisc.mention.headerSession',
+      emptyText: 'agentMisc.mention.emptySession',
       requiresContext: false,
       fetchItems: async (_context, q) => {
         return window.electronAPI.searchAgentSessionReferences({
@@ -370,8 +372,8 @@ export function createPlanningMentionSuggestion(
   return createMentionSuggestion<PlanningReferenceMenuItem>(
     {
       char: trigger,
-      headerLabel: '引用待办和日程',
-      emptyText: '无匹配待办或日程',
+      headerLabel: 'agentMisc.mention.headerPlanning',
+      emptyText: 'agentMisc.mention.emptyPlanning',
       requiresContext: false,
       fetchItems: async (_context, query) => {
         const { from, toExclusive } = getPlanningReferenceRange()
@@ -412,7 +414,7 @@ function formatSessionReferenceDescription(input: AgentSessionReferenceSearchRes
       ? `${input.workspaceName} (${input.workspaceSlug})`
       : input.workspaceName
     : input.workspaceSlug
-  const parts = [workspace ? `项目：${workspace}` : undefined, input.snippet]
+  const parts = [workspace ? t('agentMisc.mention.projectPrefix', { name: workspace }) : undefined, input.snippet]
     .filter((part): part is string => Boolean(part))
 
   return parts.length > 0 ? parts.join(' · ') : undefined

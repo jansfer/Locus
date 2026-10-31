@@ -9,6 +9,7 @@ import { useState, useCallback } from 'react'
 import { CopyIcon, CheckIcon } from 'lucide-react'
 import { MessageAction } from '@/components/ai-elements/message'
 import { copyTextToClipboard } from '@/lib/clipboard'
+import { useT } from '@/i18n'
 
 interface CopyButtonProps {
   /** 要复制的内容 */
@@ -16,6 +17,7 @@ interface CopyButtonProps {
 }
 
 export function CopyButton({ content }: CopyButtonProps): React.ReactElement {
+  const t = useT()
   const [copied, setCopied] = useState(false)
 
   const handleCopy = useCallback(async () => {
@@ -30,7 +32,7 @@ export function CopyButton({ content }: CopyButtonProps): React.ReactElement {
 
   return (
     <MessageAction
-      tooltip={copied ? '已复制' : '复制'}
+      tooltip={copied ? t('common.copied') : t('common.copy')}
       onClick={handleCopy}
     >
       {copied ? (

@@ -6,6 +6,7 @@
 
 import * as React from 'react'
 import { Plug, CheckCircle2, XCircle, Trash2, CircleDashed, KeyRound } from 'lucide-react'
+import { useT } from '@/i18n'
 import { Switch } from '@/components/ui/switch'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
@@ -41,6 +42,7 @@ export function McpCard({
   statusTone = 'muted',
   readOnly = false,
 }: McpCardProps): React.ReactElement {
+  const t = useT()
   const isBuiltin = entry.isBuiltin === true
   const target = targetLabel ?? (entry.type === 'stdio' ? entry.command : entry.url)
   const test = entry.lastTestResult
@@ -73,10 +75,10 @@ export function McpCard({
               'shrink-0 rounded-md px-1.5 py-0.5 text-[11px] font-medium',
               isBuiltin ? 'bg-primary/12 text-primary' : 'bg-muted text-muted-foreground',
             )}>
-              {isBuiltin ? '内置' : (TRANSPORT_LABELS[entry.type] ?? entry.type ?? '未知')}
+              {isBuiltin ? t('skills.mcpCard.builtinBadge') : (TRANSPORT_LABELS[entry.type] ?? entry.type ?? t('common.unknown'))}
             </span>
           </div>
-          <div className="mt-1 line-clamp-2 min-h-[32px] text-[12px] leading-4 text-muted-foreground">{description || target || '未配置地址'}</div>
+          <div className="mt-1 line-clamp-2 min-h-[32px] text-[12px] leading-4 text-muted-foreground">{description || target || t('skills.mcpCard.noAddress')}</div>
         </div>
         {onToggle && (
           <Switch
@@ -92,10 +94,10 @@ export function McpCard({
         <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
           <KeyRound size={12} className="shrink-0" />
           {!(entry.oauth.clientId || entry.oauth.registrationEndpoint)
-            ? 'OAuth 还需要公开 clientId 或 registrationEndpoint'
+            ? t('skills.mcpCard.oauthNeedsPublicParams')
             : entry.oauth.clientSecretRequired
-              ? 'OAuth 还需要用户安全保存 Client Secret 后授权'
-              : '完成 OAuth 授权并验证后即可在 Agent 中使用'}
+              ? t('skills.mcpCard.oauthNeedsClientSecret')
+              : t('skills.mcpCard.oauthReadyHint')}
         </div>
       )}
 
@@ -123,12 +125,12 @@ export function McpCard({
             )}
           >
             {test.success ? <CheckCircle2 size={12} /> : <XCircle size={12} />}
-            {test.success ? '连接正常' : '连接失败'}
+            {test.success ? t('skills.mcpCard.testOk') : t('skills.mcpCard.testFailed')}
           </span>
         )}
         {readOnly && (
           <span className="rounded-md bg-muted px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground">
-            内置托管
+            {t('skills.mcpCard.managedBadge')}
           </span>
         )}
         {!isBuiltin && !readOnly && onAuthorize && (
@@ -138,7 +140,7 @@ export function McpCard({
             className="ml-auto inline-flex h-7 items-center gap-1 rounded-md bg-primary/10 px-2 text-[11px] font-medium text-primary transition-colors hover:bg-primary/15 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
           >
             <KeyRound size={12} />
-            {entry.oauth?.clientId || entry.oauth?.registrationEndpoint ? 'OAuth 授权' : '补全 OAuth'}
+            {entry.oauth?.clientId || entry.oauth?.registrationEndpoint ? t('skills.mcpCard.authorize') : t('skills.mcpCard.completeOauth')}
           </button>
         )}
         {!isBuiltin && !readOnly && onRequestDelete && (
@@ -152,7 +154,7 @@ export function McpCard({
                 <Trash2 size={14} />
               </button>
             </TooltipTrigger>
-            <TooltipContent side="top">删除</TooltipContent>
+            <TooltipContent side="top">{t('common.delete')}</TooltipContent>
           </Tooltip>
         )}
       </div>

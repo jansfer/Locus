@@ -1,4 +1,5 @@
 import { createRoot, type Root } from 'react-dom/client'
+import { t } from '@/i18n'
 import DOMPurify from 'dompurify'
 import { RangeSetBuilder, StateEffect, StateField, type Extension, type EditorState } from '@codemirror/state'
 import { Decoration, EditorView, ViewPlugin, WidgetType, type DecorationSet } from '@codemirror/view'
@@ -368,7 +369,7 @@ class FrontmatterWidget extends LiveMarkdownBlockWidget {
     title.textContent = 'Properties'
     const count = document.createElement('span')
     count.className = 'vault-properties-count'
-    count.textContent = `${this.entries.length} 个字段`
+    count.textContent = t('markdown.preview.fieldCount', { n: this.entries.length })
     heading.append(title, count)
     wrapper.appendChild(heading)
 
@@ -387,7 +388,7 @@ class FrontmatterWidget extends LiveMarkdownBlockWidget {
       key.className = `vault-property-key${this.onChange ? ' vault-property-input' : ''}`
       if (key instanceof HTMLInputElement) {
         key.value = entry.key
-        key.setAttribute('aria-label', `Property ${entry.key} 名称`)
+        key.setAttribute('aria-label', t('markdown.preview.keyNameAria', { key: entry.key }))
         key.spellcheck = false
       } else {
         key.textContent = entry.key
@@ -397,10 +398,10 @@ class FrontmatterWidget extends LiveMarkdownBlockWidget {
       value.className = `vault-property-value${this.onChange ? ' vault-property-input' : ''}${dateValue ? ' vault-property-value-date' : ''}`
       if (value instanceof HTMLInputElement) {
         value.value = entry.value
-        value.setAttribute('aria-label', `${entry.key} 属性值`)
+        value.setAttribute('aria-label', t('markdown.preview.valueAria', { key: entry.key }))
         value.spellcheck = false
       } else {
-        value.textContent = entry.value || '未设置'
+        value.textContent = entry.value || t('markdown.preview.unset')
       }
 
       if (this.onChange && key instanceof HTMLInputElement && value instanceof HTMLInputElement) {
@@ -442,7 +443,7 @@ class FrontmatterWidget extends LiveMarkdownBlockWidget {
         remove.type = 'button'
         remove.className = 'vault-property-remove'
         remove.textContent = '×'
-        remove.setAttribute('aria-label', `删除属性 ${entry.key}`)
+        remove.setAttribute('aria-label', t('markdown.preview.removePropertyAria', { key: entry.key }))
         // Preserve field focus for pointer users. Native button click still
         // handles mouse, Enter, and Space accessibly.
         remove.addEventListener('mousedown', (event) => {
@@ -523,7 +524,7 @@ class InlineMathWidget extends WidgetType {
     const element = document.createElement('span')
     element.className = 'live-markdown-math-inline'
     element.dataset.liveMarkdownInlineFrom = String(this.from)
-    element.setAttribute('aria-label', '点击编辑公式')
+    element.setAttribute('aria-label', t('markdown.preview.editMathAria'))
     element.innerHTML = renderMarkdownMath(this.latex)
     return element
   }
@@ -571,7 +572,7 @@ class InlineImageWidget extends WidgetType {
     const element = document.createElement('span')
     element.className = 'live-markdown-image'
     element.dataset.liveMarkdownInlineFrom = String(this.from)
-    element.setAttribute('aria-label', '点击编辑图片')
+    element.setAttribute('aria-label', t('markdown.preview.editImageAria'))
 
     const image = document.createElement('img')
     image.alt = this.alt
@@ -763,7 +764,7 @@ export function createLiveMarkdownBlockPreview(
       void savePastedImage(image).then((src) => {
         if (!src) return
         const position = view.state.selection.main.from
-        const alt = image.name.replace(/[\\[\]]/g, '\\$&') || '粘贴的图片'
+        const alt = image.name.replace(/[\\[\]]/g, '\\$&') || t('markdown.preview.pastedImage')
         const markdown = `![${alt}](<${src}>)`
         view.dispatch({ changes: { from: position, insert: markdown }, selection: { anchor: position + markdown.length } })
       }).catch(() => {})

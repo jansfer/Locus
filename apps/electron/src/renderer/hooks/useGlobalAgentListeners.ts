@@ -102,6 +102,7 @@ import { arePathsEqual, getInactiveSessionFileChangePaths, getSessionFileChangeK
 import { rememberStopGenerationTarget } from '@/lib/stop-generation-target'
 import { doesWorkspaceChangeAffectPreview } from '@/components/diff/preview-open-path'
 import { openPreviewInStore } from '@/components/diff/preview-opener'
+import { t } from '@/i18n'
 import { removeQueuedMessage, createQueuedAgentStreamState, createAgentQueuedMessage } from '@/lib/agent-message-queue'
 import { createAgentStreamEventBatcher } from '@/lib/agent-stream-event-batcher'
 import { getChangedWorkspaceComponentFromSdkMessage, shouldRevealChangedWorkspaceComponentImmediately } from '@/lib/agent-component-activation'
@@ -685,7 +686,7 @@ export function useGlobalAgentListeners(): void {
     /** 获取会话标题 */
     const getSessionTitle = (sessionId: string): string => {
       const sessions = store.get(agentSessionsAtom)
-      return sessions.find((s) => s.id === sessionId)?.title ?? '未命名会话'
+      return sessions.find((s) => s.id === sessionId)?.title ?? t('misc.session.untitled')
     }
 
     const activateExternalAgentRun = (event: Extract<PromaEvent, { type: 'external_run_started' }>): void => {
@@ -1240,7 +1241,7 @@ export function useGlobalAgentListeners(): void {
 
         // 自动任务会话被用户接管（毕业）：向用户提示，后续定时运行将新建独立会话
         if (payload.kind === 'proma_event' && payload.event.type === 'automation_graduated') {
-          toast('已接管自动任务会话，后续定时运行将创建新会话。', { duration: 3000 })
+          toast(t('misc.agentNotifications.automationGraduated'), { duration: 3000 })
           window.electronAPI.listAgentSessions()
             .then((sessions) => store.set(agentSessionsAtom, (prev) => mergeFetchedAgentSessions(prev, sessions)))
             .catch(console.error)
@@ -1600,10 +1601,10 @@ export function useGlobalAgentListeners(): void {
             // 桌面通知（带提示音 + 会话导航）
             sendBlockingNotification(
               sessionId,
-              '需要权限确认',
+              t('misc.agentNotifications.permissionTitle'),
               event.request.toolName
-                ? `Agent 请求使用工具: ${event.request.toolName}`
-                : 'Agent 需要你的权限确认',
+                ? t('misc.agentNotifications.permissionToolBody', { tool: event.request.toolName })
+                : t('misc.agentNotifications.permissionBody'),
               'permissionRequest'
             )
           } else if (event.type === 'ask_user_request') {
@@ -1617,8 +1618,8 @@ export function useGlobalAgentListeners(): void {
             // 桌面通知（带提示音 + 会话导航）
             sendBlockingNotification(
               sessionId,
-              'Agent 需要你的输入',
-              event.request.questions[0]?.question ?? 'Agent 有问题需要你回答',
+              t('misc.agentNotifications.askUserTitle'),
+              event.request.questions[0]?.question ?? t('misc.agentNotifications.askUserFallbackBody'),
               'permissionRequest'
             )
           } else if (event.type === 'ask_user_resolved') {
@@ -1656,8 +1657,8 @@ export function useGlobalAgentListeners(): void {
             // 桌面通知（带提示音 + 会话导航）
             sendBlockingNotification(
               sessionId,
-              'Agent 计划待审批',
-              'Agent 已完成计划，等待你的审批',
+              t('misc.agentNotifications.planReviewTitle'),
+              t('misc.agentNotifications.planReviewBody'),
               'exitPlanMode'
             )
           } else if (event.type === 'exit_plan_mode_resolved') {
@@ -1739,8 +1740,8 @@ export function useGlobalAgentListeners(): void {
           hasStreamError,
           notify: () => {
             sendDesktopNotification(
-              'Agent 任务完成',
-              `[${sessionTitle}] 任务已完成`,
+              t('misc.agentNotifications.completionTitle'),
+              t('misc.agentNotifications.completionBody', { title: sessionTitle }),
               enabled,
               {
                 playSound: enabled && soundEnabled,
@@ -1867,17 +1868,17 @@ export function useGlobalAgentListeners(): void {
         // 非正常结束时显示截断提示
         if (data.resultSubtype && data.resultSubtype !== 'success' && !data.stoppedByUser) {
           const messages: Record<string, string> = {
-            error_max_turns: '任务被中断：已达到轮次上限。继续对话可让 Agent 接着完成。',
-            error_max_budget_usd: '任务被中断：已达到预算上限。',
-            error_during_execution: '任务执行过程中发生错误。',
-            empty_response: 'Agent 本轮结束了，但没有返回任何可展示内容。你的消息已保留，可以直接重试或切换模型。',
+            error_max_turns: t('misc.agentNotifications.interruptedMaxTurns'),
+            error_max_budget_usd: t('misc.agentNotifications.interruptedMaxBudget'),
+            error_during_execution: t('misc.agentNotifications.executionError'),
+            empty_response: t('misc.agentNotifications.emptyResponse'),
           }
           // error_during_execution 等执行期错误：优先展示 SDK result.errors[] 携带的真实原因，
           // 让用户能据此判断重试 / 改提问 / 报 bug，而非只看到泛泛的兜底文案。
           const detail = data.resultErrors?.find((e) => typeof e === 'string' && e.trim().length > 0)?.trim()
-          const fallback = messages[data.resultSubtype] ?? `任务异常结束（${data.resultSubtype}）`
+          const fallback = messages[data.resultSubtype] ?? t('misc.agentNotifications.abnormalEnd', { subtype: data.resultSubtype ?? '' })
           const msg = detail
-            ? `任务执行出错：${detail}`
+            ? t('misc.agentNotifications.executionErrorDetail', { detail })
             : fallback
           toast.warning(msg, { duration: 8000 })
         }

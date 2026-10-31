@@ -18,6 +18,7 @@ import {
   MessageSquareText,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useT } from '@/i18n'
 import { MessageResponse } from '@/components/ai-elements/message'
 import { getToolIcon, extractFilePath } from './tool-utils'
 import { getToolPhrase, getToolResultSummary, shouldShowToolKindLabel } from './tool-phrase'
@@ -149,6 +150,7 @@ function SubAgentFooter({
   meta: SubAgentMeta | null
   resultText?: string
 }): React.ReactElement | null {
+  const t = useT()
   // 解析结果文本，分离内容与元数据
   const parsed = React.useMemo(
     () => resultText ? parseAgentResultText(resultText) : null,
@@ -181,7 +183,7 @@ function SubAgentFooter({
             <span>{effectiveMeta.totalTokens.toLocaleString()} tokens</span>
           )}
           {effectiveMeta.toolUses > 0 && (
-            <span>{effectiveMeta.toolUses} 次工具调用</span>
+            <span>{t('agentMessages.tool.toolCallCount', { n: effectiveMeta.toolUses })}</span>
           )}
         </div>
       )}
@@ -215,6 +217,7 @@ export interface ContentBlockProps {
 // ===== 提示词折叠行 =====
 
 function PromptRow({ prompt, dimmed = false }: { prompt: string; dimmed?: boolean }): React.ReactElement {
+  const t = useT()
   const [expanded, setExpanded] = React.useState(false)
   const preview = prompt.length > 60 ? prompt.slice(0, 60) + '…' : prompt
 
@@ -230,7 +233,7 @@ function PromptRow({ prompt, dimmed = false }: { prompt: string; dimmed?: boolea
         <span className={cn(
           'shrink-0 text-[14px]',
           dimmed ? 'text-muted-foreground/70' : 'text-muted-foreground',
-        )}>提示词</span>
+        )}>{t('agentMessages.tool.promptLabel')}</span>
 
         <span className={cn(
           'truncate text-[14px]',
@@ -261,6 +264,7 @@ function PromptRow({ prompt, dimmed = false }: { prompt: string; dimmed?: boolea
 // ===== 工具短语 diff 着色 =====
 
 function TaskGetCollapsedSummary({ task }: { task: ParsedTaskGetResult }): React.ReactElement {
+  const t = useT()
   const blockPreview = task.blocks.length > 0
     ? `${task.blocks[0]}${task.blocks.length > 1 ? ` +${task.blocks.length - 1}` : ''}`
     : undefined
@@ -287,7 +291,7 @@ function TaskGetCollapsedSummary({ task }: { task: ParsedTaskGetResult }): React
       )}
       {blockPreview && (
         <span className="shrink-0 rounded-sm bg-muted/50 px-1.5 py-0.5 text-[11px] text-muted-foreground/70">
-          关联 {blockPreview}
+          {t('agentMessages.tool.relatedBlocks', { blocks: blockPreview })}
         </span>
       )}
     </>
@@ -295,6 +299,7 @@ function TaskGetCollapsedSummary({ task }: { task: ParsedTaskGetResult }): React
 }
 
 function TaskListCollapsedSummary({ tasks }: { tasks: ParsedTaskListItem[] }): React.ReactElement {
+  const t = useT()
   const completedCount = tasks.filter((task) => task.status === 'completed').length
   const activeCount = tasks.filter((task) => task.status === 'in_progress').length
   const pendingCount = tasks.filter((task) => task.status === 'pending').length
@@ -303,16 +308,16 @@ function TaskListCollapsedSummary({ tasks }: { tasks: ParsedTaskListItem[] }): R
     <>
       <span className="shrink-0 text-muted-foreground/35">·</span>
       <span className="shrink-0 rounded-full bg-muted/50 px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground/75">
-        {completedCount}/{tasks.length} 已完成
+        {t('agentMessages.tool.completedCount', { done: completedCount, total: tasks.length })}
       </span>
       {activeCount > 0 && (
         <span className="shrink-0 rounded-full bg-primary/10 px-1.5 py-0.5 text-[11px] font-medium text-primary">
-          {activeCount} 进行中
+          {t('agentMessages.tool.inProgressCount', { n: activeCount })}
         </span>
       )}
       {pendingCount > 0 && (
         <span className="hidden shrink-0 rounded-full bg-muted/40 px-1.5 py-0.5 text-[11px] text-muted-foreground/65 sm:inline">
-          {pendingCount} 待处理
+          {t('agentMessages.tool.pendingCount', { n: pendingCount })}
         </span>
       )}
     </>
@@ -334,6 +339,7 @@ interface ToolUseBlockProps {
 }
 
 function ToolUseBlock({ block, allMessages, animate = false, index = 0, dimmed = false, childBlocks, basePath, isStreaming }: ToolUseBlockProps): React.ReactElement {
+  const t = useT()
   const [expanded, setExpanded] = React.useState(false)
   const toolResult = useToolResult(block.id, allMessages)
   const resultText = toolResult?.result
@@ -419,7 +425,7 @@ function ToolUseBlock({ block, allMessages, animate = false, index = 0, dimmed =
           <span className="min-w-0 flex-1 truncate text-[14px] text-muted-foreground">{displayLabel}</span>
           {childToolCount > 0 && !childrenExpanded && (
             <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground/55">
-              {childToolCount} 项工具
+              {t('agentMessages.tool.childToolCount', { n: childToolCount })}
             </span>
           )}
         </button>
@@ -462,7 +468,7 @@ function ToolUseBlock({ block, allMessages, animate = false, index = 0, dimmed =
               className="flex items-center gap-1 text-xs text-foreground/40 hover:text-foreground/70 transition-colors"
             >
               <ChevronUp className="size-3" />
-              <span>收起</span>
+              <span>{t('common.collapse')}</span>
             </button>
           </div>
         )}
@@ -576,6 +582,7 @@ interface ThinkingBlockProps {
 const THINKING_COLLAPSE_LINE_THRESHOLD = 4
 
 function ThinkingBlock({ block, dimmed = false, isStreaming = false }: ThinkingBlockProps): React.ReactElement {
+  const t = useT()
   const [isExpanded, setIsExpanded] = React.useState(false)
   const [shouldCollapse, setShouldCollapse] = React.useState(false)
   const contentRef = React.useRef<HTMLDivElement>(null)
@@ -641,12 +648,12 @@ function ThinkingBlock({ block, dimmed = false, isStreaming = false }: ThinkingB
             {isExpanded ? (
               <>
                 <ChevronUp className="size-3" />
-                <span>收起</span>
+                <span>{t('common.collapse')}</span>
               </>
             ) : (
               <>
                 <ChevronDown className="size-3" />
-                <span>展开思考</span>
+                <span>{t('agentMessages.tool.expandThinking')}</span>
               </>
             )}
           </button>

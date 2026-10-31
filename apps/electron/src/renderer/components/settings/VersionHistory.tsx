@@ -9,11 +9,13 @@ import type { GitHubRelease } from '@proma/shared'
 import { RefreshCw, Loader2, ChevronDown, ChevronUp } from 'lucide-react'
 import { ReleaseNotesViewer } from './ReleaseNotesViewer'
 import { SettingsCard } from './primitives'
+import { useT, currentLocaleTag } from '@/i18n'
 
 /**
  * VersionHistory 组件
  */
 export function VersionHistory(): React.ReactElement {
+  const t = useT()
   const [releases, setReleases] = React.useState<GitHubRelease[]>([])
   const [loading, setLoading] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
@@ -32,7 +34,7 @@ export function VersionHistory(): React.ReactElement {
       setReleases(data)
     } catch (err) {
       console.error('[版本历史] 加载失败:', err)
-      let errorMessage = err instanceof Error ? err.message : '加载失败'
+      let errorMessage = err instanceof Error ? err.message : t('settingsMisc.versionHistory.loadFailed')
       // 过滤掉 Electron IPC 的英文前缀，只保留中文错误信息
       // IPC 错误格式: "Error invoking remote method 'xxx': Error: 中文错误信息"
       const ipcPrefixMatch = errorMessage.match(/Error invoking remote method[^:]*:\s*Error:\s*(.+)/s)
@@ -43,7 +45,7 @@ export function VersionHistory(): React.ReactElement {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [t])
 
   // 初始加载
   React.useEffect(() => {
@@ -68,7 +70,7 @@ export function VersionHistory(): React.ReactElement {
       {/* 标题栏 */}
       <div className="p-4 border-b">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-medium">版本历史</h3>
+          <h3 className="text-sm font-medium">{t('settingsMisc.versionHistory.title')}</h3>
           <button
             onClick={loadReleases}
             disabled={loading}
@@ -79,7 +81,7 @@ export function VersionHistory(): React.ReactElement {
             ) : (
               <RefreshCw className="h-3.5 w-3.5" />
             )}
-            刷新
+            {t('common.refresh')}
           </button>
         </div>
       </div>
@@ -89,16 +91,16 @@ export function VersionHistory(): React.ReactElement {
         {loading && releases.length === 0 ? (
           <div className="p-8 text-center">
             <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
-            <p className="text-sm text-muted-foreground mt-2">加载中...</p>
+            <p className="text-sm text-muted-foreground mt-2">{t('common.loading')}</p>
           </div>
         ) : error ? (
           <div className="p-8 text-center">
-            <p className="text-sm text-muted-foreground">加载失败</p>
+            <p className="text-sm text-muted-foreground">{t('settingsMisc.versionHistory.loadFailed')}</p>
             <p className="text-xs text-muted-foreground mt-1">{error}</p>
           </div>
         ) : releases.length === 0 ? (
           <div className="p-8 text-center">
-            <p className="text-sm text-muted-foreground">暂无版本历史</p>
+            <p className="text-sm text-muted-foreground">{t('settingsMisc.versionHistory.empty')}</p>
           </div>
         ) : (
           releases.map((release, index) => {
@@ -120,7 +122,7 @@ export function VersionHistory(): React.ReactElement {
                         </span>
                         {isLatest && (
                           <span className="text-xs text-primary font-medium">
-                            最新
+                            {t('settingsMisc.versionHistory.latest')}
                           </span>
                         )}
                       </div>
@@ -131,7 +133,7 @@ export function VersionHistory(): React.ReactElement {
                       )}
                     </div>
                     <span className="text-xs text-muted-foreground shrink-0">
-                      {new Date(release.published_at).toLocaleDateString('zh-CN')}
+                      {new Date(release.published_at).toLocaleDateString(currentLocaleTag())}
                     </span>
                   </div>
                   {isExpanded ? (

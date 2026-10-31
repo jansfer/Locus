@@ -7,6 +7,7 @@ import type { ToolActivity } from '@/atoms/agent-atoms'
 import { useStickToBottomContext } from 'use-stick-to-bottom'
 import { TaskProgressCard } from './TaskProgressCard'
 import { aggregateTaskItems, getTaskProgressCounts, isTerminalTaskStatus, type TaskItem } from './task-progress'
+import { getI18nLanguage, useT } from '@/i18n'
 
 const FINISH_RETENTION_MS = 4_000
 const FADE_OUT_DURATION_MS = 200
@@ -94,10 +95,12 @@ function CompactionProgressDetails({ progress }: { progress: ContextCompactionPr
  * 无任务时自动退化为原箭头按钮。
  */
 export function TaskProgressOverlay({ activities, streaming, contextCompaction }: TaskProgressOverlayProps): React.ReactElement | null {
+  const t = useT()
   const { isAtBottom, scrollToBottom } = useStickToBottomContext()
+  // 语言变化时 getI18nLanguage() 返回新值，触发重算（subject 兜底文案经模块级 t() 生成）
   const liveItems = React.useMemo(
     () => aggregateTaskItems(activities, false),
-    [activities],
+    [activities, getI18nLanguage()],
   )
   const liveSignature = taskSignature(liveItems)
   const hasLiveTasks = liveItems.length > 0
@@ -241,7 +244,7 @@ export function TaskProgressOverlay({ activities, streaming, contextCompaction }
                   {completedCount}/{displayItems.length}
                 </span>
                 <span className="truncate text-[13px] text-foreground/90">
-                  {currentTask?.activeForm ?? currentTask?.subject ?? '任务已完成'}
+                  {currentTask?.activeForm ?? currentTask?.subject ?? t('agentMisc.taskCompleted')}
                 </span>
               </>
             )}
@@ -256,7 +259,7 @@ export function TaskProgressOverlay({ activities, streaming, contextCompaction }
 
       {!isAtBottom && (
         <Button
-          aria-label="回到最下方"
+          aria-label={t('agentMisc.scrollToBottomAria')}
           className="pointer-events-auto size-10 rounded-md border border-border/60 bg-background/85 shadow-sm backdrop-blur-sm transition-[background-color,transform] duration-200 hover:bg-accent/80 active:scale-[0.96]"
           onClick={() => scrollToBottom()}
           type="button"

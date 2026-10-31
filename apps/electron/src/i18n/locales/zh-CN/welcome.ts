@@ -1,4 +1,41 @@
-/** welcome 域文案（简体中文）。迁移时按功能补充键；叶子必须是 string。 */
+/** welcome 域文案（简体中文）。欢迎页与空状态引导。 */
 export const welcome = {
-
+  greeting: {
+    night: '{name}，夜深了',
+    morning: '{name}，早上好',
+    afternoon: '{name}，下午好',
+    evening: '{name}，晚上好',
+  },
+  fallbackName: '用户',
+  tips: {
+    macShortcutNew: '按 ⌘N 快速创建新对话',
+    macShortcutSearch: '按 ⌘⇧F 搜索历史对话',
+    macShortcutFileFind: '按 ⌘F 可在对话中搜索消息，预览面板中则查找文件内容',
+    macShortcutSettings: '按 ⌘, 打开设置',
+    macShortcutSidebar: '按 ⌘B 切换侧边栏显示',
+    macShortcutMode: '按 ⌘⇧M 快速切换 Chat / Agent 模式',
+    macShortcutFocus: '按 ⌘L 快速跳转到输入框',
+    macShortcutClear: '按 ⌘K 清除当前对话上下文',
+    macShortcutStop: '按 ⌘. 中断 AI 响应',
+    macShortcutClose: '按 ⌘W 关闭当前标签页',
+    macShortcutZoom: '按 ⌘+ / ⌘- 可以放大或缩小界面，⌘0 重置',
+    macShortcutTabSwitch: '按 Ctrl+Tab 快速切换标签，长按 Ctrl 反复按 Tab 可在标签间循环选择',
+    winShortcutNew: '按 Ctrl+N 快速创建新对话',
+    winShortcutSearch: '按 Ctrl+Shift+F 搜索历史对话',
+    winShortcutFileFind: '按 Ctrl+F 可在对话中搜索消息，预览面板中则查找文件内容',
+    winShortcutSettings: '按 Ctrl+, 打开设置',
+    winShortcutSidebar: '按 Ctrl+Shift+E 切换侧边栏显示',
+    winShortcutMode: '按 Ctrl+Shift+M 快速切换 Chat / Agent 模式',
+    winShortcutFocus: '按 Ctrl+L 快速跳转到输入框',
+    winShortcutClear: '按 Ctrl+K 清除当前对话上下文',
+    winShortcutStop: '按 Ctrl+Shift+Backspace 中断 AI 响应',
+    winShortcutClose: '按 Ctrl+W 关闭当前标签页',
+    winShortcutZoom: '按 Ctrl++ / Ctrl+- 可以放大或缩小界面，Ctrl+0 重置',
+    winShortcutTabSwitch: '按 Ctrl+Tab 快速切换标签，长按 Ctrl 反复按 Tab 可在标签间循环选择',
+    tipAgentFile: 'Agent 模式下输入 @ 可以引用会话文件、项目文件和已附加目录',
+    tipAgentMcp: 'Agent 模式下输入 # 可以调用 MCP 工具',
+    tipAgentSkill: 'Agent 模式下输入 / 可以使用 Skill',
+    tipAttachment: '支持拖拽文件到输入框直接上传附件',
+    tipShortcutsCustom: '在设置 → 快捷键中可以自定义所有快捷键',
+  },
 } as const

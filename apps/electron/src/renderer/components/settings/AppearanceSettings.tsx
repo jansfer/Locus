@@ -29,6 +29,7 @@ import {
 } from '@/atoms/markdown-font-size'
 import { cn } from '@/lib/utils'
 import { detectIsWindows } from '@/lib/platform'
+import { useT } from '@/i18n'
 import type { ThemeMode, ThemeStyle, MarkdownFontSize } from '../../../types'
 
 // ===== Logo 资源导入（用于图标选择器） =====
@@ -47,28 +48,31 @@ import themeForestNight from '@/assets/theme-previews/theme-forest-night.webp'
 import themeMorandiNight from '@/assets/theme-previews/theme-morandi-night.webp'
 import themeTerminalDark from '@/assets/theme-previews/theme-terminal-dark.png'
 
-/** 主题选项 */
-const THEME_OPTIONS = [
-  { value: 'light', label: '浅色' },
-  { value: 'dark', label: '深色' },
-  { value: 'system', label: '跟随系统' },
-  { value: 'special', label: '特殊风格' },
+/** 主题模式选项；labelKey 为词典键片段，渲染处拼接 t() 键 */
+const THEME_OPTIONS: ReadonlyArray<{ value: ThemeMode; labelKey: 'light' | 'dark' | 'system' | 'special' }> = [
+  { value: 'light', labelKey: 'light' },
+  { value: 'dark', labelKey: 'dark' },
+  { value: 'system', labelKey: 'system' },
+  { value: 'special', labelKey: 'special' },
 ]
 
 /** Markdown 字号选项 */
-const MARKDOWN_FONT_SIZE_OPTIONS = [
-  { value: 'small', label: '小' },
-  { value: 'medium', label: '中' },
-  { value: 'large', label: '大' },
+const MARKDOWN_FONT_SIZE_OPTIONS: ReadonlyArray<{ value: MarkdownFontSize; labelKey: 'small' | 'medium' | 'large' }> = [
+  { value: 'small', labelKey: 'small' },
+  { value: 'medium', labelKey: 'medium' },
+  { value: 'large', labelKey: 'large' },
 ]
 
 /** 特殊风格 ID（排除 default） */
 type SpecialStyleId = Exclude<ThemeStyle, 'default'>
 
+/** 特殊风格名称的词典键片段（字面量联合，供模板拼接 t() 键） */
+type SpecialStyleNameKey = 'cloudDancer' | 'oceanLight' | 'forestMorning' | 'oceanDark' | 'forestNight' | 'morandiNight' | 'terminalDark'
+
 /** 特殊风格定义 */
 interface SpecialStyle {
   id: SpecialStyleId
-  name: string
+  nameKey: SpecialStyleNameKey
   variant: 'light' | 'dark'
   /** 主题预览图 */
   image: string
@@ -76,46 +80,46 @@ interface SpecialStyle {
   objectPosition?: string
   /** 图片缩放比例（默认 1） */
   imageScale?: number
-  /** Tooltip 提示 */
-  tooltip?: string
+  /** Tooltip 提示的词典键片段（可选） */
+  tooltipKey?: 'flickerTooltip'
 }
 
 const SPECIAL_STYLES: readonly SpecialStyle[] = [
   {
     id: 'slate-light',
-    name: '云朵舞者',
+    nameKey: 'cloudDancer',
     variant: 'light',
     image: themeCloudDancer,
     imageScale: 1.3,
   },
   {
     id: 'ocean-light',
-    name: '晴空碧海',
+    nameKey: 'oceanLight',
     variant: 'light',
     image: themeOceanLight,
   },
   {
     id: 'forest-light',
-    name: '森息晨光',
+    nameKey: 'forestMorning',
     variant: 'light',
     image: themeForestMorning,
     imageScale: 1.45,
   },
   {
     id: 'ocean-dark',
-    name: '远山暮霭',
+    nameKey: 'oceanDark',
     variant: 'dark',
     image: themeOceanDark,
   },
   {
     id: 'forest-dark',
-    name: '森息夜语',
+    nameKey: 'forestNight',
     variant: 'dark',
     image: themeForestNight,
   },
   {
     id: 'slate-dark',
-    name: '莫兰迪夜',
+    nameKey: 'morandiNight',
     variant: 'dark',
     image: themeMorandiNight,
     imageScale: 1.15,
@@ -123,36 +127,37 @@ const SPECIAL_STYLES: readonly SpecialStyle[] = [
   },
   {
     id: 'terminal-dark',
-    name: '旧屏微光',
+    nameKey: 'terminalDark',
     variant: 'dark',
     image: themeTerminalDark,
-    tooltip: '该主题包含轻微闪烁动画',
+    tooltipKey: 'flickerTooltip',
   },
 ]
+
+/** 图标变体名称的词典键片段；'default' 复用 common.default */
+type IconNameKey = 'default' | 'brand' | 'black' | 'white' | 'transparent'
 
 /** 图标变体定义 */
 interface IconVariant {
   id: string
-  name: string
+  nameKey: IconNameKey
   src: string
   previewBg: string
 }
 
 const ICON_VARIANTS: readonly IconVariant[] = [
-  { id: 'default', name: '默认', src: locusAppIcon, previewBg: 'bg-neutral-100' },
-  { id: 'brand', name: '品牌色', src: locusBrandIcon, previewBg: 'bg-indigo-600' },
-  { id: 'black', name: '经典黑', src: locusBlackIcon, previewBg: 'bg-neutral-900' },
-  { id: 'white', name: '纯白版', src: locusWhiteIcon, previewBg: 'bg-white' },
-  { id: 'transparent', name: '透明底', src: locusTransparentIcon, previewBg: 'bg-neutral-300' },
+  { id: 'default', nameKey: 'default', src: locusAppIcon, previewBg: 'bg-neutral-100' },
+  { id: 'brand', nameKey: 'brand', src: locusBrandIcon, previewBg: 'bg-indigo-600' },
+  { id: 'black', nameKey: 'black', src: locusBlackIcon, previewBg: 'bg-neutral-900' },
+  { id: 'white', nameKey: 'white', src: locusWhiteIcon, previewBg: 'bg-white' },
+  { id: 'transparent', nameKey: 'transparent', src: locusTransparentIcon, previewBg: 'bg-neutral-300' },
 ] as const
 
-/** 根据平台返回缩放快捷键提示 */
+/** 根据平台判断是否 macOS（用于缩放快捷键提示选键） */
 const isMac = navigator.userAgent.includes('Mac')
-const ZOOM_HINT = isMac
-  ? '使用 ⌘+ 放大、⌘- 缩小、⌘0 恢复默认大小'
-  : '使用 Ctrl++ 放大、Ctrl+- 缩小、Ctrl+0 恢复默认大小'
 
 export function AppearanceSettings(): React.ReactElement {
+  const t = useT()
   const [themeMode, setThemeMode] = useAtom(themeModeAtom)
   const [themeStyle, setThemeStyle] = useAtom(themeStyleAtom)
   const systemIsDark = useAtomValue(systemIsDarkAtom)
@@ -191,22 +196,25 @@ export function AppearanceSettings(): React.ReactElement {
   return (
     <div className="space-y-6">
       <SettingsSection
-        title="外观设置"
-        description="自定义应用的视觉风格"
+        title={t('settingsMisc.appearance.title')}
+        description={t('settingsMisc.appearance.description')}
       >
         <SettingsCard>
           {/* 主题模式 - 最上面 */}
           <SettingsSegmentedControl
-            label="主题模式"
-            description="选择应用的配色方案"
+            label={t('settingsMisc.appearance.themeModeLabel')}
+            description={t('settingsMisc.appearance.themeModeDesc')}
             value={themeMode}
             onValueChange={handleThemeChange}
-            options={THEME_OPTIONS}
+            options={THEME_OPTIONS.map((option) => ({
+              value: option.value,
+              label: t(`settingsMisc.appearance.theme.${option.labelKey}`),
+            }))}
           />
 
           {/* 特殊风格 - 标签在上，卡片在下 */}
           <div className="px-4 py-3 space-y-2">
-            <div className="text-sm font-medium text-foreground">特殊风格</div>
+            <div className="text-sm font-medium text-foreground">{t('settingsMisc.appearance.specialStylesLabel')}</div>
             <div className="grid grid-cols-7 gap-3">
               {SPECIAL_STYLES.map((style) => (
                 <StyleCard
@@ -220,16 +228,19 @@ export function AppearanceSettings(): React.ReactElement {
           </div>
 
           <SettingsRow
-            label="界面缩放"
-            description={ZOOM_HINT}
+            label={t('settingsMisc.appearance.zoomLabel')}
+            description={isMac ? t('settingsMisc.appearance.zoomHintMac') : t('settingsMisc.appearance.zoomHintWindows')}
           />
 
           <SettingsSegmentedControl
-            label="Markdown 字号"
-            description="调整 AI 回复与 Markdown 编辑器的正文字号"
+            label={t('settingsMisc.appearance.fontSizeLabel')}
+            description={t('settingsMisc.appearance.fontSizeDesc')}
             value={markdownFontSize}
             onValueChange={handleMarkdownFontSizeChange}
-            options={MARKDOWN_FONT_SIZE_OPTIONS}
+            options={MARKDOWN_FONT_SIZE_OPTIONS.map((option) => ({
+              value: option.value,
+              label: t(`settingsMisc.appearance.fontSize.${option.labelKey}`),
+            }))}
           />
 
         </SettingsCard>
@@ -242,6 +253,7 @@ export function AppearanceSettings(): React.ReactElement {
 
 /** 应用图标选择器 */
 function AppIconPicker(): React.ReactElement {
+  const t = useT()
   const [activeIcon, setActiveIcon] = React.useState<string>('default')
   const [isLoading, setIsLoading] = React.useState(false)
 
@@ -256,7 +268,7 @@ function AppIconPicker(): React.ReactElement {
 
   const handleIconSelect = React.useCallback(async (variantId: string) => {
     if (isWindows) {
-      toast.error('Windows 系统暂不支持更换应用图标')
+      toast.error(t('settingsMisc.appearance.icon.windowsUnsupported'))
       return
     }
     if (variantId === activeIcon || isLoading) return
@@ -265,12 +277,12 @@ function AppIconPicker(): React.ReactElement {
       const success = await window.electronAPI.setAppIcon(variantId)
       if (success) {
         setActiveIcon(variantId)
-        toast.success('应用图标已更换')
+        toast.success(t('settingsMisc.appearance.icon.changed'))
       } else {
-        toast.error('图标切换失败')
+        toast.error(t('settingsMisc.appearance.icon.changeFailed'))
       }
     } catch {
-      toast.error('图标切换失败')
+      toast.error(t('settingsMisc.appearance.icon.changeFailed'))
     } finally {
       setIsLoading(false)
     }
@@ -278,8 +290,8 @@ function AppIconPicker(): React.ReactElement {
 
   return (
     <SettingsSection
-      title="应用图标"
-      description="自定义 Dock 栏中的应用图标样式"
+      title={t('settingsMisc.appearance.icon.title')}
+      description={t('settingsMisc.appearance.icon.description')}
     >
       <SettingsCard divided={false}>
         <div className="px-4 py-3">
@@ -309,6 +321,13 @@ function IconCard({
   isSelected: boolean
   onSelect: () => void
 }): React.ReactElement {
+  const t = useT()
+  /** 图标名称；'default' 复用 common 键，其余走 appearance.icon 分组 */
+  const iconName =
+    variant.nameKey === 'default'
+      ? t('common.default')
+      : t(`settingsMisc.appearance.icon.${variant.nameKey}`)
+
   return (
     <button
       type="button"
@@ -328,13 +347,13 @@ function IconCard({
       >
         <img
           src={variant.src}
-          alt={variant.name}
+          alt={iconName}
           className="w-full h-full object-contain"
           draggable={false}
         />
       </div>
       <span className="text-[10px] font-medium text-muted-foreground leading-tight text-center">
-        {variant.name}
+        {iconName}
       </span>
       {isSelected && (
         <div className="absolute -top-0.5 -right-0.5 size-4 rounded-full bg-primary flex items-center justify-center">
@@ -355,11 +374,14 @@ function StyleCard({
   isSelected: boolean
   onSelect: () => void
 }): React.ReactElement {
+  const t = useT()
+  const styleName = t(`settingsMisc.appearance.style.${style.nameKey}`)
+
   return (
     <button
       type="button"
       onClick={onSelect}
-      title={style.tooltip}
+      title={style.tooltipKey ? t(`settingsMisc.appearance.style.${style.tooltipKey}`) : undefined}
       className="group flex flex-col items-center gap-2 focus-visible:outline-none"
     >
       {/* 图片卡片本体 */}
@@ -377,7 +399,7 @@ function StyleCard({
         >
           <img
             src={style.image}
-            alt={style.name}
+            alt={styleName}
             loading="lazy"
             decoding="async"
             className="w-full h-full object-cover"
@@ -398,7 +420,7 @@ function StyleCard({
           isSelected ? 'text-foreground' : 'text-muted-foreground group-hover:text-foreground'
         )}
       >
-        {style.name}
+        {styleName}
       </span>
     </button>
   )

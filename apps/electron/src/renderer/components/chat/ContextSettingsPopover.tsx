@@ -21,6 +21,8 @@ import {
 import { cn } from '@/lib/utils'
 import { Settings2 } from 'lucide-react'
 import { inputToolbarButtonClass } from '@/components/ai-elements/input-toolbar-styles'
+import { useT } from '@/i18n'
+import type { TranslateFn } from '@/i18n'
 import {
   CONTEXT_LENGTH_OPTIONS,
   type ContextLengthValue,
@@ -28,10 +30,9 @@ import {
 import { useConversationContextLength } from '@/hooks/useConversationSettings'
 
 /** 上下文长度滑块标签 */
-function getContextLengthLabel(value: ContextLengthValue): string {
-  if (value === 'infinite') return '无限'
-  if (value === 0) return '0 轮'
-  return `${value} 轮`
+function getContextLengthLabel(t: TranslateFn, value: ContextLengthValue): string {
+  if (value === 'infinite') return t('chat.context.unlimited')
+  return t('chat.context.rounds', { n: value })
 }
 
 /** 将滑块位置转换为实际值 */
@@ -46,6 +47,7 @@ function valueToSliderPosition(value: ContextLengthValue): number {
 }
 
 export function ContextSettingsPopover(): React.ReactElement {
+  const t = useT()
   const [open, setOpen] = useState(false)
   const [contextLength, setContextLength] = useConversationContextLength()
 
@@ -68,7 +70,7 @@ export function ContextSettingsPopover(): React.ReactElement {
           </PopoverTrigger>
         </TooltipTrigger>
         <TooltipContent side="top">
-          <p>上下文设置</p>
+          <p>{t('chat.context.settings')}</p>
         </TooltipContent>
       </Tooltip>
       <PopoverContent className="w-72" side="top" align="center">
@@ -76,9 +78,9 @@ export function ContextSettingsPopover(): React.ReactElement {
           {/* 上下文长度设置 */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-medium">上下文长度</span>
+              <span className="text-xs font-medium">{t('chat.context.length')}</span>
               <span className="text-xs text-muted-foreground">
-                {getContextLengthLabel(contextLength)}
+                {getContextLengthLabel(t, contextLength)}
               </span>
             </div>
 

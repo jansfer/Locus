@@ -6,6 +6,7 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from '@/components/ui/context-menu'
+import { useT } from '@/i18n'
 import { liveMarkdownTableCellDraft, renderLiveMarkdownTableInline } from './live-markdown-table-inline'
 import {
   type LiveMarkdownTable,
@@ -111,6 +112,7 @@ export function LiveMarkdownTableEditor({
   sourceRange,
   source,
 }: LiveMarkdownTableEditorProps): React.ReactElement {
+  const t = useT()
   const [activeCell, setActiveCell] = useState<LiveMarkdownTableCell | null>(autoFocusCell)
   const [findState, setFindState] = useState<LiveMarkdownFindState>(() => findController?.getState() ?? EMPTY_FIND_STATE)
   const [draft, setDraft] = useState(() => autoFocusCell ? liveMarkdownTableCellDraft(cellValue(table, autoFocusCell)) : '')
@@ -271,7 +273,9 @@ export function LiveMarkdownTableEditor({
       && findState.activeMatchFrom >= sourceCellRange.from
       && findState.activeMatchFrom < sourceCellRange.to
     const Cell = header ? 'th' : 'td'
-    const ariaLabel = `${header ? '表头' : '单元格'} ${row + 1}，${column + 1}`
+    const ariaLabel = header
+      ? t('markdown.tableEditor.cellAriaHeader', { row: row + 1, column: column + 1 })
+      : t('markdown.tableEditor.cellAria', { row: row + 1, column: column + 1 })
     const className = [
       isActive && 'is-editing',
       matchesFind && 'live-markdown-table-find-match',
@@ -284,9 +288,9 @@ export function LiveMarkdownTableEditor({
           <textarea
             ref={inputRef}
             className="live-markdown-table-input"
-            aria-label={`编辑${ariaLabel}`}
+            aria-label={t('markdown.tableEditor.editCellAria', { cell: ariaLabel })}
             rows={1}
-            title="Enter 保存，Shift+Enter 换行，Tab 切换单元格，Esc 取消"
+            title={t('markdown.tableEditor.keyHint')}
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
             onBlur={(event) => {
@@ -358,7 +362,7 @@ export function LiveMarkdownTableEditor({
               { row, column },
             )}
             >
-              在上方插入行
+              {t('markdown.tableEditor.insertRowAbove')}
             </ContextMenuItem>
           )}
           <ContextMenuItem onSelect={() => applyTableChange(
@@ -366,7 +370,7 @@ export function LiveMarkdownTableEditor({
             { row: header ? 1 : row + 1, column },
           )}
           >
-            在下方插入行
+            {t('markdown.tableEditor.insertRowBelow')}
           </ContextMenuItem>
           {!header && (
             <ContextMenuItem
@@ -376,7 +380,7 @@ export function LiveMarkdownTableEditor({
                 deleteRowFocus,
               )}
             >
-              删除本行
+              {t('markdown.tableEditor.deleteRow')}
             </ContextMenuItem>
           )}
           <ContextMenuSeparator />
@@ -385,14 +389,14 @@ export function LiveMarkdownTableEditor({
             { row, column },
           )}
           >
-            在左侧插入列
+            {t('markdown.tableEditor.insertColumnLeft')}
           </ContextMenuItem>
           <ContextMenuItem onSelect={() => applyTableChange(
             (currentTable) => insertLiveMarkdownTableColumn(currentTable, column + 1),
             { row, column: column + 1 },
           )}
           >
-            在右侧插入列
+            {t('markdown.tableEditor.insertColumnRight')}
           </ContextMenuItem>
           <ContextMenuItem
             disabled={hasMinimumColumns}
@@ -402,14 +406,14 @@ export function LiveMarkdownTableEditor({
               deleteColumnFocus,
             )}
           >
-            删除本列
+            {t('markdown.tableEditor.deleteColumn')}
           </ContextMenuItem>
           <ContextMenuSeparator />
           <ContextMenuItem
             className="text-destructive focus:bg-destructive focus:text-destructive-foreground"
             onSelect={removeTable}
           >
-            删除表格
+            {t('markdown.tableEditor.deleteTable')}
           </ContextMenuItem>
         </ContextMenuContent>
       </ContextMenu>
@@ -418,8 +422,8 @@ export function LiveMarkdownTableEditor({
 
   return (
     <div className="vault-markdown-table live-markdown-table-editor">
-      {!readOnly && <div className="live-markdown-table-editor-hint" aria-hidden="true">点击编辑、右键操作更多</div>}
-      <table aria-label="Markdown 表格">
+      {!readOnly && <div className="live-markdown-table-editor-hint" aria-hidden="true">{t('markdown.tableEditor.hint')}</div>}
+      <table aria-label={t('markdown.tableEditor.tableAria')}>
         <thead><tr>{table.header.map((_, column) => renderCell(0, column, true))}</tr></thead>
         {table.rows.length > 0 && <tbody>{table.rows.map((_, row) => <tr key={row}>{table.header.map((_, column) => renderCell(row + 1, column, false))}</tr>)}</tbody>}
       </table>

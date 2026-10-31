@@ -8,26 +8,29 @@
 
 import * as React from 'react'
 import { cn } from '@/lib/utils'
+import type { MessageKey } from '@/i18n'
+import { useT } from '@/i18n'
 
 export interface MentionListProps<T> {
   items: T[]
   onSelect: (item: T) => void
-  /** 空列表占位文字 */
-  emptyText: string
+  /** 空列表占位文案的词典键 */
+  emptyText: MessageKey
   /** 从 item 提取唯一 key */
   keyExtractor: (item: T) => string
   /** 自定义每项渲染 */
   renderItem: (item: T) => React.ReactNode
-  /** 标题栏左侧标签（如 Skill / MCP 服务 / 会话），不传则只显示快捷键提示 */
-  headerLabel?: string
+  /** 标题栏左侧标签的词典键（如 Skill / MCP 服务 / 会话），不传则只显示快捷键提示 */
+  headerLabel?: MessageKey
 }
 
 /** 标题栏：左侧面板类型标签，右侧快捷键提示 */
 function MentionHeader({ label }: { label?: string }): React.ReactElement {
+  const t = useT()
   return (
     <div className="flex items-center justify-between gap-2 px-2.5 py-1.5 text-[11px] font-medium bg-primary/10 text-primary border-b border-border/50">
       <span>{label}</span>
-      <span className="font-normal text-muted-foreground">Esc 关闭 · Enter 选中</span>
+      <span className="font-normal text-muted-foreground">{t('agentMisc.mention.keyboardHint')}</span>
     </div>
   )
 }
@@ -42,6 +45,7 @@ function MentionListInner<T>(
 ): React.ReactElement {
   const [localIndex, setLocalIndex] = React.useState(0)
   const containerRef = React.useRef<HTMLDivElement>(null)
+  const t = useT()
 
   React.useEffect(() => {
     setLocalIndex(0)
@@ -81,17 +85,17 @@ function MentionListInner<T>(
   if (items.length === 0) {
     return (
       <div className="rounded-lg border bg-popover shadow-lg overflow-hidden w-[280px]">
-        <MentionHeader label={headerLabel} />
-        <div role="status" className="p-2 text-[11px] text-muted-foreground">{emptyText}</div>
+        <MentionHeader label={headerLabel ? t(headerLabel) : undefined} />
+        <div role="status" className="p-2 text-[11px] text-muted-foreground">{t(emptyText)}</div>
       </div>
     )
   }
 
   return (
     <div className="rounded-lg border bg-popover shadow-lg overflow-hidden w-[280px]">
-      <MentionHeader label={headerLabel} />
+      <MentionHeader label={headerLabel ? t(headerLabel) : undefined} />
       {/* containerRef 只包裹列表项，键盘导航靠 children[index] 定位，head 须置于其外 */}
-      <div ref={containerRef} className="overflow-y-auto max-h-[240px]" role="listbox" aria-label={headerLabel ?? '引用选项'}>
+      <div ref={containerRef} className="overflow-y-auto max-h-[240px]" role="listbox" aria-label={headerLabel ? t(headerLabel) : t('agentMisc.mention.optionsAria')}>
         {items.map((item, index) => (
           <button
             key={keyExtractor(item)}

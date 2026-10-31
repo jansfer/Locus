@@ -8,6 +8,7 @@
 import * as React from 'react'
 import { useAtomValue } from 'jotai'
 import { tabsAtom } from '@/atoms/tab-atoms'
+import { useT } from '@/i18n'
 import { ChatView } from '@/components/chat'
 import { AgentView } from '@/components/agent'
 import { PreviewTabContent } from '@/components/diff/PreviewTabContent'
@@ -18,6 +19,7 @@ export interface TabContentProps {
 }
 
 export function TabContent({ tabId }: TabContentProps): React.ReactElement {
+  const t = useT()
   const tabs = useAtomValue(tabsAtom)
   const tab = tabs.find((t) => t.id === tabId)
 
@@ -31,7 +33,7 @@ export function TabContent({ tabId }: TabContentProps): React.ReactElement {
   if (!tab) {
     return (
       <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
-        标签页不存在
+        {t('appShell.tabNotFound')}
       </div>
     )
   }

@@ -1,4 +1,5 @@
 import * as React from 'react'
+import { useT } from '@/i18n'
 
 interface VaultNoteTitleProps {
   title: string
@@ -7,6 +8,7 @@ interface VaultNoteTitleProps {
 
 /** 标题提交只有一个入口；Enter 与随后的 blur 不会重复重命名。 */
 export function VaultNoteTitle({ title, onCommit }: VaultNoteTitleProps): React.ReactElement {
+  const t = useT()
   const [value, setValue] = React.useState(title)
   const [pending, setPending] = React.useState(false)
   const inputRef = React.useRef<HTMLInputElement>(null)
@@ -37,7 +39,7 @@ export function VaultNoteTitle({ title, onCommit }: VaultNoteTitleProps): React.
   return (
     <input
       ref={inputRef}
-      aria-label="重命名笔记"
+      aria-label={t('vault.editor.renameNoteAria')}
       aria-busy={pending}
       value={value}
       readOnly={pending}

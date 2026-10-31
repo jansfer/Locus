@@ -5,6 +5,7 @@
 import * as React from 'react'
 import { CheckCircle2, Circle, Clock3, ListTodo, XCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { t, useT } from '@/i18n'
 import { DefaultResultRenderer } from './default-result'
 
 interface TaskListResultRendererProps {
@@ -86,19 +87,19 @@ function statusMeta(status: string): {
   switch (status) {
     case 'in_progress':
       return {
-        label: '进行中',
+        label: t('agentMisc.taskStatus.inProgress'),
         className: 'text-blue-600 dark:text-blue-400',
         icon: Clock3,
       }
     case 'completed':
       return {
-        label: '已完成',
+        label: t('agentMisc.taskStatus.completed'),
         className: 'text-green-600 dark:text-green-400',
         icon: CheckCircle2,
       }
     case 'blocked':
       return {
-        label: '已阻塞',
+        label: t('agentMisc.taskStatus.blocked'),
         className: 'text-amber-700 dark:text-amber-400',
         icon: Circle,
       }
@@ -106,13 +107,13 @@ function statusMeta(status: string): {
     case 'error':
     case 'deleted':
       return {
-        label: status === 'deleted' ? '已删除' : status === 'cancelled' ? '已取消' : '出错',
+        label: status === 'deleted' ? t('agentMisc.taskStatus.deleted') : status === 'cancelled' ? t('agentMisc.taskStatus.cancelled') : t('agentMisc.taskStatus.error'),
         className: 'text-destructive',
         icon: XCircle,
       }
     case 'pending':
       return {
-        label: '待处理',
+        label: t('agentMisc.taskStatus.pending'),
         className: 'text-muted-foreground',
         icon: Circle,
       }
@@ -137,7 +138,7 @@ export function TaskListResultRenderer({ result, isError }: TaskListResultRender
     <section className="rounded-md border border-border/40 bg-muted/20 overflow-hidden">
       <div className="flex items-center gap-2 border-b border-border/30 px-3 py-2">
         <ListTodo className="size-3.5 text-muted-foreground" />
-        <span className="text-[12px] font-medium text-foreground/75">任务状态</span>
+        <span className="text-[12px] font-medium text-foreground/75">{t('agentMisc.taskStatusTitle')}</span>
         <span className="text-[11px] tabular-nums text-muted-foreground/60">
           {completedCount}/{tasks.length}
         </span>

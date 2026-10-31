@@ -6,6 +6,8 @@
  */
 
 import { computeDiffStats } from './tool-utils'
+import type { MessageKey } from '@/i18n'
+import { t } from '@/i18n'
 
 const INTERNAL_TOOL_INPUT_PREFIX = '_'
 
@@ -55,6 +57,22 @@ export interface ToolPhrase {
   loadingLabel: string
   /** 编辑/写入的增删行数统计，独立于 label，便于 UI 单独渲染且不被路径截断 */
   diffStats?: { additions: number; deletions: number }
+}
+
+/**
+ * 用已解析文本构造短语（显式 intent 等运行时内容）。
+ * Loading 态套用词典模板拼接，避免各工具重复维护进行时变体。
+ */
+function phrase(label: string): ToolPhrase {
+  return {
+    label,
+    loadingLabel: t('agentMisc.toolLoadingTemplate', { label }),
+  }
+}
+
+/** 用词典键构造短语；label 与 loading 态都随当前语言变化。 */
+function phraseFromKey(key: MessageKey, params?: Record<string, string | number>): ToolPhrase {
+  return phrase(t(key, params))
 }
 
 /**
@@ -113,30 +131,30 @@ export function getToolPhrase(toolName: string, input: Record<string, unknown>):
       const fp = input.file_path ?? input.filePath
       if (typeof fp === 'string') {
         const skillName = skillNameFromEntryPath(fp)
-        if (skillName) return phrase(`读取技能 ${skillName}`)
+        if (skillName) return phraseFromKey('agentMisc.toolPhrases.readSkillNamed', { name: skillName })
 
         const name = filename(fp)
         const offset = typeof input.offset === 'number' ? input.offset : undefined
         const limit = typeof input.limit === 'number' ? input.limit : undefined
         if (offset !== undefined && limit !== undefined) {
-          return phrase(`读取 ${name} 第 ${offset}-${offset + limit} 行`)
+          return phraseFromKey('agentMisc.toolPhrases.readNamedLines', { name, range: `${offset}-${offset + limit}` })
         }
         if (offset !== undefined) {
-          return phrase(`读取 ${name} 从第 ${offset} 行`)
+          return phraseFromKey('agentMisc.toolPhrases.readNamedFromLine', { name, offset })
         }
-        return phrase(`读取 ${name}`)
+        return phraseFromKey('agentMisc.toolPhrases.readNamed', { name })
       }
-      return phrase('读取文件')
+      return phraseFromKey('agentMisc.toolPhrases.readFile')
     }
 
     case 'Edit': {
       const fp = input.file_path ?? input.filePath
-      const name = typeof fp === 'string' ? filename(fp) : '文件'
+      const name = typeof fp === 'string' ? filename(fp) : t('agentMisc.toolPhrases.fileFallback')
       const diff = computeDiffStats('Edit', input)
       const explicitIntent = getExplicitToolIntent(toolName, input)
       const basePhrase = explicitIntent
         ? phrase(explicitIntent)
-        : phrase(`编辑 ${name}`)
+        : phraseFromKey('agentMisc.toolPhrases.editNamed', { name })
       if (diff && (diff.additions > 0 || diff.deletions > 0)) {
         return { ...basePhrase, diffStats: diff }
       }
@@ -145,12 +163,12 @@ export function getToolPhrase(toolName: string, input: Record<string, unknown>):
 
     case 'Write': {
       const fp = input.file_path ?? input.filePath
-      const name = typeof fp === 'string' ? filename(fp) : '文件'
+      const name = typeof fp === 'string' ? filename(fp) : t('agentMisc.toolPhrases.fileFallback')
       const content = input.content
       const explicitIntent = getExplicitToolIntent(toolName, input)
       const basePhrase = explicitIntent
         ? phrase(explicitIntent)
-        : phrase(`写入 ${name}`)
+        : phraseFromKey('agentMisc.toolPhrases.writeNamed', { name })
       if (typeof content === 'string' && content.length > 0) {
         const lines = content.split('\n').length
         return { ...basePhrase, diffStats: { additions: lines, deletions: 0 } }
@@ -163,164 +181,164 @@ export function getToolPhrase(toolName: string, input: Record<string, unknown>):
       const intent = getExplicitToolIntent(toolName, input)
       if (intent) return phrase(intent)
       if (typeof cmd === 'string') {
-        return phrase(`执行 ${truncate(cmd, 80)}`)
+        return phraseFromKey('agentMisc.toolPhrases.runNamed', { command: truncate(cmd, 80) })
       }
-      return phrase('执行命令')
+      return phraseFromKey('agentMisc.toolPhrases.runCommand')
     }
 
     case 'Grep': {
       const pattern = input.pattern
       if (typeof pattern === 'string') {
-        const parts = [`搜索内容 /${pattern}/`]
         const path = input.path
         const glob = input.glob
-        if (typeof glob === 'string') {
-          parts.push(`in ${glob}`)
-        } else if (typeof path === 'string') {
-          parts.push(`in ${path}`)
+        const target = typeof glob === 'string' ? glob : typeof path === 'string' ? path : undefined
+        if (target !== undefined) {
+          return phraseFromKey('agentMisc.toolPhrases.grepNamedIn', { pattern, target })
         }
-        return phrase(parts.join(' '))
+        return phraseFromKey('agentMisc.toolPhrases.grepNamed', { pattern })
       }
-      return phrase('搜索内容')
+      return phraseFromKey('agentMisc.toolPhrases.grep')
     }
 
     case 'Glob': {
       const pattern = input.pattern
       if (typeof pattern === 'string') {
-        const parts = [`搜索文件 ${pattern}`]
         const path = input.path
         if (typeof path === 'string') {
-          parts.push(`in ${path}`)
+          return phraseFromKey('agentMisc.toolPhrases.globNamedIn', { pattern, target: path })
         }
-        return phrase(parts.join(' '))
+        return phraseFromKey('agentMisc.toolPhrases.globNamed', { pattern })
       }
-      return phrase('搜索文件')
+      return phraseFromKey('agentMisc.toolPhrases.glob')
     }
 
     case 'WebFetch': {
       const url = input.url
       if (typeof url === 'string') {
-        return phrase(`抓取 ${truncate(url, 60)}`)
+        return phraseFromKey('agentMisc.toolPhrases.fetchNamed', { url: truncate(url, 60) })
       }
-      return phrase('抓取网页')
+      return phraseFromKey('agentMisc.toolPhrases.fetchWeb')
     }
 
     case 'WebSearch': {
       const query = input.query
       if (typeof query === 'string') {
-        return phrase(`搜索 "${truncate(query, 60)}"`)
+        return phraseFromKey('agentMisc.toolPhrases.searchQueryNamed', { query: truncate(query, 60) })
       }
-      return phrase('搜索网页')
+      return phraseFromKey('agentMisc.toolPhrases.searchWeb')
     }
 
     case 'Skill': {
       const skill = input.skill
       if (typeof skill === 'string') {
-        return phrase(`使用技能 ${skill}`)
+        return phraseFromKey('agentMisc.toolPhrases.useSkillNamed', { name: skill })
       }
-      return phrase('使用技能')
+      return phraseFromKey('agentMisc.toolPhrases.useSkill')
     }
 
     case 'NotebookEdit': {
       const fp = input.notebook_path
       if (typeof fp === 'string') {
-        return phrase(`编辑笔记本 ${filename(fp)}`)
+        return phraseFromKey('agentMisc.toolPhrases.editNotebookNamed', { name: filename(fp) })
       }
-      return phrase('编辑笔记本')
+      return phraseFromKey('agentMisc.toolPhrases.editNotebook')
     }
 
     case 'Task': {
       const desc = input.description ?? input.prompt
       if (typeof desc === 'string') {
-        return phrase(`子任务 ${truncate(desc, 80)}`)
+        return phraseFromKey('agentMisc.toolPhrases.subtaskNamed', { desc: truncate(desc, 80) })
       }
-      return phrase('子任务')
+      return phraseFromKey('agentMisc.toolPhrases.subtask')
     }
 
     case 'Agent': {
       const name = input.name
       const desc = input.description ?? input.prompt
       if (typeof name === 'string' && typeof desc === 'string') {
-        return phrase(`Agent ${name} · ${truncate(desc, 60)}`)
+        return phraseFromKey('agentMisc.toolPhrases.agentNamedDesc', { name, desc: truncate(desc, 60) })
       }
-      if (typeof desc === 'string') return phrase(`Agent ${truncate(desc, 80)}`)
-      if (typeof name === 'string') return phrase(`Agent ${name}`)
-      return phrase('Agent')
+      if (typeof desc === 'string') return phraseFromKey('agentMisc.toolPhrases.agentDesc', { desc: truncate(desc, 80) })
+      if (typeof name === 'string') return phraseFromKey('agentMisc.toolPhrases.agentNamed', { name })
+      return phraseFromKey('agentMisc.toolPhrases.agent')
     }
 
     case 'TaskCreate': {
       const subject = input.subject
       if (typeof subject === 'string') {
-        return phrase(`创建任务 ${truncate(subject, 80)}`)
+        return phraseFromKey('agentMisc.toolPhrases.createTaskNamed', { subject: truncate(subject, 80) })
       }
-      return phrase('创建任务')
+      return phraseFromKey('agentMisc.toolPhrases.createTask')
     }
 
     case 'TaskUpdate': {
       // TaskUpdate 是自描述工具，label 即完整语义
-      const statusMap: Record<string, string> = {
-        pending: '待处理',
-        in_progress: '进行中',
-        completed: '已完成',
-        cancelled: '已取消',
-        blocked: '已阻塞',
-        error: '出错',
-        deleted: '已删除',
+      const statusMap: Record<string, MessageKey> = {
+        pending: 'agentMisc.taskStatus.pending',
+        in_progress: 'agentMisc.taskStatus.inProgress',
+        completed: 'agentMisc.taskStatus.completed',
+        cancelled: 'agentMisc.taskStatus.cancelled',
+        blocked: 'agentMisc.taskStatus.blocked',
+        error: 'agentMisc.taskStatus.error',
+        deleted: 'agentMisc.taskStatus.deleted',
       }
       const parts: string[] = []
-      if (typeof input.taskId === 'string') parts.push(`任务 #${input.taskId}`)
-      if (typeof input.status === 'string') parts.push(statusMap[input.status] ?? input.status)
+      if (typeof input.taskId === 'string') parts.push(t('agentMisc.toolPhrases.taskNumbered', { taskId: input.taskId }))
+      if (typeof input.status === 'string') {
+        const statusKey = statusMap[input.status]
+        parts.push(statusKey ? t(statusKey) : input.status)
+      }
       if (typeof input.subject === 'string') parts.push(truncate(input.subject, 60))
       if (parts.length > 0) return phrase(parts.join(' '))
-      return phrase('更新任务')
+      return phraseFromKey('agentMisc.toolPhrases.updateTask')
     }
 
     case 'TaskGet': {
       const taskId = input.taskId
-      if (typeof taskId === 'string') return phrase(`查看任务 #${taskId}`)
-      return phrase('查看任务')
+      if (typeof taskId === 'string') return phraseFromKey('agentMisc.toolPhrases.getTaskNamed', { taskId })
+      return phraseFromKey('agentMisc.toolPhrases.getTask')
     }
 
     case 'TaskList': {
-      return phrase('查看任务列表')
+      return phraseFromKey('agentMisc.toolPhrases.listTasks')
     }
 
     case 'TodoWrite': {
       const todos = input.todos
       if (Array.isArray(todos)) {
-        return phrase(`更新待办 ${todos.length} 项`)
+        return phraseFromKey('agentMisc.toolPhrases.updateTodosCount', { n: todos.length })
       }
-      return phrase('更新待办')
+      return phraseFromKey('agentMisc.toolPhrases.updateTodos')
     }
 
     case 'TodoRead': {
-      return phrase('读取待办')
+      return phraseFromKey('agentMisc.toolPhrases.readTodos')
     }
 
     case 'EnterPlanMode': {
-      return phrase('进入计划模式')
+      return phraseFromKey('agentMisc.toolPhrases.enterPlanMode')
     }
 
     case 'ExitPlanMode': {
-      return phrase('退出计划模式')
+      return phraseFromKey('agentMisc.toolPhrases.exitPlanMode')
     }
 
     case 'generate_image': {
       const prompt = input.prompt
-      if (typeof prompt === 'string') return phrase(`生成图片 ${truncate(prompt, 60)}`)
-      return phrase('生成图片')
+      if (typeof prompt === 'string') return phraseFromKey('agentMisc.toolPhrases.generateImageNamed', { prompt: truncate(prompt, 60) })
+      return phraseFromKey('agentMisc.toolPhrases.generateImage')
     }
 
     case 'TaskOutput': {
       const taskId = input.task_id ?? input.taskId
-      if (typeof taskId === 'string') return phrase(`获取任务 #${taskId} 输出`)
-      return phrase('获取任务输出')
+      if (typeof taskId === 'string') return phraseFromKey('agentMisc.toolPhrases.getTaskOutputNamed', { taskId })
+      return phraseFromKey('agentMisc.toolPhrases.getTaskOutput')
     }
 
     case 'TaskStop': {
       const taskId = input.task_id ?? input.taskId
-      if (typeof taskId === 'string') return phrase(`停止任务 #${taskId}`)
-      return phrase('停止任务')
+      if (typeof taskId === 'string') return phraseFromKey('agentMisc.toolPhrases.stopTaskNamed', { taskId })
+      return phraseFromKey('agentMisc.toolPhrases.stopTask')
     }
 
     case 'AskUserQuestion': {
@@ -328,121 +346,122 @@ export function getToolPhrase(toolName: string, input: Record<string, unknown>):
       if (Array.isArray(questions) && questions.length > 0) {
         const first = questions[0] as Record<string, unknown>
         if (typeof first.question === 'string') {
-          return phrase(`询问 ${truncate(first.question, 60)}`)
+          return phraseFromKey('agentMisc.toolPhrases.askNamed', { question: truncate(first.question, 60) })
         }
       }
-      return phrase('等待用户输入')
+      return phraseFromKey('agentMisc.toolPhrases.askUser')
     }
 
     case 'REPL': {
       const description = input.description
       const code = input.code
-      if (typeof description === 'string' && description.trim()) return phrase(`执行 REPL ${truncate(description, 50)}`)
-      if (typeof code === 'string') return phrase(`执行 REPL ${truncate(code, 50)}`)
-      return phrase('执行 REPL')
+      if (typeof description === 'string' && description.trim()) return phraseFromKey('agentMisc.toolPhrases.replNamed', { name: truncate(description, 50) })
+      if (typeof code === 'string') return phraseFromKey('agentMisc.toolPhrases.replNamed', { name: truncate(code, 50) })
+      return phraseFromKey('agentMisc.toolPhrases.repl')
     }
 
     case 'Workflow': {
       const name = input.name
       const scriptPath = input.scriptPath
-      if (typeof name === 'string') return phrase(`运行工作流 ${name}`)
-      if (typeof scriptPath === 'string') return phrase(`运行工作流 ${filename(scriptPath)}`)
-      return phrase('运行工作流')
+      if (typeof name === 'string') return phraseFromKey('agentMisc.toolPhrases.workflowNamed', { name })
+      if (typeof scriptPath === 'string') return phraseFromKey('agentMisc.toolPhrases.workflowNamed', { name: filename(scriptPath) })
+      return phraseFromKey('agentMisc.toolPhrases.workflow')
     }
 
     case 'ScheduleWakeup': {
       const delaySeconds = input.delaySeconds
       const reason = input.reason
       if (typeof delaySeconds === 'number' && typeof reason === 'string') {
-        return phrase(`安排 ${delaySeconds}s 后唤醒 · ${truncate(reason, 40)}`)
+        return phraseFromKey('agentMisc.toolPhrases.wakeupWithReason', { delay: delaySeconds, reason: truncate(reason, 40) })
       }
-      if (typeof delaySeconds === 'number') return phrase(`安排 ${delaySeconds}s 后唤醒`)
-      return phrase('安排唤醒')
+      if (typeof delaySeconds === 'number') return phraseFromKey('agentMisc.toolPhrases.wakeupDelay', { delay: delaySeconds })
+      return phraseFromKey('agentMisc.toolPhrases.wakeup')
     }
 
     case 'Monitor': {
       const description = input.description
-      if (typeof description === 'string') return phrase(`监控 ${truncate(description, 50)}`)
-      return phrase('监控任务')
+      if (typeof description === 'string') return phraseFromKey('agentMisc.toolPhrases.monitorNamed', { desc: truncate(description, 50) })
+      return phraseFromKey('agentMisc.toolPhrases.monitor')
     }
 
     case 'PushNotification': {
       const message = input.message
-      if (typeof message === 'string') return phrase(`发送通知 ${truncate(message, 50)}`)
-      return phrase('发送通知')
+      if (typeof message === 'string') return phraseFromKey('agentMisc.toolPhrases.pushNotificationNamed', { message: truncate(message, 50) })
+      return phraseFromKey('agentMisc.toolPhrases.pushNotification')
     }
 
     case 'CronCreate': {
       const cron = input.cron
       const prompt = input.prompt
       if (typeof cron === 'string' && typeof prompt === 'string') {
-        return phrase(`创建定时任务 ${cron} · ${truncate(prompt, 40)}`)
+        return phraseFromKey('agentMisc.toolPhrases.cronCreateFull', { cron, prompt: truncate(prompt, 40) })
       }
-      if (typeof cron === 'string') return phrase(`创建定时任务 ${cron}`)
-      return phrase('创建定时任务')
+      if (typeof cron === 'string') return phraseFromKey('agentMisc.toolPhrases.cronCreateNamed', { cron })
+      return phraseFromKey('agentMisc.toolPhrases.cronCreate')
     }
 
     case 'CronDelete': {
       const id = input.id
-      if (typeof id === 'string') return phrase(`删除定时任务 ${id}`)
-      return phrase('删除定时任务')
+      if (typeof id === 'string') return phraseFromKey('agentMisc.toolPhrases.cronDeleteNamed', { id })
+      return phraseFromKey('agentMisc.toolPhrases.cronDelete')
     }
 
     case 'CronList': {
-      return phrase('列出定时任务')
+      return phraseFromKey('agentMisc.toolPhrases.cronList')
     }
 
     case 'RemoteTrigger': {
       const action = input.action
       const triggerId = input.trigger_id
-      const actionMap: Record<string, string> = {
-        list: '列出',
-        get: '获取',
-        create: '创建',
-        update: '更新',
-        run: '运行',
+      const actionMap: Record<string, MessageKey> = {
+        list: 'agentMisc.toolPhrases.actionList',
+        get: 'agentMisc.toolPhrases.actionGet',
+        create: 'agentMisc.toolPhrases.actionCreate',
+        update: 'agentMisc.toolPhrases.actionUpdate',
+        run: 'agentMisc.toolPhrases.actionRun',
       }
-      const actionLabel = typeof action === 'string' ? (actionMap[action] ?? action) : undefined
+      const actionLabel = typeof action === 'string'
+        ? (actionMap[action] ? t(actionMap[action]) : action)
+        : undefined
       if (actionLabel && typeof triggerId === 'string') {
-        return phrase(`${actionLabel}远程触发器 ${triggerId}`)
+        return phraseFromKey('agentMisc.toolPhrases.remoteTriggerActionNamed', { action: actionLabel, id: triggerId })
       }
-      if (actionLabel) return phrase(`${actionLabel}远程触发器`)
-      return phrase('远程触发器')
+      if (actionLabel) return phraseFromKey('agentMisc.toolPhrases.remoteTriggerAction', { action: actionLabel })
+      return phraseFromKey('agentMisc.toolPhrases.remoteTrigger')
     }
 
     case 'EnterWorktree': {
       const name = input.name
-      if (typeof name === 'string') return phrase(`进入 Worktree ${name}`)
-      return phrase('进入 Worktree')
+      if (typeof name === 'string') return phraseFromKey('agentMisc.toolPhrases.enterWorktreeNamed', { name })
+      return phraseFromKey('agentMisc.toolPhrases.enterWorktree')
     }
 
     case 'ExitWorktree': {
       const action = input.action
-      if (action === 'remove') return phrase('退出并删除 Worktree')
-      if (action === 'keep') return phrase('退出 Worktree')
-      return phrase('退出 Worktree')
+      if (action === 'remove') return phraseFromKey('agentMisc.toolPhrases.exitWorktreeRemove')
+      return phraseFromKey('agentMisc.toolPhrases.exitWorktree')
     }
 
     case 'ReadMcpResourceTool': {
       const server = input.server
       const uri = input.uri
       if (typeof server === 'string' && typeof uri === 'string') {
-        return phrase(`读取 MCP 资源 ${server} / ${truncate(uri, 40)}`)
+        return phraseFromKey('agentMisc.toolPhrases.readMcpResourceNamed', { server, uri: truncate(uri, 40) })
       }
-      if (typeof uri === 'string') return phrase(`读取 MCP 资源 ${truncate(uri, 60)}`)
-      return phrase('读取 MCP 资源')
+      if (typeof uri === 'string') return phraseFromKey('agentMisc.toolPhrases.readMcpResourceNamedUri', { uri: truncate(uri, 60) })
+      return phraseFromKey('agentMisc.toolPhrases.readMcpResource')
     }
 
     case 'ListMcpResourcesTool': {
       const server = input.server
-      if (typeof server === 'string') return phrase(`列出 ${server} 的 MCP 资源`)
-      return phrase('列出 MCP 资源')
+      if (typeof server === 'string') return phraseFromKey('agentMisc.toolPhrases.listMcpResourceServer', { server })
+      return phraseFromKey('agentMisc.toolPhrases.listMcpResource')
     }
 
     case 'SendMessage': {
       const to = input.to
-      if (typeof to === 'string') return phrase(`发送消息给 ${to}`)
-      return phrase('发送消息')
+      if (typeof to === 'string') return phraseFromKey('agentMisc.toolPhrases.sendMessageTo', { to })
+      return phraseFromKey('agentMisc.toolPhrases.sendMessage')
     }
 
     default: {
@@ -468,33 +487,25 @@ export function getToolPhrase(toolName: string, input: Record<string, unknown>):
   }
 }
 
-/** 构造短语对 */
-function phrase(label: string): ToolPhrase {
-  return {
-    label,
-    loadingLabel: `正在${label}...`,
-  }
-}
-
 /**
  * 从工具结果提取一条不会挤占主描述的短摘要。
  * 完整结果仍由 ToolResultRenderer 展示，主行只保留用户需要快速扫读的事实。
  */
 export function getToolResultSummary(toolName: string, result: string | undefined, isError = false): string | null {
-  if (isError) return '失败'
+  if (isError) return t('agentMisc.toolResultSummary.failed')
   if (!result?.trim()) return null
 
   if (toolName === 'Read') {
     const totalLineMatch = result.match(/total\s+(\d+)\s+lines?/i) ?? result.match(/\bof\s+(\d+)\b/i)
-    if (totalLineMatch?.[1]) return `${totalLineMatch[1]} 行`
+    if (totalLineMatch?.[1]) return t('agentMisc.toolResultSummary.lines', { n: totalLineMatch[1] })
 
     const remainingLineCount = result.match(/\[(\d+)\s+more\s+lines?\s+in\s+file/i)?.[1]
-    if (remainingLineCount) return `还有 ${remainingLineCount} 行`
+    if (remainingLineCount) return t('agentMisc.toolResultSummary.moreLines', { n: remainingLineCount })
   }
-  if (toolName === 'Grep' && /(?:no matches|没有匹配|未找到)/i.test(result)) return '无匹配'
-  if (toolName === 'Bash') return '已完成'
-  if (toolName === 'Edit' || toolName === 'Write') return '已更新'
-  if (toolName === 'Glob') return '已完成'
+  if (toolName === 'Grep' && /(?:no matches|没有匹配|未找到)/i.test(result)) return t('agentMisc.toolResultSummary.noMatches')
+  if (toolName === 'Bash') return t('agentMisc.toolResultSummary.bashDone')
+  if (toolName === 'Edit' || toolName === 'Write') return t('agentMisc.toolResultSummary.fileUpdated')
+  if (toolName === 'Glob') return t('agentMisc.toolResultSummary.bashDone')
 
   return null
 }

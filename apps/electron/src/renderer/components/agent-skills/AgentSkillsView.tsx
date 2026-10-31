@@ -12,6 +12,7 @@
 import * as React from 'react'
 import { useAtom, useAtomValue, useSetAtom, useStore } from 'jotai'
 import { toast } from 'sonner'
+import { useT } from '@/i18n'
 import { Blocks, ChevronDown, ChevronRight, Search, Plus, Store, FolderOpen, Check, Sparkles, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
@@ -37,7 +38,7 @@ import { SkillDetailView } from './SkillDetailView'
 import { McpDetailView } from './McpDetailView'
 import { ImportSkillDialog } from './ImportSkillDialog'
 import { WorkspaceMemoryTab } from './WorkspaceMemoryTab'
-import { groupSkills } from './skillGrouping'
+import { groupSkills, UNGROUPED_TITLE_KEY } from './skillGrouping'
 import { EMBEDDED_CATALOG_TWO_COLUMN_MIN_WIDTH, IntegrationCatalog } from './IntegrationCatalog'
 import { CredentialDialog } from './CredentialDialog'
 import { OAuthClientSecretDialog } from './OAuthClientSecretDialog'
@@ -105,6 +106,7 @@ export function AgentSkillsView({
   workspaceId,
   sessionId,
 }: { embedded?: boolean; componentTab?: 'skills' | 'mcp'; workspaceId?: string; sessionId?: string } = {}): React.ReactElement {
+  const t = useT()
   const data = useAgentSkillsData(workspaceId)
   const bumpCapabilities = useSetAtom(workspaceCapabilitiesVersionAtom)
   const store = useStore()
@@ -122,7 +124,7 @@ export function AgentSkillsView({
   const fillCurrentAgentPrompt = React.useCallback((message: string): boolean => {
     const targetSessionId = sessionId ?? currentAgentSessionId
     if (!targetSessionId) {
-      toast.error('请先打开一个 Agent 会话')
+      toast.error(t('skills.view.promptSessionRequired'))
       return false
     }
 
@@ -212,27 +214,27 @@ export function AgentSkillsView({
 
   const catalogMcps = React.useMemo(() => {
     return MCP_INTEGRATION_CATALOG.filter((integration): integration is CatalogMcpIntegration =>
-      isCatalogIntegrationVisible(integration) && integration.kind === 'mcp' && matchesCatalogSearch(integration, q),
+      isCatalogIntegrationVisible(integration) && integration.kind === 'mcp' && matchesCatalogSearch(integration, q, t),
     )
-  }, [q])
+  }, [q, t])
 
   const catalogClis = React.useMemo(() => {
     return MCP_INTEGRATION_CATALOG.filter((integration): integration is CatalogCliIntegration =>
-      isCatalogIntegrationVisible(integration) && integration.kind === 'cli' && matchesCatalogSearch(integration, q),
+      isCatalogIntegrationVisible(integration) && integration.kind === 'cli' && matchesCatalogSearch(integration, q, t),
     )
-  }, [q])
+  }, [q, t])
 
   const catalogGuided = React.useMemo(() => {
     return MCP_INTEGRATION_CATALOG.filter((integration): integration is CatalogGuidedIntegration =>
-      isCatalogIntegrationVisible(integration) && integration.kind === 'guided' && matchesCatalogSearch(integration, q),
+      isCatalogIntegrationVisible(integration) && integration.kind === 'guided' && matchesCatalogSearch(integration, q, t),
     )
-  }, [q])
+  }, [q, t])
 
   const catalogCredentials = React.useMemo(() => {
     return MCP_INTEGRATION_CATALOG.filter((integration): integration is CatalogCredentialIntegration =>
-      isCatalogIntegrationVisible(integration) && integration.kind === 'credential' && matchesCatalogSearch(integration, q),
+      isCatalogIntegrationVisible(integration) && integration.kind === 'credential' && matchesCatalogSearch(integration, q, t),
     )
-  }, [q])
+  }, [q, t])
 
   // 不含搜索过滤的 MCP 总数（Tab 计数与空态判断用）
   const mcpCount = React.useMemo(
@@ -251,12 +253,12 @@ export function AgentSkillsView({
   React.useEffect(() => {
     if (!skillDetailNavigation || data.loading) return
     if (skillDetailNavigation.workspaceSlug && skillDetailNavigation.workspaceSlug !== data.workspaceSlug) {
-      toast.error('该 Skill 属于另一个项目，无法在当前 Skills 中打开')
+      toast.error(t('skills.view.skillFromOtherWorkspace'))
       setSkillDetailNavigation(null)
       return
     }
     if (!data.skills.some((skill) => skill.slug === skillDetailNavigation.skillSlug)) {
-      toast.error('当前项目未找到该 Skill')
+      toast.error(t('skills.view.skillNotFoundInProject'))
       setSkillDetailNavigation(null)
       return
     }
@@ -268,15 +270,15 @@ export function AgentSkillsView({
     if (!data.workspaceSlug) return
     void window.electronAPI.openWorkspaceSkillFolder(data.workspaceSlug, slug).catch((error) => {
       console.error('[Agent 技能] 打开 Skill 目录失败:', error)
-      toast.error('打开 Skill 目录失败')
+      toast.error(t('skills.view.openSkillFolderFailed'))
     })
   }
 
   const guideCatalogMcp = React.useCallback((integration: CatalogMcpIntegration): void => {
     if (fillCurrentAgentPrompt(buildCatalogMcpGuidePrompt(integration))) {
-      toast.success(`已填入 ${integration.name} 配置提示词`)
+      toast.success(t('skills.view.filledPrompt', { name: integration.name }))
     }
-  }, [fillCurrentAgentPrompt])
+  }, [fillCurrentAgentPrompt, t])
 
   const installCatalogMcp = React.useCallback(async (integration: CatalogMcpIntegration): Promise<void> => {
     if (installingCatalogMcpId) return
@@ -296,10 +298,10 @@ export function AgentSkillsView({
         const serverUrl = configuredEntry?.type === 'http' || configuredEntry?.type === 'sse'
           ? configuredEntry.url
           : integration.entry.url
-        if (!serverUrl) throw new Error('当前 MCP 缺少可授权的远程地址')
+        if (!serverUrl) throw new Error(t('skills.view.mcpMissingRemoteUrl'))
         const oauth = configuredEntry?.oauth ?? integration.entry.oauth
         if (oauth && !oauth.clientId && !oauth.registrationEndpoint) {
-          throw new Error('OAuth 配置缺少公开 clientId 或 registrationEndpoint；请让 Agent 根据官方文档补全后再授权')
+          throw new Error(t('skills.view.oauthMissingPublicParams'))
         }
         await window.electronAPI.startMcpOAuth({
           workspaceSlug: data.workspaceSlug,
@@ -310,12 +312,12 @@ export function AgentSkillsView({
         })
         const verification = await data.toggleMcp(integration.serverName, true)
         if (!verification.success) {
-          throw new Error(verification.message || 'MCP 握手或工具发现失败，请检查授权后重试')
+          throw new Error(verification.message || t('skills.view.oauthHandshakeFailed'))
         }
-        toast.success(`${integration.name} 已完成授权`, { description: 'OAuth token 已安全保存，MCP 已启用。' })
+        toast.success(t('skills.view.oauthCompleted', { name: integration.name }), { description: t('skills.view.oauthTokenSaved') })
       } catch (error) {
         console.error(`[Agent 技能] ${integration.name} OAuth 失败:`, error)
-        toast.error(`${integration.name} 授权失败`, { description: error instanceof Error ? error.message : '请稍后重试' })
+        toast.error(t('skills.view.authorizeFailed', { name: integration.name }), { description: error instanceof Error ? error.message : t('skills.view.retryLater') })
       } finally {
         setInstallingCatalogMcpId(null)
       }
@@ -331,23 +333,23 @@ export function AgentSkillsView({
     try {
       const installed = await data.installMcp(integration.serverName, integration.entry)
       if (!installed) return
-      toast.success(`已添加 ${integration.name}`, {
-        description: integration.authentication === 'none' ? '已启用，可在「我的 MCP」中测试连接。' : '已写入待配置模板。需要时可从卡片打开配置，不会自动跳转浏览器。',
+      toast.success(t('skills.view.addedServer', { name: integration.name }), {
+        description: integration.authentication === 'none' ? t('skills.view.enabledTestHint') : t('skills.view.templateWrittenHint'),
       })
       return
     } finally {
       setInstallingCatalogMcpId(null)
     }
-  }, [data, guideCatalogMcp, installingCatalogMcpId])
+  }, [data, guideCatalogMcp, installingCatalogMcpId, t])
 
   const authorizeMcp = React.useCallback(async (name: string, entry: McpServerEntry): Promise<void> => {
     if (installingCatalogMcpId) return
     if ((entry.type !== 'http' && entry.type !== 'sse') || !entry.url || !entry.oauth) {
-      toast.error('当前 MCP 没有可用的 OAuth 配置')
+      toast.error(t('skills.view.mcpNoOAuthConfig'))
       return
     }
     if (!entry.oauth.clientId && !entry.oauth.registrationEndpoint) {
-      toast.error('OAuth 参数待补全', { description: '请让 Agent 根据官方文档写入公开 clientId 或 registrationEndpoint；token 和 client secret 不会写入配置。' })
+      toast.error(t('skills.view.oauthParamsPending'), { description: t('skills.view.oauthParamsPendingHint') })
       return
     }
     if (entry.oauth.clientSecretRequired && !savedOAuthClientSecretsRef.current.has(name)) {
@@ -364,15 +366,15 @@ export function AgentSkillsView({
         oauth: entry.oauth,
       })
       const verification = await data.toggleMcp(name, true)
-      if (!verification.success) throw new Error(verification.message || 'OAuth 已完成，但 MCP 握手或工具发现失败')
-      toast.success(`${name} 已完成授权`, { description: 'OAuth token 已安全保存，并已通过真实连接验证。' })
+      if (!verification.success) throw new Error(verification.message || t('skills.view.oauthHandshakeFailedAfterAuth'))
+      toast.success(t('skills.view.oauthCompleted', { name }), { description: t('skills.view.oauthTokenSavedVerified') })
     } catch (error) {
       console.error(`[Agent 技能] ${name} OAuth 失败:`, error)
-      toast.error(`${name} 授权失败`, { description: error instanceof Error ? error.message : '请检查 OAuth 配置后重试' })
+      toast.error(t('skills.view.authorizeFailed', { name }), { description: error instanceof Error ? error.message : t('skills.view.oauthRetryHint') })
     } finally {
       setInstallingCatalogMcpId(null)
     }
-  }, [data, installingCatalogMcpId])
+  }, [data, installingCatalogMcpId, t])
 
   const connectCredentialIntegration = React.useCallback(async (integration: CatalogCredentialIntegration, value: string): Promise<void> => {
     if (installingCatalogMcpId) return
@@ -381,7 +383,7 @@ export function AgentSkillsView({
       const existing = data.mcpConfig.servers[integration.serverName]
       if (!existing) {
         const installed = await data.installMcp(integration.serverName, integration.entry)
-        if (!installed) throw new Error('无法创建连接配置')
+        if (!installed) throw new Error(t('skills.view.credentialCreateFailed'))
       }
       const rawValue = value.trim()
       const valuePrefix = integration.credential.valuePrefix ?? ''
@@ -403,12 +405,12 @@ export function AgentSkillsView({
       })
       const verification = await data.toggleMcp(integration.serverName, true)
       if (!verification.success) {
-        throw new Error(verification.message || 'MCP 握手或工具发现失败，请检查 Token 和空间权限后重试')
+        throw new Error(verification.message || t('skills.view.credentialHandshakeFailed'))
       }
-      toast.success(`${integration.name} 已连接`, { description: 'MCP Token 已加密保存到系统 Keychain，并已通过真实握手和工具发现验证。' })
+      toast.success(t('skills.view.credentialConnected', { name: integration.name }), { description: t('skills.view.credentialSavedHint') })
     } catch (error) {
       console.error(`[Agent 技能] ${integration.name} 凭据配置失败:`, error)
-      toast.error(`${integration.name} 连接失败`, { description: error instanceof Error ? error.message : '请检查凭据后重试' })
+      toast.error(t('skills.view.credentialConnectFailed', { name: integration.name }), { description: error instanceof Error ? error.message : t('skills.view.credentialRetryHint') })
       throw error
     } finally {
       setInstallingCatalogMcpId(null)
@@ -420,41 +422,41 @@ export function AgentSkillsView({
       // “配置”是重新授予 Locus 使用此 CLI 的入口，不会影响 CLI 自己的登录或授权。
       await data.setCliIntegrationEnabled(integration.id, true)
     } catch {
-      toast.error(`无法启用 ${integration.name} 集成`)
+      toast.error(t('skills.view.cliEnableFailed', { name: integration.name }))
       return
     }
 
     if (fillCurrentAgentPrompt(integration.agentPrompt)) {
-      toast.success(`已填入 ${integration.name} 配置提示词`)
+      toast.success(t('skills.view.filledPrompt', { name: integration.name }))
     }
-  }, [data, fillCurrentAgentPrompt])
+  }, [data, fillCurrentAgentPrompt, t])
 
   const disconnectCatalogCli = React.useCallback(async (integration: CatalogCliIntegration): Promise<void> => {
     try {
       await data.setCliIntegrationEnabled(integration.id, false)
-      toast.success(`已断开 ${integration.name}`, { description: '仅停止 Locus 使用该 CLI，不会登出或撤销第三方授权。' })
+      toast.success(t('skills.view.cliDisconnected', { name: integration.name }), { description: t('skills.view.cliDisconnectHint') })
     } catch {
-      toast.error(`无法断开 ${integration.name}`)
+      toast.error(t('skills.view.cliDisconnectFailed', { name: integration.name }))
     }
-  }, [data])
+  }, [data, t])
 
   const guideCatalogIntegration = React.useCallback((integration: CatalogGuidedIntegration): void => {
     if (fillCurrentAgentPrompt(integration.agentPrompt)) {
-      toast.success(`已填入 ${integration.name} 配置提示词`)
+      toast.success(t('skills.view.filledPrompt', { name: integration.name }))
     }
-  }, [fillCurrentAgentPrompt])
+  }, [fillCurrentAgentPrompt, t])
 
   const handleClassifySkills = React.useCallback(async (): Promise<void> => {
     if (classifyingSkills) return
     if (!data.skillsDir) {
-      toast.error('无法定位当前项目的 Locus 工作区 Skills 目录')
+      toast.error(t('skills.view.classificationDirMissing'))
       return
     }
     setClassifyingSkills(true)
     try {
       const sessionId = await createAgent()
       if (!sessionId) {
-        toast.error('创建 Agent 会话失败')
+        toast.error(t('skills.view.createSessionFailed'))
         return
       }
       setPendingPrompt({
@@ -465,23 +467,23 @@ export function AgentSkillsView({
           skills: data.skills,
         }),
       })
-      toast.success('已创建 Skills 分类整理会话')
+      toast.success(t('skills.view.classificationSessionCreated'))
     } catch (error) {
       console.error('[Agent 技能] 创建 Skills 分类会话失败:', error)
-      toast.error(error instanceof Error ? error.message : '创建 Skills 分类会话失败')
+      toast.error(error instanceof Error ? error.message : t('skills.view.classificationSessionFailed'))
     } finally {
       setClassifyingSkills(false)
     }
-  }, [classifyingSkills, createAgent, data.skills, data.skillsDir, data.workspaceName, setPendingPrompt])
+  }, [classifyingSkills, createAgent, data.skills, data.skillsDir, data.workspaceName, setPendingPrompt, t])
 
   const skillDeleteDialog = (
     <ConfirmDialog
       open={pendingDeleteSkill !== null}
       onOpenChange={(open) => { if (!open) setPendingDeleteSkill(null) }}
-      title={`确认删除 Skill「${pendingDeleteSkill?.name}」？`}
-      description="删除后将无法恢复，确定要卸载这个 Skill 吗？"
-      confirmLabel="删除"
-      loadingLabel="删除中..."
+      title={t('skills.view.deleteSkillTitle', { name: pendingDeleteSkill?.name ?? '' })}
+      description={t('skills.view.deleteSkillDescription')}
+      confirmLabel={t('common.delete')}
+      loadingLabel={t('skills.view.deleting')}
       loading={isDeletingSkill}
       onConfirm={async () => {
         if (!pendingDeleteSkill || isDeletingSkill) return
@@ -500,9 +502,9 @@ export function AgentSkillsView({
         <div className="flex size-16 items-center justify-center rounded-2xl bg-foreground/[0.04]">
           <Blocks className="size-8 text-foreground/30" />
         </div>
-        <div className="text-[15px] font-medium text-foreground/80">未选择项目</div>
+        <div className="text-[15px] font-medium text-foreground/80">{t('skills.view.noWorkspaceTitle')}</div>
         <div className="max-w-sm text-[13px] text-foreground/50">
-          请先在 Agent 模式下选择或创建一个项目，再来管理它的 Skills 与 MCP。
+          {t('skills.view.noWorkspaceHint')}
         </div>
       </div>
     )
@@ -582,7 +584,7 @@ export function AgentSkillsView({
       <div className={cn('titlebar-no-drag mx-auto flex w-full max-w-6xl shrink-0 items-center justify-between', embedded ? 'px-4 py-3' : 'px-8 pt-14 pb-4')}>
         <div className="flex items-center gap-2.5">
           <Blocks className="size-6 text-foreground/70" />
-          <h1 className={cn('font-semibold text-foreground', embedded ? 'text-lg' : 'text-2xl')}>{embedded ? (tab === 'mcp' ? 'MCP' : 'Skills') : 'Agent 技能'}</h1>
+          <h1 className={cn('font-semibold text-foreground', embedded ? 'text-lg' : 'text-2xl')}>{embedded ? (tab === 'mcp' ? 'MCP' : 'Skills') : t('skills.view.title')}</h1>
         </div>
 
         {!embedded && <Popover open={wsPopoverOpen} onOpenChange={setWsPopoverOpen}>
@@ -608,7 +610,7 @@ export function AgentSkillsView({
                 onClick={() => {
                   if (w.id !== selectedWorkspaceId) {
                     selectProject(w.id, { resetView: false })
-                    toast.success(`已切换到项目「${w.name}」`)
+                    toast.success(t('skills.view.switchedProject', { name: w.name }))
                   }
                   setWsPopoverOpen(false)
                 }}
@@ -633,7 +635,7 @@ export function AgentSkillsView({
 
       {embedded && (
         <div className="titlebar-no-drag mx-auto w-full max-w-6xl shrink-0 px-3 pb-3">
-          <AgentActionHint action={tab === 'skills' ? '创建、整理、更新或删除 Skills' : '查找、配置或移除 MCP'} />
+          <AgentActionHint action={tab === 'skills' ? t('skills.view.actionHintSkills') : t('skills.view.actionHintMcp')} />
         </div>
       )}
 
@@ -652,7 +654,7 @@ export function AgentSkillsView({
           {([
             { value: 'skills' as const, label: 'Skills', count: data.skills.length },
             { value: 'mcp' as const, label: 'MCP', count: mcpCount },
-            { value: 'memory' as const, label: '记忆', count: memoryCount },
+            { value: 'memory' as const, label: t('skills.view.tabMemory'), count: memoryCount },
           ]).map(({ value, label, count }) => (
             <button
               key={value}
@@ -674,7 +676,7 @@ export function AgentSkillsView({
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder={tab === 'skills' ? '搜索 Skills...' : tab === 'mcp' ? '搜索 MCP 服务器...' : '搜索记忆文件...'}
+            placeholder={tab === 'skills' ? t('skills.view.searchSkillsPlaceholder') : tab === 'mcp' ? t('skills.view.searchMcpPlaceholder') : t('skills.view.searchMemoryPlaceholder')}
             className="w-full bg-transparent text-[13px] text-foreground placeholder:text-foreground/35 focus:outline-none"
           />
         </div>
@@ -689,10 +691,10 @@ export function AgentSkillsView({
                 className="flex h-8 cursor-not-allowed items-center gap-1.5 rounded-lg border border-dashed border-border/60 px-3 text-[13px] font-medium text-foreground/35"
               >
                 <Store size={14} />
-                <span>社区市场</span>
+                <span>{t('skills.view.communityMarket')}</span>
               </button>
             </TooltipTrigger>
-            <TooltipContent side="bottom">即将上线：一键浏览、安装与更新社区 Skills</TooltipContent>
+            <TooltipContent side="bottom">{t('skills.view.communityMarketHint')}</TooltipContent>
           </Tooltip>
         )}
 
@@ -708,10 +710,10 @@ export function AgentSkillsView({
                   className="flex h-8 items-center gap-1.5 rounded-lg border border-border/60 bg-content-area px-3 text-[13px] font-medium text-foreground/80 shadow-sm transition-colors hover:bg-foreground/[0.04] disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {classifyingSkills ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
-                  <span>AI 分类</span>
+                  <span>{t('skills.view.aiClassify')}</span>
                 </button>
               </TooltipTrigger>
-              <TooltipContent side="bottom">创建 Agent 会话，读取 SKILL.md 内容并补全 group</TooltipContent>
+              <TooltipContent side="bottom">{t('skills.view.aiClassifyHint')}</TooltipContent>
             </Tooltip>
             <button
               type="button"
@@ -719,7 +721,7 @@ export function AgentSkillsView({
               className="flex h-8 items-center gap-1.5 rounded-lg border border-border/60 bg-content-area px-3 text-[13px] font-medium text-foreground/80 shadow-sm transition-colors hover:bg-foreground/[0.04]"
             >
               <Plus size={14} />
-              <span>导入</span>
+              <span>{t('skills.view.import')}</span>
             </button>
           </>
         )}
@@ -729,11 +731,11 @@ export function AgentSkillsView({
           <button
             type="button"
             onClick={() => setShowCreateMcp(true)}
-            title="在 MCP 管理界面添加服务器"
+            title={t('skills.view.addServerTitle')}
             className="flex h-8 items-center gap-1.5 rounded-lg bg-primary px-3 text-[13px] font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 disabled:cursor-wait disabled:opacity-60"
           >
             <Plus size={14} />
-            <span>添加服务器</span>
+            <span>{t('skills.view.addServer')}</span>
           </button>
         )}
       </div>
@@ -742,7 +744,7 @@ export function AgentSkillsView({
       <div className="min-h-0 flex-1 overflow-y-auto scrollbar-thin">
         <div className={cn('mx-auto w-full max-w-6xl', embedded ? 'px-3 pb-4' : 'px-8 pb-10')}>
           {data.loading ? (
-            <div className="py-20 text-center text-sm text-muted-foreground">加载中...</div>
+            <div className="py-20 text-center text-sm text-muted-foreground">{t('common.loading')}</div>
           ) : tab === 'skills' ? (
             <SkillsTab
               customSkills={customSkills}
@@ -796,10 +798,10 @@ export function AgentSkillsView({
       <ConfirmDialog
         open={pendingDeleteMcpName !== null}
         onOpenChange={(open) => { if (!open) setPendingDeleteMcpName(null) }}
-        title={`确认删除 MCP 服务器「${pendingDeleteMcpName}」？`}
-        description="删除后将无法恢复，确定要删除这个 MCP 服务器吗？"
-        confirmLabel="删除"
-        loadingLabel="删除中..."
+        title={t('skills.view.deleteMcpTitle', { name: pendingDeleteMcpName ?? '' })}
+        description={t('skills.view.deleteMcpDescription')}
+        confirmLabel={t('common.delete')}
+        loadingLabel={t('skills.view.deleting')}
         loading={isDeletingMcp}
         onConfirm={async () => {
           if (!pendingDeleteMcpName || isDeletingMcp) return
@@ -872,25 +874,26 @@ function SkillsTab({
   onToggle,
   onUpdate,
 }: SkillsTabProps): React.ReactElement {
+  const t = useT()
   if (total === 0) {
-    return <EmptyState icon={<Blocks className="size-8 text-foreground/30" />} title="暂无 Skill" hint="可以在 Agent 模式下让 Locus 帮你联网查找并安装 Skill，或从其他项目导入。" />
+    return <EmptyState icon={<Blocks className="size-8 text-foreground/30" />} title={t('skills.view.skillsEmptyTitle')} hint={t('skills.view.skillsEmptyHint')} />
   }
   if (customSkills.length === 0 && builtinSkills.length === 0) {
-    return <EmptyState icon={<Search className="size-8 text-foreground/30" />} title="没有匹配的 Skill" hint="试试更换搜索关键词。" />
+    return <EmptyState icon={<Search className="size-8 text-foreground/30" />} title={t('skills.view.skillsNoMatchTitle')} hint={t('skills.view.skillsNoMatchHint')} />
   }
 
   return (
     <div className="flex flex-col gap-8">
       {updateCount > 0 && (
         <div className="flex items-center gap-2 rounded-lg border border-blue-500/20 bg-blue-500/[0.06] px-3 py-2 text-[13px] text-blue-600 dark:text-blue-400">
-          有 {updateCount} 个 Skill 可更新到来源最新版本
+          {t('skills.view.skillsUpdateAvailable', { n: updateCount })}
         </div>
       )}
       {customSkills.length > 0 && (
-        <SkillSection title="我的 Skills" skills={customSkills} embedded={embedded} isBuiltin={isBuiltin} updatingSkill={updatingSkill} onOpen={onOpen} onToggle={onToggle} onUpdate={onUpdate} />
+        <SkillSection title={t('skills.view.mySkills')} skills={customSkills} embedded={embedded} isBuiltin={isBuiltin} updatingSkill={updatingSkill} onOpen={onOpen} onToggle={onToggle} onUpdate={onUpdate} />
       )}
       {builtinSkills.length > 0 && (
-        <SkillSection title="PROMA 内置" skills={builtinSkills} embedded={embedded} isBuiltin={isBuiltin} updatingSkill={updatingSkill} onOpen={onOpen} onToggle={onToggle} onUpdate={onUpdate} />
+        <SkillSection title={t('skills.view.builtinSection')} skills={builtinSkills} embedded={embedded} isBuiltin={isBuiltin} updatingSkill={updatingSkill} onOpen={onOpen} onToggle={onToggle} onUpdate={onUpdate} />
       )}
     </div>
   )
@@ -908,6 +911,7 @@ interface SkillSectionProps {
 }
 
 function SkillSection({ title, skills, embedded, isBuiltin, updatingSkill, onOpen, onToggle, onUpdate }: SkillSectionProps): React.ReactElement {
+  const t = useT()
   const [collapsedGroups, setCollapsedGroups] = React.useState<Set<string>>(new Set())
   const groups = React.useMemo(() => groupSkills(skills), [skills])
 
@@ -937,7 +941,7 @@ function SkillSection({ title, skills, embedded, isBuiltin, updatingSkill, onOpe
                 className="flex h-8 items-center gap-2 rounded-lg px-1 text-left text-[13px] font-medium text-foreground/65 transition-colors hover:bg-foreground/[0.04] hover:text-foreground"
               >
                 <ChevronRight size={14} className={cn('text-foreground/35 transition-transform', !collapsed && 'rotate-90')} />
-                <span>{group.title}</span>
+                <span>{group.title === UNGROUPED_TITLE_KEY ? t('skills.group.ungrouped') : group.title}</span>
                 <span className="text-[12px] tabular-nums text-foreground/35">{group.skills.length}</span>
               </button>
               {!collapsed && (
@@ -991,14 +995,15 @@ interface McpTabProps {
 }
 
 function McpTab({ userEntries, catalogMcps, catalogClis, catalogGuided, catalogCredentials, embedded, installedMcpNames, enabledMcpNames, verifiedMcpNames, activeSkillSlugs, connectedCliIds, cliIntegrationProbeState, installingCatalogMcpId, onOpen, onToggle, onRequestDelete, onAuthorize, onInstallCatalogMcp, onGuideCatalogCli, onDisconnectCatalogCli, onGuideCatalogIntegration, onRequestCredential }: McpTabProps): React.ReactElement {
+  const t = useT()
   if (userEntries.length === 0 && catalogMcps.length === 0 && catalogClis.length === 0 && catalogGuided.length === 0 && catalogCredentials.length === 0) {
-    return <EmptyState icon={<Search className="size-8 text-foreground/30" />} title="没有匹配的 MCP 服务器" hint="试试更换搜索关键词。" />
+    return <EmptyState icon={<Search className="size-8 text-foreground/30" />} title={t('skills.view.mcpNoMatchTitle')} hint={t('skills.view.mcpNoMatchHint')} />
   }
 
   return (
     <div className="flex flex-col gap-8">
       {userEntries.length > 0 && (
-        <McpSection title="我的 MCP" count={userEntries.length} embedded={embedded}>
+        <McpSection title={t('skills.view.myMcp')} count={userEntries.length} embedded={embedded}>
           {userEntries.map(([name, entry]) => (
             <McpCard
               key={name}
@@ -1009,10 +1014,10 @@ function McpTab({ userEntries, catalogMcps, catalogClis, catalogGuided, catalogC
               onRequestDelete={() => onRequestDelete(name)}
               onAuthorize={entry.oauth ? () => { void onAuthorize(name, entry) } : undefined}
               statusLabel={entry.enabled
-                ? '已启用'
+                ? t('common.enabled')
                 : entry.lastTestResult?.success === false
-                  ? '待配置'
-                  : '待验证'}
+                  ? t('skills.view.statusPendingConfig')
+                  : t('skills.view.statusPendingVerify')}
               statusTone={entry.enabled ? 'success' : entry.lastTestResult?.success === false ? 'warning' : 'muted'}
             />
           ))}

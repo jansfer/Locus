@@ -8,6 +8,7 @@
 import * as React from 'react'
 import { toast } from 'sonner'
 import { Check, Loader2, Sparkles } from 'lucide-react'
+import { useT, getI18nLanguage, type TranslateFn } from '@/i18n'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -15,13 +16,15 @@ import { SettingsCard } from '@/components/settings/primitives'
 import { cn } from '@/lib/utils'
 import type { BulkImportSkillsResult, OtherWorkspaceSkillsGroup, SkillMeta } from '@proma/shared'
 
-function getFailureDescription(result: BulkImportSkillsResult): string | undefined {
+/** 把失败项拼成 toast 描述；分隔符随当前语言切换。 */
+function getFailureDescription(result: BulkImportSkillsResult, t: TranslateFn): string | undefined {
   const failed = result.items.filter((item) => item.status === 'failed')
   if (failed.length === 0) return undefined
 
-  const visible = failed.slice(0, 3).map((item) => `${item.slug}: ${item.reason ?? '未知原因'}`)
+  const separator = getI18nLanguage() === 'zh-CN' ? '；' : '; '
+  const visible = failed.slice(0, 3).map((item) => `${item.slug}: ${item.reason ?? t('skills.importDialog.unknownReason')}`)
   const remaining = failed.length - visible.length
-  return `${visible.join('；')}${remaining > 0 ? `；另有 ${remaining} 个失败项` : ''}`
+  return `${visible.join(separator)}${remaining > 0 ? t('skills.importDialog.moreFailed', { n: remaining }) : ''}`
 }
 
 interface ImportSkillDialogProps {
@@ -39,6 +42,7 @@ export function ImportSkillDialog({
   installedSkills,
   onImported,
 }: ImportSkillDialogProps): React.ReactElement {
+  const t = useT()
   const [otherWorkspaces, setOtherWorkspaces] = React.useState<OtherWorkspaceSkillsGroup[]>([])
   const [selectedWorkspaceSlug, setSelectedWorkspaceSlug] = React.useState('')
   const [selectedKeys, setSelectedKeys] = React.useState<Set<string>>(new Set())
@@ -79,8 +83,8 @@ export function ImportSkillDialog({
         if (requestIdRef.current !== requestId) return
         console.error('[Agent 技能] 加载其他工作区 Skill 失败:', error)
         setOtherWorkspaces([])
-        toast.error('加载其他项目 Skill 失败', {
-          description: error instanceof Error ? error.message : '未知错误',
+        toast.error(t('skills.importDialog.loadFailed'), {
+          description: error instanceof Error ? error.message : t('skills.importDialog.unknownError'),
         })
       } finally {
         if (requestIdRef.current === requestId) setLoadingWorkspaces(false)
@@ -171,32 +175,36 @@ export function ImportSkillDialog({
       const importResult = await window.electronAPI.batchImportSkillsFromWorkspaces(targetWorkspaceSlug, selections)
       if (!isActiveImportOperation(operationId, targetWorkspaceSlug)) return
 
-      const failureDescription = getFailureDescription(importResult)
+      const failureDescription = getFailureDescription(importResult, t)
       if (importResult.imported > 0) {
         onImported()
         const detail =
           importResult.skipped > 0 && importResult.failed > 0
-            ? `（跳过 ${importResult.skipped} 个、失败 ${importResult.failed} 个）`
+            ? t('skills.importDialog.skippedAndFailedDetail', { skipped: importResult.skipped, failed: importResult.failed })
             : importResult.skipped > 0
-              ? `（跳过 ${importResult.skipped} 个）`
+              ? t('skills.importDialog.skippedDetail', { n: importResult.skipped })
               : importResult.failed > 0
-                ? `（失败 ${importResult.failed} 个）`
+                ? t('skills.importDialog.failedDetail', { n: importResult.failed })
                 : ''
-        toast.success(`已导入 ${importResult.imported} 个 Skill${detail}`, {
+        toast.success(t('skills.importDialog.imported', { n: importResult.imported, detail }), {
           description: failureDescription,
         })
         handleDialogOpenChange(false)
       } else if (importResult.failed === 0) {
-        toast.info(`没有新导入的 Skill，已跳过 ${importResult.skipped} 个同名项`)
+        toast.info(t('skills.importDialog.nothingImported', { n: importResult.skipped }))
+      } else if (importResult.skipped > 0) {
+        toast.error(t('skills.importDialog.importFailedWithSkipped', { failed: importResult.failed, skipped: importResult.skipped }), {
+          description: failureDescription,
+        })
       } else {
-        toast.error(`导入失败 ${importResult.failed} 个${importResult.skipped > 0 ? `，跳过 ${importResult.skipped} 个` : ''}`, {
+        toast.error(t('skills.importDialog.importFailed', { n: importResult.failed }), {
           description: failureDescription,
         })
       }
     } catch (error) {
       if (!isActiveImportOperation(operationId, targetWorkspaceSlug)) return
       console.error('[Agent 技能] 批量导入失败:', error)
-      toast.error('批量导入失败', { description: error instanceof Error ? error.message : '未知错误' })
+      toast.error(t('skills.importDialog.importFailedGeneric'), { description: error instanceof Error ? error.message : t('skills.importDialog.unknownError') })
     } finally {
       if (isActiveImportOperation(operationId, targetWorkspaceSlug)) setImporting(false)
     }
@@ -206,9 +214,9 @@ export function ImportSkillDialog({
     <Dialog open={open} onOpenChange={handleDialogOpenChange}>
       <DialogContent className="max-w-2xl gap-0 overflow-hidden p-0">
         <DialogHeader className="px-6 pb-4 pt-6">
-          <DialogTitle>从其他项目批量导入 Skill</DialogTitle>
+          <DialogTitle>{t('skills.importDialog.title')}</DialogTitle>
           <DialogDescription>
-            从其他项目勾选多个 Skill 导入到当前项目。已安装的同名 Skill 会自动过滤。
+            {t('skills.importDialog.description')}
           </DialogDescription>
         </DialogHeader>
 
@@ -216,20 +224,20 @@ export function ImportSkillDialog({
           {loadingWorkspaces ? (
             <div className="flex items-center justify-center gap-2 py-10 text-sm text-muted-foreground">
               <Loader2 size={15} className="animate-spin" />
-              正在加载其他项目 Skill...
+              {t('skills.importDialog.loading')}
             </div>
           ) : availableWorkspaces.length === 0 ? (
             <SettingsCard divided={false}>
               <div className="py-10 text-center text-sm text-muted-foreground">
-                没有可导入的 Skill。其他项目暂无 Skill，或者它们都已经安装到当前项目了。
+                {t('skills.importDialog.empty')}
               </div>
             </SettingsCard>
           ) : (
             <div className="space-y-2">
-              <div className="text-sm font-medium text-foreground">选择来源项目</div>
+              <div className="text-sm font-medium text-foreground">{t('skills.importDialog.sourceLabel')}</div>
               <Select value={selectedWorkspaceSlug} onValueChange={handleWorkspaceChange} disabled={loadingWorkspaces || importing}>
                 <SelectTrigger>
-                  <SelectValue placeholder="选择来源项目" />
+                  <SelectValue placeholder={t('skills.importDialog.sourcePlaceholder')} />
                 </SelectTrigger>
                 <SelectContent>
                   {availableWorkspaces.map((w) => (
@@ -247,7 +255,7 @@ export function ImportSkillDialog({
               <div className="mb-3 flex items-center justify-between gap-3 text-sm text-muted-foreground">
                 <span className="truncate">{selectedWorkspace.workspaceName}</span>
                 <span className="shrink-0 rounded-md bg-muted px-2 py-1 text-xs font-medium tabular-nums">
-                  {selectedWorkspace.skills.length} 个
+                  {t('skills.importDialog.skillCount', { n: selectedWorkspace.skills.length })}
                 </span>
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
@@ -258,7 +266,7 @@ export function ImportSkillDialog({
                       <button
                         type="button"
                         aria-pressed={checked}
-                        aria-label={`${skill.name}${checked ? '，已选中' : '，未选中'}`}
+                        aria-label={t(checked ? 'skills.importDialog.ariaSelected' : 'skills.importDialog.ariaUnchecked', { name: skill.name })}
                         disabled={importing}
                         onClick={() => toggleSelection(selectedWorkspace.workspaceSlug, skill.slug)}
                         className={cn(
@@ -292,7 +300,7 @@ export function ImportSkillDialog({
                           <Sparkles size={16} className="shrink-0 text-amber-500" />
                         </div>
                         <div className="line-clamp-3 min-h-[40px] text-sm leading-6 text-muted-foreground">
-                          {skill.description ?? '暂无描述'}
+                          {skill.description ?? t('skills.importDialog.noDescription')}
                         </div>
                       </button>
                     </SettingsCard>
@@ -305,13 +313,11 @@ export function ImportSkillDialog({
 
         <div className="sticky bottom-0 flex items-center justify-between gap-3 border-t border-border/60 bg-background/95 px-6 py-4">
           <span className="text-xs text-muted-foreground">
-            {loadingWorkspaces
-              ? '正在加载其他项目 Skill...'
-              : '勾选要导入的 Skill，已安装的同名 Skill 会自动过滤'}
+            {loadingWorkspaces ? t('skills.importDialog.loading') : t('skills.importDialog.footerHint')}
           </span>
           <Button size="sm" onClick={() => void handleImport()} disabled={loadingWorkspaces || importing || selectedCount === 0}>
             {importing ? <Loader2 size={13} className="animate-spin" /> : null}
-            {importing ? '导入中...' : `一键导入所选（${selectedCount}）`}
+            {importing ? t('skills.importDialog.importing') : t('skills.importDialog.importSelected', { n: selectedCount })}
           </Button>
         </div>
       </DialogContent>

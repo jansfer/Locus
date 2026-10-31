@@ -11,6 +11,7 @@ import { atom, useAtom, useAtomValue, useSetAtom } from 'jotai'
 import DOMPurify from 'dompurify'
 import { File as PierreFile } from '@pierre/diffs/react'
 import { toast } from 'sonner'
+import { useT } from '@/i18n'
 import type { FilePreviewMetadata } from '@proma/shared'
 import { cn } from '@/lib/utils'
 import {
@@ -254,6 +255,7 @@ interface DiffTabContentProps {
 }
 
 export function DiffTabContent({ filePath, dirPath, sessionId, gitRoot, previewOnly, readOnly, basePaths, unrestricted, workspaceSkillSlug, legacySkillFilePath, onEmptyDiff, toolbarActions, baseRef }: DiffTabContentProps): React.ReactElement {
+  const t = useT()
   const ext = getExtension(filePath)
   const isMarkdown = previewOnly && MD_EXTS.has(ext)
   const isHtml = previewOnly && HTML_EXTS.has(ext)
@@ -376,8 +378,8 @@ export function DiffTabContent({ filePath, dirPath, sessionId, gitRoot, previewO
     newContent.length > 0 &&
     newContent.length <= MAX_PREVIEW_CHARS
   const previewWrapLabel = codeWrap
-    ? '当前为自动换行，点击改为横向滚动'
-    : '当前为横向滚动，点击改为自动换行'
+    ? t('diff.tab.wrapOn')
+    : t('diff.tab.wrapOff')
 
   React.useEffect(() => {
     initShortcutRegistry()
@@ -457,7 +459,7 @@ export function DiffTabContent({ filePath, dirPath, sessionId, gitRoot, previewO
       if (lastToastIdRef.current && lastToastIdRef.current !== id) {
         toast.dismiss(lastToastIdRef.current)
       }
-      toast.warning(`已选中 >${k} 字符，仅能发送前 ${MAX_QUOTED_CHARS} 字符`, {
+      toast.warning(t('diff.tab.quotedTruncated', { k, max: MAX_QUOTED_CHARS }), {
         id,
         duration: 3000,
       })
@@ -903,8 +905,8 @@ export function DiffTabContent({ filePath, dirPath, sessionId, gitRoot, previewO
             const result = resolvedPreview
             if (result?.isBinary || result?.isTooLarge) {
               const reason = result.isTooLarge
-                ? '此文本文件超过 5 MB，无法安全进行内联预览，请使用默认应用打开。'
-                : '此二进制或编码异常文件暂不支持内联预览，请使用默认应用打开。'
+                ? t('diff.tab.unsupportedTooLarge')
+                : t('diff.tab.unsupportedBinary')
               setUnsupportedPreviewReason(reason)
               setPreviewMetadata(result.metadata)
               setPreviewContentCache(cacheKey, {
@@ -1010,13 +1012,13 @@ export function DiffTabContent({ filePath, dirPath, sessionId, gitRoot, previewO
     if (toastedPreviewFailRef.current === key) return
     let message: string | null = null
     if (isLegacyOffice) {
-      message = `暂不支持 ${ext.toUpperCase().slice(1)} 格式内联预览`
+      message = t('diff.tab.legacyOfficeUnsupported', { format: ext.toUpperCase().slice(1) })
     } else if (isPdf && !pdfSrc) {
-      message = 'PDF 文件过大，无法在此预览'
+      message = t('diff.tab.pdfTooLarge')
     } else if (isOfficePreview && !officeHtml && !officeHtmlUrl) {
-      message = `无法加载 ${ext === '.pptx' ? 'PPTX' : ext === '.docx' ? 'DOCX' : 'Excel'} 预览`
+      message = t('diff.tab.officeLoadFailed', { type: ext === '.pptx' ? 'PPTX' : ext === '.docx' ? 'DOCX' : 'Excel' })
     } else if (isImage && !imageDataUrl) {
-      message = '图片文件过大，无法在此预览'
+      message = t('diff.tab.imageTooLarge')
     }
     if (message) {
       toastedPreviewFailRef.current = key
@@ -1424,7 +1426,7 @@ export function DiffTabContent({ filePath, dirPath, sessionId, gitRoot, previewO
     if (!componentMountedRef.current || markdownOwnerRef.current.generation !== ownerGeneration) return
     setMarkdownSaving(false)
     if (!ok) {
-      window.alert('保存失败：没有写入权限或文件不存在')
+      window.alert(t('diff.tab.saveFailed'))
     }
   }, [componentMountedRef, fileAccess, filePath, isEditableText, markdownDraft, markdownEditorCacheKey, markdownSaving, ownerGeneration, persistMarkdownDraft, readOnly])
 
@@ -1492,12 +1494,12 @@ export function DiffTabContent({ filePath, dirPath, sessionId, gitRoot, previewO
     openSelectionChatPendingRef.current = true
     try {
       const conversation = await getOrCreateSideChat(sessionId, () => window.electronAPI.createConversation(
-        '预览选区问答',
+        t('diff.tab.selectionChatTitle'),
         selectedChatModel?.modelId,
         selectedChatModel?.channelId,
       ))
       setConversations((prev) => prev.some((item) => item.id === conversation.id) ? prev : [conversation, ...prev])
-      setConversationDrafts((prev) => new Map(prev).set(conversation.id, '我的问题：'))
+      setConversationDrafts((prev) => new Map(prev).set(conversation.id, t('diff.tab.selectionChatDraft')))
       setSideChatMap((prev) => new Map(prev).set(sessionId, conversation.id))
       setSidePanelOpen(true)
       setSidePanelTabMap((prev) => new Map(prev).set(sessionId, 'chat'))
@@ -1507,7 +1509,7 @@ export function DiffTabContent({ filePath, dirPath, sessionId, gitRoot, previewO
       focusChatInput(conversation.id)
     } catch (error) {
       console.error('[DiffTabContent] 打开预览选区聊天标签失败:', error)
-      toast.error('打开右侧问答失败')
+      toast.error(t('diff.tab.openSelectionChatFailed'))
     } finally {
       openSelectionChatPendingRef.current = false
     }
@@ -1525,6 +1527,7 @@ export function DiffTabContent({ filePath, dirPath, sessionId, gitRoot, previewO
     setSidePanelOpen,
     setSidePanelTabMap,
     sideChatMap,
+    t,
   ])
 
   // persistRef 始终持有最新 persistMarkdownDraft，供 setTimeout / unmount cleanup 调用。
@@ -1635,13 +1638,13 @@ export function DiffTabContent({ filePath, dirPath, sessionId, gitRoot, previewO
     // 解析到的附件/外部目录脱节，导致预览正常而无法在 Finder/Explorer 中定位。
     window.electronAPI.showItemInFolder(filePath, fileAccess.candidateBasePaths)
       .then((found) => {
-        if (!found) toast.error('未找到文件，无法在文件夹中显示')
+        if (!found) toast.error(t('diff.tab.revealNotFound'))
       })
       .catch((error) => {
         console.error('[DiffTabContent] 在文件夹中显示失败:', error)
-        toast.error('无法在文件夹中显示')
+        toast.error(t('diff.tab.revealFailed'))
       })
-  }, [fileAccess.candidateBasePaths, filePath])
+  }, [fileAccess.candidateBasePaths, filePath, t])
 
   return (
     <div className="flex flex-col h-full">
@@ -1663,12 +1666,12 @@ export function DiffTabContent({ filePath, dirPath, sessionId, gitRoot, previewO
                   type="button"
                   onClick={handleRevealInFolder}
                   className="flex size-6 shrink-0 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
-                  aria-label="在文件夹中显示"
+                  aria-label={t('diff.tab.showInFolder')}
                 >
                   <FolderOpen className="size-3.5" />
                 </button>
               </TooltipTrigger>
-              <TooltipContent side="bottom">在文件夹中显示</TooltipContent>
+              <TooltipContent side="bottom">{t('diff.tab.showInFolder')}</TooltipContent>
             </Tooltip>
           </>
         )}
@@ -1685,9 +1688,9 @@ export function DiffTabContent({ filePath, dirPath, sessionId, gitRoot, previewO
               )}
             />
             <span className={cn('relative z-[1] rounded-md px-2 py-0.5 text-[11px] font-medium transition-colors',
-              viewMode === 'split' ? 'text-foreground' : 'text-muted-foreground')}>分栏</span>
+              viewMode === 'split' ? 'text-foreground' : 'text-muted-foreground')}>{t('diff.tab.split')}</span>
             <span className={cn('relative z-[1] rounded-md px-2 py-0.5 text-[11px] font-medium transition-colors',
-              viewMode === 'unified' ? 'text-foreground' : 'text-muted-foreground')}>统一</span>
+              viewMode === 'unified' ? 'text-foreground' : 'text-muted-foreground')}>{t('diff.tab.unified')}</span>
           </div>
         )}
 
@@ -1696,8 +1699,8 @@ export function DiffTabContent({ filePath, dirPath, sessionId, gitRoot, previewO
             type="button"
             onClick={() => setHtmlSourceMode((sourceMode) => !sourceMode)}
             className="ml-auto p-1 rounded hover:bg-foreground/[0.06] text-foreground/40 hover:text-foreground/60 shrink-0"
-            title={htmlSourceMode ? '切换到渲染预览' : '切换到源码预览'}
-            aria-label={htmlSourceMode ? '切换到渲染预览' : '切换到源码预览'}
+            title={htmlSourceMode ? t('diff.tab.htmlRenderMode') : t('diff.tab.htmlSourceMode')}
+            aria-label={htmlSourceMode ? t('diff.tab.htmlRenderMode') : t('diff.tab.htmlSourceMode')}
           >
             {htmlSourceMode ? <Eye className="size-3.5" /> : <Code2 className="size-3.5" />}
           </button>
@@ -1711,7 +1714,7 @@ export function DiffTabContent({ filePath, dirPath, sessionId, gitRoot, previewO
                 onClick={exitMarkdownEdit}
                 disabled={markdownSaving}
                 className="p-1 rounded hover:bg-foreground/[0.06] text-foreground/40 hover:text-foreground/60 disabled:opacity-50 shrink-0"
-                title="退出编辑"
+                title={t('diff.tab.exitEdit')}
               >
                 <X className="size-3.5" />
               </button>
@@ -1727,10 +1730,10 @@ export function DiffTabContent({ filePath, dirPath, sessionId, gitRoot, previewO
                 )}
                 title={
                   autosaveStatus === 'error'
-                    ? '自动保存失败，点击重试'
+                    ? t('diff.tab.autosaveFailedRetry')
                     : autosaveStatus === 'saved'
-                      ? '已保存'
-                      : '立即保存'
+                      ? t('diff.tab.saved')
+                      : t('diff.tab.saveNow')
                 }
               >
                 <Save className="size-3.5" />
@@ -1741,7 +1744,7 @@ export function DiffTabContent({ filePath, dirPath, sessionId, gitRoot, previewO
               type="button"
               onClick={startMarkdownEdit}
               className="ml-auto p-1 rounded hover:bg-foreground/[0.06] text-foreground/40 hover:text-foreground/60 shrink-0"
-              title="编辑文本"
+              title={t('diff.tab.editText')}
             >
               <Pencil className="size-3.5" />
             </button>
@@ -1754,12 +1757,12 @@ export function DiffTabContent({ filePath, dirPath, sessionId, gitRoot, previewO
               type="button"
               onClick={handleCopy}
               className={cn('p-1 rounded hover:bg-foreground/[0.06] text-foreground/40 hover:text-foreground/60 shrink-0', previewOnly && !isEditableText && 'ml-auto')}
-              aria-label={copied ? '已复制文件内容' : '复制文件内容'}
+              aria-label={copied ? t('diff.tab.copiedContent') : t('diff.tab.copyContent')}
             >
               {copied ? <Check className="size-3.5 text-green-500" /> : <Copy className="size-3.5" />}
             </button>
           </TooltipTrigger>
-          <TooltipContent side="bottom">{copied ? '已复制文件内容' : '复制文件内容'}</TooltipContent>
+          <TooltipContent side="bottom">{copied ? t('diff.tab.copiedContent') : t('diff.tab.copyContent')}</TooltipContent>
         </Tooltip>
 
         <Tooltip>
@@ -1768,12 +1771,12 @@ export function DiffTabContent({ filePath, dirPath, sessionId, gitRoot, previewO
               type="button"
               onClick={handleManualRefresh}
               className="p-1 rounded hover:bg-foreground/[0.06] text-foreground/40 hover:text-foreground/60 shrink-0"
-              aria-label="刷新文件内容（检测外部编辑器的修改）"
+              aria-label={t('diff.tab.refreshContent')}
             >
               <RotateCw className="size-3.5" />
             </button>
           </TooltipTrigger>
-          <TooltipContent side="bottom">刷新文件内容（检测外部编辑器的修改）</TooltipContent>
+          <TooltipContent side="bottom">{t('diff.tab.refreshContent')}</TooltipContent>
         </Tooltip>
 
         {canTogglePreviewWrap && (
@@ -1807,12 +1810,12 @@ export function DiffTabContent({ filePath, dirPath, sessionId, gitRoot, previewO
                   'p-1 rounded hover:bg-foreground/[0.06] shrink-0',
                   tocOpen ? 'text-foreground/70' : 'text-foreground/40 hover:text-foreground/60',
                 )}
-                aria-label={tocOpen ? '隐藏目录' : '显示目录'}
+                aria-label={tocOpen ? t('diff.tab.hideToc') : t('diff.tab.showToc')}
               >
                 <List className="size-3.5" />
               </button>
             </TooltipTrigger>
-            <TooltipContent side="bottom">{tocOpen ? '隐藏目录' : '显示目录'}</TooltipContent>
+            <TooltipContent side="bottom">{tocOpen ? t('diff.tab.hideToc') : t('diff.tab.showToc')}</TooltipContent>
           </Tooltip>
         )}
 
@@ -1824,7 +1827,7 @@ export function DiffTabContent({ filePath, dirPath, sessionId, gitRoot, previewO
           open={findOpen}
           rootRef={scrollContainerRef}
           contentKey={findContentKey}
-          unsupportedReason={isPdf ? '暂不支持 PDF 搜索' : undefined}
+          unsupportedReason={isPdf ? t('diff.tab.pdfSearchUnsupported') : undefined}
           markdownEditorRef={isMarkdown ? markdownEditorRef : undefined}
           onOpenChange={setFindOpen}
         />
@@ -1844,12 +1847,12 @@ export function DiffTabContent({ filePath, dirPath, sessionId, gitRoot, previewO
                 type="button"
                 onClick={() => setTocOpen(true)}
                 className="mx-2 mb-2 mt-4 flex size-7 shrink-0 items-center justify-center self-start rounded-md bg-muted/40 text-foreground/45 hover:bg-foreground/[0.06] hover:text-foreground/70"
-                aria-label="展开目录"
+                aria-label={t('diff.tab.expandToc')}
               >
                 <ChevronRight className="size-3.5" />
               </button>
             </TooltipTrigger>
-            <TooltipContent side="right">展开目录</TooltipContent>
+            <TooltipContent side="right">{t('diff.tab.expandToc')}</TooltipContent>
           </Tooltip>
         )}
         <div
@@ -1861,7 +1864,7 @@ export function DiffTabContent({ filePath, dirPath, sessionId, gitRoot, previewO
           )}
         >
           {loading ? (
-            <div className="flex items-center justify-center h-full text-muted-foreground text-[12px]">加载中...</div>
+            <div className="flex items-center justify-center h-full text-muted-foreground text-[12px]">{t('common.loading')}</div>
           ) : (previewOnly || isOfficePreview) ? (
             unsupportedPreviewReason ? (
               <UnsupportedFilePreview
@@ -1955,7 +1958,7 @@ export function DiffTabContent({ filePath, dirPath, sessionId, gitRoot, previewO
                 <iframe
                   src={officeHtmlUrl}
                   className="office-preview-iframe"
-                  title={`${filePath.split('/').pop() || 'Office'} 高保真预览`}
+                  title={t('diff.tab.officeHiFiTitle', { name: filePath.split('/').pop() || 'Office' })}
                   sandbox="allow-scripts"
                   referrerPolicy="no-referrer"
                 />
@@ -1970,13 +1973,13 @@ export function DiffTabContent({ filePath, dirPath, sessionId, gitRoot, previewO
                 <iframe
                   src={htmlPreviewUrl}
                   className="h-full w-full border-0 bg-white"
-                  title={`${filePath.split('/').pop() || 'HTML'} 渲染预览`}
+                  title={t('diff.tab.htmlRenderTitle', { name: filePath.split('/').pop() || 'HTML' })}
                   sandbox="allow-scripts allow-forms"
                   referrerPolicy="no-referrer"
                 />
               ) : (
                 <div className="flex h-full items-center justify-center px-6 text-center text-[13px] text-muted-foreground">
-                  无法加载 HTML 预览资源，请切换到源码预览或刷新后重试。
+                  {t('diff.tab.htmlLoadFailed')}
                 </div>
               )
             ) : isMarkdown ? (
@@ -2021,7 +2024,7 @@ export function DiffTabContent({ filePath, dirPath, sessionId, gitRoot, previewO
                 <pre className="p-3 text-[13px] leading-relaxed text-foreground/80 font-mono whitespace-pre-wrap [overflow-wrap:anywhere]">
                   {newContent.slice(0, MAX_PREVIEW_CHARS)}
                   <span className="text-muted-foreground block mt-2">
-                    （文件过大，仅显示前 {MAX_PREVIEW_CHARS.toLocaleString()} 字符）
+                    {t('diff.tab.truncatedTail', { count: MAX_PREVIEW_CHARS.toLocaleString() })}
                   </span>
                 </pre>
               ) : (
@@ -2031,7 +2034,7 @@ export function DiffTabContent({ filePath, dirPath, sessionId, gitRoot, previewO
               )
             ) : (
               <pre className="p-3 text-[13px] leading-relaxed text-foreground/80 font-mono whitespace-pre-wrap [overflow-wrap:anywhere]">
-                <span className="text-muted-foreground">（文件为空）</span>
+                <span className="text-muted-foreground">{t('diff.tab.emptyFile')}</span>
               </pre>
             )
           ) : (

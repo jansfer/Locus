@@ -1,6 +1,7 @@
 import * as React from 'react'
 import { toast } from 'sonner'
 import { Code2, Eye, FilePlus2, FileText, Loader2, RefreshCw, Save } from 'lucide-react'
+import { useT } from '@/i18n'
 import type { SkillFileNode } from '@proma/shared'
 import { Button } from '@/components/ui/button'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
@@ -23,6 +24,7 @@ function formatBytes(bytes?: number): string {
 
 /** Standalone, editable view of one workspace's managed memory/ root. */
 export function WorkspaceMemoryWindowApp(): React.ReactElement {
+  const t = useT()
   const params = new URLSearchParams(window.location.search)
   const workspaceSlug = params.get('workspace') ?? ''
   const initialFilePath = params.get('file')
@@ -48,8 +50,8 @@ export function WorkspaceMemoryWindowApp(): React.ReactElement {
     textRef.current = text
   }, [dirty, selectedPath, text])
   React.useEffect(() => {
-    document.title = 'Locus · 工作区记忆'
-  }, [])
+    document.title = t('skills.memoryWindow.windowTitle')
+  }, [t])
   React.useEffect(() => {
     void window.electronAPI.markWorkspaceMemoryWindowReady(workspaceSlug).catch(() => {})
   }, [workspaceSlug])
@@ -73,26 +75,26 @@ export function WorkspaceMemoryWindowApp(): React.ReactElement {
       setRemoteChanged(false)
       setViewMode('preview')
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : '读取记忆文件失败')
+      toast.error(error instanceof Error ? error.message : t('skills.memoryWindow.readFailed'))
     } finally {
       setLoadingFile(false)
     }
-  }, [workspaceSlug])
+  }, [workspaceSlug, t])
 
   const confirmClose = React.useCallback(async (): Promise<void> => {
     try {
       await window.electronAPI.confirmWorkspaceMemoryWindowClose(workspaceSlug)
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : '关闭记忆窗口失败')
+      toast.error(error instanceof Error ? error.message : t('skills.memoryWindow.closeFailed'))
     }
-  }, [workspaceSlug])
+  }, [workspaceSlug, t])
 
   const requestOpenFile = React.useCallback((relativePath: string): void => {
     if (relativePath === selectedPathRef.current) return
-    if (saving) { toast.message('保存进行中，请稍候。'); return }
+    if (saving) { toast.message(t('skills.memoryWindow.saveInProgress')); return }
     if (dirtyRef.current) { setPendingAction({ kind: 'open', relativePath }); return }
     void openFile(relativePath)
-  }, [openFile, saving])
+  }, [openFile, saving, t])
 
   React.useEffect(() => {
     if (!workspaceSlug) {
@@ -104,7 +106,7 @@ export function WorkspaceMemoryWindowApp(): React.ReactElement {
       if (disposed) return
       const first = flattenFiles(tree).find((file) => file.relativePath === initialFilePath) ?? flattenFiles(tree).find((file) => file.relativePath === 'MEMORY.md') ?? flattenFiles(tree)[0]
       if (first) void openFile(first.relativePath)
-    }).catch((error) => toast.error(error instanceof Error ? error.message : '读取记忆目录失败')).finally(() => {
+    }).catch((error) => toast.error(error instanceof Error ? error.message : t('skills.memoryWindow.readDirFailed'))).finally(() => {
       if (!disposed) setLoading(false)
     })
     return () => { disposed = true }
@@ -113,10 +115,10 @@ export function WorkspaceMemoryWindowApp(): React.ReactElement {
   React.useEffect(() => window.electronAPI.onWorkspaceMemoryWindowOpenFile(requestOpenFile), [requestOpenFile])
 
   React.useEffect(() => window.electronAPI.onWorkspaceMemoryWindowCloseRequested(() => {
-    if (saving) { toast.message('保存进行中，请稍候。'); return }
+    if (saving) { toast.message(t('skills.memoryWindow.saveInProgress')); return }
     if (dirtyRef.current) setPendingAction({ kind: 'close' })
     else void confirmClose()
-  }), [confirmClose, saving])
+  }), [confirmClose, saving, t])
 
   React.useEffect(() => {
     if (!workspaceSlug) return
@@ -142,15 +144,15 @@ export function WorkspaceMemoryWindowApp(): React.ReactElement {
       dirtyRef.current = !unchangedSinceSave
       setDirty(!unchangedSinceSave)
       await refreshFiles()
-      toast.success(unchangedSinceSave ? '记忆已保存' : '已保存早先内容；后续输入仍待保存')
+      toast.success(unchangedSinceSave ? t('skills.memoryWindow.saved') : t('skills.memoryWindow.savedEarlier'))
       return unchangedSinceSave
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : '保存记忆文件失败')
+      toast.error(error instanceof Error ? error.message : t('skills.memoryWindow.saveFailed'))
       return false
     } finally {
       setSaving(false)
     }
-  }, [refreshFiles, remoteChanged, saving, selectedPath, workspaceSlug])
+  }, [refreshFiles, remoteChanged, saving, selectedPath, workspaceSlug, t])
 
   React.useEffect(() => {
     const onKeyDown = (event: KeyboardEvent): void => {
@@ -181,7 +183,7 @@ export function WorkspaceMemoryWindowApp(): React.ReactElement {
 
   const allFiles = React.useMemo(() => flattenFiles(files), [files])
   if (!workspaceSlug) {
-    return <div className="flex h-screen items-center justify-center bg-content-area text-sm text-muted-foreground">未指定工作区，无法打开记忆编辑器。</div>
+    return <div className="flex h-screen items-center justify-center bg-content-area text-sm text-muted-foreground">{t('skills.memoryWindow.noWorkspace')}</div>
   }
 
   return (
@@ -189,11 +191,11 @@ export function WorkspaceMemoryWindowApp(): React.ReactElement {
       <AlertDialog open={pendingAction !== null} onOpenChange={(open) => { if (!open) setPendingAction(null) }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>保存记忆更改？</AlertDialogTitle>
-            <AlertDialogDescription>当前文件有未保存的内容。你可以保存后继续，或丢弃本次更改。</AlertDialogDescription>
+            <AlertDialogTitle>{t('skills.memoryWindow.confirmTitle')}</AlertDialogTitle>
+            <AlertDialogDescription>{t('skills.memoryWindow.confirmDescription')}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => {
               const action = pendingAction
               setPendingAction(null)
@@ -201,7 +203,7 @@ export function WorkspaceMemoryWindowApp(): React.ReactElement {
               setDirty(false)
               if (action?.kind === 'open') void openFile(action.relativePath)
               else if (action?.kind === 'close') void confirmClose()
-            }}>丢弃更改</AlertDialogAction>
+            }}>{t('skills.memoryWindow.discard')}</AlertDialogAction>
             <AlertDialogAction onClick={() => {
               const action = pendingAction
               void (async () => {
@@ -211,7 +213,7 @@ export function WorkspaceMemoryWindowApp(): React.ReactElement {
                 if (action?.kind === 'open') await openFile(action.relativePath)
                 else if (action?.kind === 'close') await confirmClose()
               })()
-            }}>保存并继续</AlertDialogAction>
+            }}>{t('skills.memoryWindow.saveAndContinue')}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -222,19 +224,19 @@ export function WorkspaceMemoryWindowApp(): React.ReactElement {
           isMac ? 'pl-[88px] pr-5' : 'px-5',
         )}>
           <div>
-            <h1 className="text-sm font-semibold text-foreground">工作区记忆</h1>
+            <h1 className="text-sm font-semibold text-foreground">{t('skills.memoryWindow.title')}</h1>
             <p className="text-[11px] text-muted-foreground">{workspaceSlug} · memory/</p>
           </div>
         </header>
         <main className="grid min-h-0 flex-1 grid-cols-[240px_minmax(0,1fr)]">
           <aside className="min-h-0 border-r border-border/70 bg-muted/20">
             <div className="flex h-10 items-center justify-between border-b border-border/60 px-3">
-              <span className="text-xs font-medium text-muted-foreground">记忆文件</span>
-              <button type="button" aria-label="刷新文件列表" className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground [-webkit-app-region:no-drag]" onClick={() => void refreshFiles()}><RefreshCw size={14} /></button>
+              <span className="text-xs font-medium text-muted-foreground">{t('skills.memoryWindow.files')}</span>
+              <button type="button" aria-label={t('skills.memoryWindow.refreshList')} className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground [-webkit-app-region:no-drag]" onClick={() => void refreshFiles()}><RefreshCw size={14} /></button>
             </div>
             <div className="min-h-0 overflow-y-auto p-2">
-              {loading ? <div className="p-3 text-xs text-muted-foreground">读取中…</div> : allFiles.length === 0 ? (
-                <div className="space-y-3 p-3 text-xs leading-relaxed text-muted-foreground"><p>尚未建立记忆文件。</p><Button size="sm" variant="outline" className="h-8 [-webkit-app-region:no-drag]" onClick={createIndex}><FilePlus2 size={14} className="mr-1.5" />新建 MEMORY.md</Button></div>
+              {loading ? <div className="p-3 text-xs text-muted-foreground">{t('skills.memoryWindow.reading')}</div> : allFiles.length === 0 ? (
+                <div className="space-y-3 p-3 text-xs leading-relaxed text-muted-foreground"><p>{t('skills.memoryWindow.empty')}</p><Button size="sm" variant="outline" className="h-8 [-webkit-app-region:no-drag]" onClick={createIndex}><FilePlus2 size={14} className="mr-1.5" />{t('skills.memoryWindow.newIndex')}</Button></div>
               ) : allFiles.map((file) => (
                 <button key={file.relativePath} type="button" onClick={() => requestOpenFile(file.relativePath)} className={cn('flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-xs transition-colors [-webkit-app-region:no-drag]', selectedPath === file.relativePath ? 'bg-accent text-accent-foreground' : 'text-foreground/80 hover:bg-accent/60')}>
                   <FileText size={14} className="shrink-0 text-muted-foreground" />
@@ -246,17 +248,17 @@ export function WorkspaceMemoryWindowApp(): React.ReactElement {
           </aside>
           <section className="flex min-h-0 flex-col bg-background">
             <div className="flex min-h-12 shrink-0 items-center justify-between gap-4 border-b border-border/60 px-4">
-              <div className="min-w-0"><div className="truncate text-sm font-medium text-foreground">{selectedPath ?? '选择记忆文件'}</div><div className="text-[11px] text-muted-foreground">Markdown · Cmd/Ctrl + S 保存</div></div>
+              <div className="min-w-0"><div className="truncate text-sm font-medium text-foreground">{selectedPath ?? t('skills.memoryWindow.pickFile')}</div><div className="text-[11px] text-muted-foreground">{t('skills.memoryWindow.saveHint')}</div></div>
               <div className="flex shrink-0 items-center gap-2 [-webkit-app-region:no-drag]">
                 {selectedPath && <div className="flex items-center gap-1 rounded-lg bg-muted p-0.5">
-                  <button type="button" onClick={() => setViewMode('preview')} className={cn('flex h-7 items-center gap-1 rounded-md px-2 text-xs font-medium transition-colors', viewMode === 'preview' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground')}><Eye size={13} />预览</button>
-                  <button type="button" onClick={() => setViewMode('edit')} className={cn('flex h-7 items-center gap-1 rounded-md px-2 text-xs font-medium transition-colors', viewMode === 'edit' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground')}><Code2 size={13} />编辑</button>
+                  <button type="button" onClick={() => setViewMode('preview')} className={cn('flex h-7 items-center gap-1 rounded-md px-2 text-xs font-medium transition-colors', viewMode === 'preview' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground')}><Eye size={13} />{t('skills.memoryWindow.preview')}</button>
+                  <button type="button" onClick={() => setViewMode('edit')} className={cn('flex h-7 items-center gap-1 rounded-md px-2 text-xs font-medium transition-colors', viewMode === 'edit' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground')}><Code2 size={13} />{t('skills.memoryWindow.edit')}</button>
                 </div>}
-                <Button size="sm" onClick={() => void save()} disabled={!selectedPath || !dirty || saving || remoteChanged}>{saving ? <Loader2 size={14} className="mr-1.5 animate-spin" /> : <Save size={14} className="mr-1.5" />}{saving ? '保存中' : '保存'}</Button>
+                <Button size="sm" onClick={() => void save()} disabled={!selectedPath || !dirty || saving || remoteChanged}>{saving ? <Loader2 size={14} className="mr-1.5 animate-spin" /> : <Save size={14} className="mr-1.5" />}{saving ? t('skills.memoryWindow.saving') : t('skills.memoryWindow.save')}</Button>
               </div>
             </div>
-            {remoteChanged && <div className="flex shrink-0 items-center justify-between gap-3 border-b border-amber-500/30 bg-amber-500/10 px-4 py-2 text-xs text-amber-800 dark:text-amber-200"><span>该文件已在其他位置更新。重新载入后再编辑，以免覆盖新内容。</span><Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => selectedPath && void openFile(selectedPath)}>重新载入</Button></div>}
-            {loadingFile ? <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">读取文件中…</div> : selectedPath && viewMode === 'edit' ? <textarea value={text} onChange={(event) => { dirtyRef.current = true; textRef.current = event.target.value; setText(event.target.value); setDirty(true) }} disabled={saving} spellCheck={false} className="min-h-0 flex-1 resize-none bg-transparent p-5 font-mono text-[13px] leading-6 text-foreground outline-none" placeholder="# Memory\n\n记录稳定、可复用的协作知识。" /> : selectedPath ? <div className="min-h-0 flex-1 overflow-y-auto p-6">{text.trim() ? <MessageResponse className="text-[14px] prose-headings:scroll-mt-4">{text}</MessageResponse> : <div className="flex h-full min-h-[240px] items-center justify-center rounded-lg border border-dashed border-border/70 text-sm text-muted-foreground">当前文件为空，切换到编辑后可以写入 Markdown 内容。</div>}</div> : <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">从左侧选择一个记忆文件</div>}
+            {remoteChanged && <div className="flex shrink-0 items-center justify-between gap-3 border-b border-amber-500/30 bg-amber-500/10 px-4 py-2 text-xs text-amber-800 dark:text-amber-200"><span>{t('skills.memoryWindow.remoteChanged')}</span><Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => selectedPath && void openFile(selectedPath)}>{t('skills.memoryWindow.reload')}</Button></div>}
+            {loadingFile ? <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">{t('skills.memoryWindow.readingFile')}</div> : selectedPath && viewMode === 'edit' ? <textarea value={text} onChange={(event) => { dirtyRef.current = true; textRef.current = event.target.value; setText(event.target.value); setDirty(true) }} disabled={saving} spellCheck={false} className="min-h-0 flex-1 resize-none bg-transparent p-5 font-mono text-[13px] leading-6 text-foreground outline-none" placeholder={t('skills.memoryWindow.editorPlaceholder')} /> : selectedPath ? <div className="min-h-0 flex-1 overflow-y-auto p-6">{text.trim() ? <MessageResponse className="text-[14px] prose-headings:scroll-mt-4">{text}</MessageResponse> : <div className="flex h-full min-h-[240px] items-center justify-center rounded-lg border border-dashed border-border/70 text-sm text-muted-foreground">{t('skills.memoryWindow.emptyFile')}</div>}</div> : <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">{t('skills.memory.pickFileHint')}</div>}
           </section>
         </main>
       </div>

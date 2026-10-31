@@ -1,3 +1,5 @@
+import { t } from '@/i18n'
+
 export const VAULT_SIDEBAR_COLLAPSED_WIDTH = 36
 
 export function getVaultSidebarDisplayWidth(expandedWidth: number, collapsed: boolean): number {
@@ -5,5 +7,5 @@ export function getVaultSidebarDisplayWidth(expandedWidth: number, collapsed: bo
 }
 
 export function getVaultSidebarToggleLabel(collapsed: boolean): string {
-  return collapsed ? '展开 Vault 文件目录' : '收起 Vault 文件目录'
+  return collapsed ? t('vault.sidebar.expand') : t('vault.sidebar.collapse')
 }

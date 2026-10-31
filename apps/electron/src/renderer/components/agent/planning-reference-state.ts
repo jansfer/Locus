@@ -1,4 +1,5 @@
 import type { CalendarEvent, Todo } from '@proma/shared'
+import { t } from '@/i18n'
 
 export type PlanningReferenceType = 'todo' | 'calendar_event'
 
@@ -75,8 +76,8 @@ export function buildPlanningReferenceItems(
       id: todo.id,
       label: todo.title,
       description: todo.dueAt === undefined
-        ? 'Todo · 未设置计划时间'
-        : `Todo · 截止 ${formatPlanningTimestamp(todo.dueAt)}`,
+        ? t('agentMisc.planning.todoNoTime')
+        : t('agentMisc.planning.todoDue', { time: formatPlanningTimestamp(todo.dueAt) }),
       referenceType: 'todo',
     }))
 
@@ -88,8 +89,8 @@ export function buildPlanningReferenceItems(
       id: event.id,
       label: event.title,
       description: event.allDay
-        ? `日程 · 全天 ${formatPlanningTimestamp(event.startAt, true)}`
-        : `日程 · ${formatPlanningTimestamp(event.startAt)}`,
+        ? t('agentMisc.planning.eventAllDay', { time: formatPlanningTimestamp(event.startAt, true) })
+        : t('agentMisc.planning.eventAt', { time: formatPlanningTimestamp(event.startAt) }),
       referenceType: 'calendar_event',
     }))
 

@@ -1,5 +1,6 @@
 import * as React from 'react'
 import { detectIsWindows } from '@/lib/platform'
+import { useT } from '@/i18n'
 import {
   getWindowTitlebarDragInsetStyle,
   WINDOW_TITLEBAR_CONTROL_WIDTH_PX,
@@ -8,6 +9,7 @@ import {
 } from '@/lib/window-titlebar-layout'
 
 export function WindowControls(): React.ReactElement | null {
+  const t = useT()
   const isWindows = React.useMemo(() => detectIsWindows(), [])
   const [isMaximized, setIsMaximized] = React.useState(false)
 
@@ -45,7 +47,7 @@ export function WindowControls(): React.ReactElement | null {
           type="button"
           className="window-control-btn"
           style={{ width: WINDOW_TITLEBAR_CONTROL_WIDTH_PX }}
-          aria-label="最小化"
+          aria-label={t('appShell.window.minimize')}
           onClick={() => window.electronAPI.windowMinimize()}
         >
           <svg width="12" height="12" viewBox="0 0 12 12">
@@ -57,7 +59,7 @@ export function WindowControls(): React.ReactElement | null {
           type="button"
           className="window-control-btn"
           style={{ width: WINDOW_TITLEBAR_CONTROL_WIDTH_PX }}
-          aria-label={isMaximized ? '还原' : '最大化'}
+          aria-label={isMaximized ? t('appShell.window.restore') : t('appShell.window.maximize')}
           onClick={() => window.electronAPI.windowMaximize()}
         >
           {isMaximized ? (
@@ -76,7 +78,7 @@ export function WindowControls(): React.ReactElement | null {
           type="button"
           className="window-control-btn window-control-close"
           style={{ width: WINDOW_TITLEBAR_CONTROL_WIDTH_PX }}
-          aria-label="关闭"
+          aria-label={t('common.close')}
           onClick={() => window.electronAPI.windowClose()}
         >
           <svg width="12" height="12" viewBox="0 0 12 12">

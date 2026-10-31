@@ -54,6 +54,7 @@ import { fileToBase64, formatFileNames } from '@/lib/file-utils'
 import { MAX_ATTACHMENT_SIZE } from '@proma/shared'
 import { sendWithCmdEnterAtom } from '@/atoms/shortcut-atoms'
 import { toast } from 'sonner'
+import { useT } from '@/i18n'
 
 interface ChatInputProps {
   /** 当前对话 ID */
@@ -73,6 +74,7 @@ interface ChatInputProps {
 }
 
 export function ChatInput({ conversationId, streaming, pendingAttachments, onSetPendingAttachments, onSend, onStop, onClearContext }: ChatInputProps): React.ReactElement {
+  const t = useT()
   const sendWithCmdEnter = useAtomValue(sendWithCmdEnterAtom)
   // 从 Map atom 读写草稿
   const draftsMap = useAtomValue(conversationDraftsAtom)
@@ -137,7 +139,7 @@ export function ChatInput({ conversationId, streaming, pendingAttachments, onSet
     }
 
     if (oversized.length > 0) {
-      toast.error(`以下文件超过 100MB，Chat 附件暂不支持，已跳过：${formatFileNames(oversized)}`)
+      toast.error(t('chat.attachment.oversizedFiles', { files: formatFileNames(oversized) }))
     }
 
     for (const file of okFiles) {
@@ -181,10 +183,10 @@ export function ChatInput({ conversationId, streaming, pendingAttachments, onSet
       if (result.files.length === 0 && largeFiles.length === 0 && skippedFiles.length === 0) return
 
       if (largeFiles.length > 0) {
-        toast.error(`以下文件超过 100MB，Chat 附件暂不支持，已跳过：${formatFileNames(largeFiles.map((f) => f.filename))}`)
+        toast.error(t('chat.attachment.oversizedFiles', { files: formatFileNames(largeFiles.map((f) => f.filename)) }))
       }
       if (skippedFiles.length > 0) {
-        toast.warning(`以下文件无法读取，已跳过：${formatFileNames(skippedFiles.map((f) => f.filename))}`)
+        toast.warning(t('chat.attachment.unreadableFiles', { files: formatFileNames(skippedFiles.map((f) => f.filename)) }))
       }
 
       const oversized: string[] = []
@@ -216,7 +218,7 @@ export function ChatInput({ conversationId, streaming, pendingAttachments, onSet
       }
 
       if (oversized.length > 0) {
-        toast.error(`以下文件超过 100MB，Chat 附件暂不支持，已跳过：${formatFileNames(oversized)}`)
+        toast.error(t('chat.attachment.oversizedFiles', { files: formatFileNames(oversized) }))
       }
     } catch (error) {
       console.error('[ChatInput] 文件选择对话框失败:', error)
@@ -283,7 +285,7 @@ export function ChatInput({ conversationId, streaming, pendingAttachments, onSet
     if (!canSendCurrentContent) return
     // 发送前检查网络状态：离线时立即反馈，避免消息发出后静默失败
     if (!navigator.onLine) {
-      toast.error('当前无网络连接，请检查网络后重试')
+      toast.error(t('chat.input.noNetwork'))
       return
     }
     const submittedContent = contentToSend
@@ -366,7 +368,7 @@ export function ChatInput({ conversationId, streaming, pendingAttachments, onSet
             </Button>
           </TooltipTrigger>
           <TooltipContent side="top">
-            <p>添加附件</p>
+            <p>{t('chat.input.addAttachment')}</p>
           </TooltipContent>
         </Tooltip>
       ),
@@ -375,7 +377,7 @@ export function ChatInput({ conversationId, streaming, pendingAttachments, onSet
     { key: 'tools', node: <ToolSelectorPopover /> },
     { key: 'context', node: <ContextSettingsPopover /> },
     { key: 'clear', node: <ClearContextButton onClick={onClearContext} /> },
-  ], [handleOpenFileDialog, selectedModel?.modelId, onClearContext, chatVoiceInputId])
+  ], [handleOpenFileDialog, selectedModel?.modelId, onClearContext, chatVoiceInputId, t])
 
   const trailingNode = streaming ? (
     <Tooltip>
@@ -391,7 +393,7 @@ export function ChatInput({ conversationId, streaming, pendingAttachments, onSet
         </Button>
       </TooltipTrigger>
       <TooltipContent side="top">
-        <p>停止 Agent ({getAcceleratorDisplay(getActiveAccelerator('stop-generation'))})</p>
+        <p>{t('chat.input.stopWithShortcut', { shortcut: getAcceleratorDisplay(getActiveAccelerator('stop-generation')) })}</p>
       </TooltipContent>
     </Tooltip>
   ) : (
@@ -473,7 +475,7 @@ export function ChatInput({ conversationId, streaming, pendingAttachments, onSet
             onSubmit={handleSend}
             onPasteFiles={handlePasteFiles}
             voiceInputId={chatVoiceInputId}
-            placeholder={sendWithCmdEnter ? '输入消息... (⌘/Ctrl+Enter 发送，Enter 换行)' : '输入消息... (Enter 发送，Shift+Enter 换行)'}
+            placeholder={sendWithCmdEnter ? t('chat.input.placeholderCmdEnter') : t('chat.input.placeholderEnter')}
             autoFocusTrigger={conversationId}
             draftScopeKey={conversationId}
             draftSyncVersion={draftSyncVersion}

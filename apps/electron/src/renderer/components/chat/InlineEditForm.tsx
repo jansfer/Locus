@@ -17,6 +17,7 @@ import type { ChatMessage, FileAttachment } from '@proma/shared'
 import { MAX_ATTACHMENT_SIZE } from '@proma/shared'
 import { fileToBase64, formatFileNames } from '@/lib/file-utils'
 import { toast } from 'sonner'
+import { useT } from '@/i18n'
 
 interface NewInlineAttachment {
   filename: string
@@ -56,6 +57,7 @@ interface InlineEditFormProps {
 }
 
 export function InlineEditForm({ message, onSubmit, onCancel }: InlineEditFormProps): React.ReactElement {
+  const t = useT()
   const [editingContent, setEditingContent] = React.useState(message.content ?? '')
   const [editableAttachments, setEditableAttachments] = React.useState<EditableAttachment[]>([])
   const [isDragOver, setIsDragOver] = React.useState(false)
@@ -126,10 +128,10 @@ export function InlineEditForm({ message, onSubmit, onCancel }: InlineEditFormPr
       const largeFiles = result.largeFiles ?? []
       const skippedFiles = result.skippedFiles ?? []
       if (largeFiles.length > 0) {
-        toast.error(`以下文件超过 100MB，Chat 附件暂不支持，已跳过：${formatFileNames(largeFiles.map((file) => file.filename))}`)
+        toast.error(t('chat.attachment.oversizedFiles', { files: formatFileNames(largeFiles.map((file) => file.filename)) }))
       }
       if (skippedFiles.length > 0) {
-        toast.warning(`以下文件无法读取，已跳过：${formatFileNames(skippedFiles.map((file) => file.filename))}`)
+        toast.warning(t('chat.attachment.unreadableFiles', { files: formatFileNames(skippedFiles.map((file) => file.filename)) }))
       }
       const oversized: string[] = []
       const okFiles = result.files.filter((file) => {
@@ -140,7 +142,7 @@ export function InlineEditForm({ message, onSubmit, onCancel }: InlineEditFormPr
         return true
       })
       if (oversized.length > 0) {
-        toast.error(`以下文件超过 100MB，Chat 附件暂不支持，已跳过：${formatFileNames(oversized)}`)
+        toast.error(t('chat.attachment.oversizedFiles', { files: formatFileNames(oversized) }))
       }
       addPendingAttachments(okFiles.map((file) => ({
         filename: file.filename,
@@ -151,7 +153,7 @@ export function InlineEditForm({ message, onSubmit, onCancel }: InlineEditFormPr
     } catch (error) {
       console.error('[InlineEditForm] 选择附件失败:', error)
     }
-  }, [addPendingAttachments])
+  }, [addPendingAttachments, t])
 
   const handleDropFiles = React.useCallback(async (files: File[]): Promise<void> => {
     const oversized: string[] = []
@@ -163,7 +165,7 @@ export function InlineEditForm({ message, onSubmit, onCancel }: InlineEditFormPr
       return true
     })
     if (oversized.length > 0) {
-      toast.error(`以下文件超过 100MB，Chat 附件暂不支持，已跳过：${formatFileNames(oversized)}`)
+      toast.error(t('chat.attachment.oversizedFiles', { files: formatFileNames(oversized) }))
     }
 
     const converted: NewInlineAttachment[] = []
@@ -171,7 +173,7 @@ export function InlineEditForm({ message, onSubmit, onCancel }: InlineEditFormPr
       try {
         const base64 = await fileToBase64(file)
         converted.push({
-          filename: file.name || `粘贴附件-${Date.now()}`,
+          filename: file.name || t('chat.attachment.pastedFallbackName', { n: Date.now() }),
           mediaType: file.type || 'application/octet-stream',
           size: file.size,
           data: base64,
@@ -181,7 +183,7 @@ export function InlineEditForm({ message, onSubmit, onCancel }: InlineEditFormPr
       }
     }
     addPendingAttachments(converted)
-  }, [addPendingAttachments])
+  }, [addPendingAttachments, t])
 
   const removeEditableAttachment = React.useCallback((id: string): void => {
     setEditableAttachments((prev) => prev.filter((item) => item.id !== id))
@@ -283,24 +285,24 @@ export function InlineEditForm({ message, onSubmit, onCancel }: InlineEditFormPr
           }
         }}
         className="w-full min-h-[92px] resize-y rounded-xl border border-border bg-background/80 px-3 py-2 text-sm outline-none focus:border-foreground/30"
-        placeholder="编辑消息..."
+        placeholder={t('chat.inlineEdit.placeholder')}
         autoFocus
       />
       <div className="flex items-center justify-end gap-1.5">
         <MessageAction
-          tooltip="添加附件"
+          tooltip={t('chat.input.addAttachment')}
           onClick={() => { void handleSelectAttachments() }}
         >
           <Paperclip className="size-3.5" />
         </MessageAction>
         <MessageAction
-          tooltip="取消 (Esc)"
+          tooltip={t('chat.inlineEdit.cancelShortcut')}
           onClick={onCancel}
         >
           <X className="size-3.5" />
         </MessageAction>
         <MessageAction
-          tooltip="发送 (Enter)"
+          tooltip={t('chat.inlineEdit.sendShortcut')}
           onClick={handleSubmit}
         >
           <SendHorizontal className="size-3.5" />

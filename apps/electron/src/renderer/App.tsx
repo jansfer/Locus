@@ -1,5 +1,6 @@
 import * as React from 'react'
 import { useAtom, useStore } from 'jotai'
+import { useT } from '@/i18n'
 import { AppShell } from './components/app-shell/AppShell'
 import { OnboardingView } from './components/onboarding/OnboardingView'
 import { EnvironmentCheckDialog } from './components/environment/EnvironmentCheckDialog'
@@ -105,6 +106,7 @@ export default function App(): React.ReactElement {
  * 应用启动时复用 Onboarding 首屏的画作，让冷启动阶段也保持一致的品牌体验。
  */
 function StartupLoadingScreen(): React.ReactElement {
+  const t = useT()
   return (
     <main
       className="relative flex h-screen items-center justify-center overflow-hidden bg-[#1b3f2d] text-white"
@@ -129,13 +131,13 @@ function StartupLoadingScreen(): React.ReactElement {
         </div>
 
         <p className="mt-6 max-w-xs text-balance text-lg font-light leading-relaxed tracking-[0.04em] text-white/95">
-          让协作自然发生，让想法流动成形
+          {t('appBoot.splash.tagline')}
         </p>
 
         <div className="mt-7 h-px w-24 overflow-hidden bg-white/35">
           <div className="h-full w-2/5 animate-pulse bg-white/90" />
         </div>
-        <p className="mt-4 text-sm font-medium tracking-[0.08em] text-white/95">正在启动 Locus</p>
+        <p className="mt-4 text-sm font-medium tracking-[0.08em] text-white/95">{t('appBoot.splash.starting')}</p>
       </div>
 
       <p className="absolute bottom-8 px-6 text-center text-[11px] uppercase tracking-[0.3em] text-white/65">

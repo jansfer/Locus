@@ -28,6 +28,7 @@ import { userProfileAtom } from '@/atoms/user-profile'
 import { tabMinimapCacheAtom } from '@/atoms/tab-atoms'
 import { channelsAtom } from '@/atoms/chat-atoms'
 import { ScrollPositionManager } from '@/hooks/useScrollPositionMemory'
+import { t, useT } from '@/i18n'
 import { cn } from '@/lib/utils'
 import {
   createLocalSearchRecords,
@@ -144,30 +145,30 @@ export function getContextCompactionProgress(
   if (streamCompaction?.status === 'running') {
     return {
       status: 'running',
-      label: '正在整理上下文',
-      detail: '正在生成会话摘要，完成后可继续当前任务。',
+      label: t('agentMessages.compact.runningLabel'),
+      detail: t('agentMessages.compact.runningDetail'),
     }
   }
   if (streamCompaction?.status === 'success' && !hasResumedWork) {
     return {
       status: 'success',
-      label: '上下文已压缩',
-      detail: '会话已整理，可以继续当前任务。',
+      label: t('agentMessages.compact.successLabel'),
+      detail: t('agentMessages.compact.successDetail'),
       summary: streamCompaction.summary,
     }
   }
   if (streamCompaction?.status === 'noop' && !hasResumedWork) {
     return {
       status: 'noop',
-      label: '当前上下文无需压缩',
-      detail: streamCompaction.message ?? '当前上下文仍可用，可以继续当前任务。',
+      label: t('agentMessages.compact.noopLabel'),
+      detail: streamCompaction.message ?? t('agentMessages.compact.noopDetail'),
     }
   }
   if (streamCompaction?.status === 'failed') {
     return {
       status: 'failed',
-      label: '上下文压缩失败',
-      detail: streamCompaction.message ?? '请检查模型连接后重试。',
+      label: t('agentMessages.compact.failedLabel'),
+      detail: streamCompaction.message ?? t('agentMessages.compact.failedDetail'),
     }
   }
   if (hasResumedWork) return undefined
@@ -175,30 +176,30 @@ export function getContextCompactionProgress(
   if (status === 'success' && latestStatus) {
     return {
       status: 'success',
-      label: '上下文已压缩',
-      detail: '会话已整理，可以继续当前任务。',
+      label: t('agentMessages.compact.successLabel'),
+      detail: t('agentMessages.compact.successDetail'),
       summary: latestStatus.summary,
     }
   }
   if (status === 'noop' && latestStatus) {
     return {
       status: 'noop',
-      label: '当前上下文无需压缩',
-      detail: latestStatus.message ?? '当前上下文仍可用，可以继续当前任务。',
+      label: t('agentMessages.compact.noopLabel'),
+      detail: latestStatus.message ?? t('agentMessages.compact.noopDetail'),
     }
   }
   if (status === 'failed' && latestStatus) {
     return {
       status: 'failed',
-      label: '上下文压缩失败',
-      detail: latestStatus.compact_error ?? latestStatus.message ?? '请检查模型连接后重试。',
+      label: t('agentMessages.compact.failedLabel'),
+      detail: latestStatus.compact_error ?? latestStatus.message ?? t('agentMessages.compact.failedDetail'),
     }
   }
   if (status === 'compacting' || isCompacting) {
     return {
       status: 'running',
-      label: '正在整理上下文',
-      detail: '正在生成会话摘要，完成后可继续当前任务。',
+      label: t('agentMessages.compact.runningLabel'),
+      detail: t('agentMessages.compact.runningDetail'),
     }
   }
   return undefined
@@ -327,6 +328,7 @@ function EmptyState(): React.ReactElement {
 
 /** 重试提示组件 - 折叠式 */
 function RetryingNotice({ retrying }: { retrying: NonNullable<AgentStreamState['retrying']> }): React.ReactElement {
+  const t = useT()
   const [expanded, setExpanded] = React.useState(false)
   const [countdown, setCountdown] = React.useState(0)
 
@@ -348,20 +350,21 @@ function RetryingNotice({ retrying }: { retrying: NonNullable<AgentStreamState['
   }, [retrying.delaySeconds, retrying.phase, retrying.scheduledAt])
 
   const statusText = (() => {
-    const suffix = `第 ${retrying.currentAttempt}/${retrying.maxAttempts} 次继续当前回答`
     switch (retrying.phase) {
       case 'scheduled':
-        return countdown > 0 ? `网络暂时中断，${countdown} 秒后开始${suffix}` : `网络暂时中断，即将开始${suffix}`
+        return countdown > 0
+          ? t('agentMessages.retry.interruptedCountdown', { countdown, attempt: retrying.currentAttempt, max: retrying.maxAttempts })
+          : t('agentMessages.retry.interruptedSoon', { attempt: retrying.currentAttempt, max: retrying.maxAttempts })
       case 'running':
-        return `正在${suffix}…`
+        return t('agentMessages.retry.running', { attempt: retrying.currentAttempt, max: retrying.maxAttempts })
       case 'succeeded':
-        return `已在${suffix}时恢复`
+        return t('agentMessages.retry.resumed', { attempt: retrying.currentAttempt, max: retrying.maxAttempts })
       case 'exhausted':
         return retrying.totalAttempt != null && retrying.maxTotalAttempts != null
-          ? `本轮自动恢复已耗尽（${retrying.totalAttempt}/${retrying.maxTotalAttempts}）`
-          : `自动恢复已耗尽（${retrying.currentAttempt}/${retrying.maxAttempts}）`
+          ? t('agentMessages.retry.exhaustedTotal', { total: retrying.totalAttempt, max: retrying.maxTotalAttempts })
+          : t('agentMessages.retry.exhaustedCurrent', { attempt: retrying.currentAttempt, max: retrying.maxAttempts })
       case 'cancelled':
-        return '自动恢复已取消'
+        return t('agentMessages.retry.cancelled')
     }
   })()
 
@@ -398,13 +401,13 @@ function RetryingNotice({ retrying }: { retrying: NonNullable<AgentStreamState['
         <div className="mt-3 space-y-3 border-t border-amber-200 dark:border-amber-800 pt-3">
           {retrying.maxTotalAttempts != null && (
             <div className="text-xs text-amber-700 dark:text-amber-300 tabular-nums">
-              本轮已安排 {retrying.totalAttempt ?? 0}/{retrying.maxTotalAttempts} 次自动恢复
+              {t('agentMessages.retry.scheduledTotal', { total: retrying.totalAttempt ?? 0, max: retrying.maxTotalAttempts })}
             </div>
           )}
           {retrying.history.length > 0 && (
             <>
               <div className="text-xs font-medium text-amber-900 dark:text-amber-100">
-                已执行的恢复记录：
+                {t('agentMessages.retry.historyTitle')}
               </div>
               {retrying.history.map((attempt, index) => (
                 <RetryAttemptItem
@@ -418,13 +421,13 @@ function RetryingNotice({ retrying }: { retrying: NonNullable<AgentStreamState['
           {retrying.phase === 'scheduled' && (
             <div className="flex items-center gap-2 text-xs text-amber-700 dark:text-amber-300 pl-6 tabular-nums">
               <RotateCw className="size-3 animate-spin" />
-              <span>{countdown > 0 ? `等待 ${countdown} 秒后开始第 ${retrying.currentAttempt} 次继续当前回答` : `即将开始第 ${retrying.currentAttempt} 次继续当前回答`}</span>
+              <span>{countdown > 0 ? t('agentMessages.retry.waitingAttempt', { countdown, attempt: retrying.currentAttempt }) : t('agentMessages.retry.soonAttempt', { attempt: retrying.currentAttempt })}</span>
             </div>
           )}
           {retrying.phase === 'running' && (
             <div className="flex items-center gap-2 text-xs text-amber-700 dark:text-amber-300 pl-6 tabular-nums">
               <RotateCw className="size-3 animate-spin" />
-              <span>正在执行第 {retrying.currentAttempt} 次继续当前回答…</span>
+              <span>{t('agentMessages.retry.runningAttempt', { attempt: retrying.currentAttempt })}</span>
             </div>
           )}
         </div>
@@ -441,6 +444,7 @@ function RetryAttemptItem({
   attempt: RetryAttempt
   isLatest: boolean
 }): React.ReactElement {
+  const t = useT()
   const [showStderr, setShowStderr] = React.useState(false)
   const [showStack, setShowStack] = React.useState(false)
 
@@ -457,7 +461,7 @@ function RetryAttemptItem({
         <span className="text-destructive shrink-0">❌</span>
         <div className="flex-1 min-w-0 space-y-1">
           <div className="text-xs text-amber-900 dark:text-amber-100 tabular-nums">
-            第 {attempt.attempt} 次恢复前的错误（{time}）- {attempt.reason}
+            {t('agentMessages.retry.attemptError', { attempt: attempt.attempt, time, reason: attempt.reason })}
           </div>
           <div className="text-xs text-amber-700 dark:text-amber-300 font-mono break-words">
             {attempt.errorMessage}
@@ -466,10 +470,10 @@ function RetryAttemptItem({
           {/* 环境信息 */}
           {attempt.environment && (
             <div className="text-[11px] text-amber-600 dark:text-amber-400 space-y-0.5">
-              <div>运行时: {attempt.environment.runtime}</div>
-              <div>平台: {attempt.environment.platform}</div>
-              <div>模型: {attempt.environment.model}</div>
-              {attempt.environment.workspace && <div>项目: {attempt.environment.workspace}</div>}
+              <div>{t('agentMessages.retry.runtimeLabel', { value: attempt.environment.runtime })}</div>
+              <div>{t('agentMessages.retry.platformLabel', { value: attempt.environment.platform })}</div>
+              <div>{t('agentMessages.retry.modelLabel', { value: attempt.environment.model })}</div>
+              {attempt.environment.workspace && <div>{t('agentMessages.retry.projectLabel', { value: attempt.environment.workspace })}</div>}
             </div>
           )}
 
@@ -486,7 +490,7 @@ function RetryAttemptItem({
                 ) : (
                   <ChevronRight className="size-3" />
                 )}
-                显示 stderr 输出
+                {t('agentMessages.retry.showStderr')}
               </button>
               {showStderr && (
                 <pre className="mt-1 text-[10px] text-amber-800 dark:text-amber-200 bg-amber-100 dark:bg-amber-900/30 p-2 rounded overflow-x-auto max-h-[200px] overflow-y-auto">
@@ -509,7 +513,7 @@ function RetryAttemptItem({
                 ) : (
                   <ChevronRight className="size-3" />
                 )}
-                显示堆栈跟踪
+                {t('agentMessages.retry.showStackTrace')}
               </button>
               {showStack && (
                 <pre className="mt-1 text-[10px] text-amber-800 dark:text-amber-200 bg-amber-100 dark:bg-amber-900/30 p-2 rounded overflow-x-auto max-h-[200px] overflow-y-auto">
@@ -537,14 +541,14 @@ export function formatDuration(ms: number): string {
 /** 构建 usage tooltip 多行文本 */
 export function buildUsageTooltip(durationMs: number, usage?: AgentEventUsage): string {
   const lines: string[] = []
-  lines.push(`耗时: ${formatDuration(durationMs)}`)
+  lines.push(t('agentMessages.usage.duration', { duration: formatDuration(durationMs) }))
 
   if (usage) {
     const pureInput = (usage.inputTokens ?? 0) - (usage.cacheReadTokens ?? 0) - (usage.cacheCreationTokens ?? 0)
-    if (pureInput > 0) lines.push(`输入: ${pureInput.toLocaleString()}`)
-    if (usage.outputTokens) lines.push(`输出: ${usage.outputTokens.toLocaleString()}`)
-    if (usage.cacheCreationTokens) lines.push(`缓存写入: ${usage.cacheCreationTokens.toLocaleString()}`)
-    if (usage.cacheReadTokens) lines.push(`缓存读取: ${usage.cacheReadTokens.toLocaleString()}`)
+    if (pureInput > 0) lines.push(t('agentMessages.usage.input', { value: pureInput.toLocaleString() }))
+    if (usage.outputTokens) lines.push(t('agentMessages.usage.output', { value: usage.outputTokens.toLocaleString() }))
+    if (usage.cacheCreationTokens) lines.push(t('agentMessages.usage.cacheWrite', { value: usage.cacheCreationTokens.toLocaleString() }))
+    if (usage.cacheReadTokens) lines.push(t('agentMessages.usage.cacheRead', { value: usage.cacheReadTokens.toLocaleString() }))
   }
 
   return lines.join('\n')

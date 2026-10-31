@@ -1,6 +1,7 @@
 import * as React from 'react'
 import { ChevronLeft } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useT } from '@/i18n'
 import { useTocHeadings } from '@/hooks/useTocHeadings'
 import { useScrollSpy } from '@/hooks/useScrollSpy'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
@@ -59,6 +60,7 @@ export function MarkdownTocScrollTail({ containerRef, enabled }: { containerRef:
 }
 
 export function MarkdownToc({ containerRef, content, editorRef, editorReady, enabled, onBeforeNavigate, onOpenChange }: MarkdownTocProps): React.ReactElement | null {
+  const t = useT()
   const headings = useTocHeadings(containerRef, content, enabled, !editorRef)
   const activeId = useScrollSpy(containerRef, headings, editorRef)
   const listRef = React.useRef<HTMLDivElement>(null)
@@ -92,23 +94,23 @@ export function MarkdownToc({ containerRef, content, editorRef, editorReady, ena
   }
 
   return (
-    <nav aria-label="文档目录" className="m-2 flex h-[calc(100%-1rem)] min-h-0 w-52 shrink-0 self-start flex-col rounded-lg bg-muted/40">
+    <nav aria-label={t('diff.toc.aria')} className="m-2 flex h-[calc(100%-1rem)] min-h-0 w-52 shrink-0 self-start flex-col rounded-lg bg-muted/40">
       <div className="flex items-center gap-2 px-3 pt-2 pb-1">
-        <div className="min-w-0 flex-1 text-[11px] font-medium text-foreground/40 select-none">目录</div>
+        <div className="min-w-0 flex-1 text-[11px] font-medium text-foreground/40 select-none">{t('diff.toc.title')}</div>
         {onOpenChange && (
           <Tooltip>
             <TooltipTrigger asChild>
-              <button type="button" onClick={() => onOpenChange(false)} className="flex size-7 shrink-0 items-center justify-center rounded-md text-foreground/45 hover:bg-foreground/[0.06] hover:text-foreground/70" aria-label="收起目录">
+              <button type="button" onClick={() => onOpenChange(false)} className="flex size-7 shrink-0 items-center justify-center rounded-md text-foreground/45 hover:bg-foreground/[0.06] hover:text-foreground/70" aria-label={t('diff.toc.collapse')}>
                 <ChevronLeft className="size-3.5" />
               </button>
             </TooltipTrigger>
-            <TooltipContent side="bottom">收起目录</TooltipContent>
+            <TooltipContent side="bottom">{t('diff.toc.collapse')}</TooltipContent>
           </Tooltip>
         )}
       </div>
       <div ref={listRef} className="min-h-0 flex-1 overflow-auto scrollbar-thin px-1 pb-2">
         {headings.map((heading) => (
-          <button key={heading.id} type="button" data-toc-id={heading.id} onClick={() => jumpTo(heading)} disabled={!navigationReady} title={navigationReady ? heading.text : '正在准备目录跳转'} style={{ paddingLeft: `${(heading.level - minLevel) * 12 + 8}px` }} className={cn('block w-full text-left truncate rounded py-1 pr-2 text-[12px] leading-snug transition-colors disabled:cursor-wait disabled:opacity-50', 'border-l-2 border-transparent', heading.id === activeId ? 'border-primary text-foreground font-medium bg-foreground/[0.04]' : 'text-foreground/55 hover:text-foreground/80 hover:bg-foreground/[0.03]')}>
+          <button key={heading.id} type="button" data-toc-id={heading.id} onClick={() => jumpTo(heading)} disabled={!navigationReady} title={navigationReady ? heading.text : t('diff.toc.preparing')} style={{ paddingLeft: `${(heading.level - minLevel) * 12 + 8}px` }} className={cn('block w-full text-left truncate rounded py-1 pr-2 text-[12px] leading-snug transition-colors disabled:cursor-wait disabled:opacity-50', 'border-l-2 border-transparent', heading.id === activeId ? 'border-primary text-foreground font-medium bg-foreground/[0.04]' : 'text-foreground/55 hover:text-foreground/80 hover:bg-foreground/[0.03]')}>
             {heading.text}
           </button>
         ))}

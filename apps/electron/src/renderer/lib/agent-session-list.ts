@@ -1,5 +1,6 @@
 import type { AgentSessionMeta, AgentWorkspace } from '@proma/shared'
 import type { SessionIndicatorStatus } from '@/atoms/agent-atoms'
+import { t } from '@/i18n'
 
 interface AgentSessionTreeLike {
   session: Pick<AgentSessionMeta, 'id'>
@@ -92,7 +93,7 @@ export function groupArchivedAgentSessionsByProject({
   if (automationSessions.length > 0) {
     groups.push({
       id: ARCHIVED_AUTOMATION_GROUP_ID,
-      label: '定时任务',
+      label: t('misc.archiveGroups.automations'),
       kind: 'automation',
       sessions: sortAgentSessionsByUpdatedAtDesc(automationSessions),
     })
@@ -100,7 +101,7 @@ export function groupArchivedAgentSessionsByProject({
   if (unassignedSessions.length > 0) {
     groups.push({
       id: ARCHIVED_UNASSIGNED_GROUP_ID,
-      label: '未归属项目',
+      label: t('misc.archiveGroups.unassigned'),
       kind: 'unassigned',
       sessions: sortAgentSessionsByUpdatedAtDesc(unassignedSessions),
     })

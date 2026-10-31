@@ -10,6 +10,7 @@ import { toast } from 'sonner'
 import { Paperclip, FolderPlus, Loader2 } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
+import { useT } from '@/i18n'
 import { fileToBase64, formatFileNames } from '@/lib/file-utils'
 import { MAX_ATTACHMENT_SIZE } from '@proma/shared'
 
@@ -24,6 +25,7 @@ interface FileDropZoneProps {
 }
 
 export function FileDropZone({ workspaceSlug, sessionId, target = 'session', onFilesUploaded, onFilesAttached, onAttachFolder, onFoldersDropped }: FileDropZoneProps): React.ReactElement {
+  const t = useT()
   const [isDragOver, setIsDragOver] = React.useState<'left' | 'right' | null>(null)
   const [isUploading, setIsUploading] = React.useState(false)
 
@@ -57,8 +59,8 @@ export function FileDropZone({ workspaceSlug, sessionId, target = 'session', onF
     }
 
     if (oversized.length > 0) {
-      toast.error(`以下文件超过 100MB 且无法取得本地路径，已跳过：${formatFileNames(oversized)}`, {
-        description: '请选择本地文件，或改用附加文件夹。',
+      toast.error(t('files.dropZone.oversizedSkipped', { names: formatFileNames(oversized) }), {
+        description: t('files.dropZone.oversizedSkippedDescription'),
       })
     }
 
@@ -68,7 +70,7 @@ export function FileDropZone({ workspaceSlug, sessionId, target = 'session', onF
     try {
       if (largeFilePaths.length > 0 && onFilesAttached) {
         await onFilesAttached(largeFilePaths)
-        toast.success(`已作为附加文件显示在右侧文件区：${formatFileNames(attachedLargeFiles)}`)
+        toast.success(t('files.dropZone.attachedShownInFileArea', { names: formatFileNames(attachedLargeFiles) }))
       }
 
       const fileEntries: Array<{ filename: string; data: string }> = []
@@ -92,15 +94,15 @@ export function FileDropZone({ workspaceSlug, sessionId, target = 'session', onF
         }
 
         onFilesUploaded()
-        toast.success(`已添加 ${okFiles.length} 个文件`)
+        toast.success(t('files.dropZone.filesAdded', { count: okFiles.length }))
       }
     } catch (error) {
       console.error('[FileDropZone] 文件上传失败:', error)
-      toast.error('文件上传失败')
+      toast.error(t('files.dropZone.uploadFailed'))
     } finally {
       setIsUploading(false)
     }
-  }, [workspaceSlug, sessionId, isWorkspace, onFilesUploaded, onFilesAttached])
+  }, [workspaceSlug, sessionId, isWorkspace, onFilesUploaded, onFilesAttached, t])
 
   const handleDrop = React.useCallback(async (e: React.DragEvent, side: 'left' | 'right'): Promise<void> => {
     e.preventDefault()
@@ -111,7 +113,7 @@ export function FileDropZone({ workspaceSlug, sessionId, target = 'session', onF
     const droppedFiles = Array.from(e.dataTransfer.files)
     if (droppedFiles.length === 0) {
       if (side === 'right') {
-        toast.info('无法识别拖入的内容，请使用按钮选择文件夹')
+        toast.info(t('files.dropZone.unrecognizedDrop'))
       }
       return
     }
@@ -135,7 +137,7 @@ export function FileDropZone({ workspaceSlug, sessionId, target = 'session', onF
         // 左侧：只上传文件，忽略目录
         if (side === 'left') {
           if (directories.length > 0) {
-            toast.info('文件夹请拖到右侧「附加文件夹」区')
+            toast.info(t('files.dropZone.folderToRightZone'))
           }
           const regularFiles = filePaths.flatMap((p) => {
             const f = pathMap.get(p)
@@ -149,9 +151,9 @@ export function FileDropZone({ workspaceSlug, sessionId, target = 'session', onF
           if (filePaths.length > 0) {
             if (onFilesAttached) {
               await onFilesAttached(filePaths)
-              toast.success(`已附加 ${filePaths.length} 个文件`)
+              toast.success(t('files.dropZone.filesAttached', { count: filePaths.length }))
             } else {
-              toast.info('文件请拖到左侧「添加文件」区')
+              toast.info(t('files.dropZone.filesToLeftZone'))
             }
           }
           if (directories.length > 0) {
@@ -163,17 +165,17 @@ export function FileDropZone({ workspaceSlug, sessionId, target = 'session', onF
         if (side === 'left') {
           await saveFiles(droppedFiles)
         } else {
-          toast.warning('无法识别文件夹，请使用按钮选择')
+          toast.warning(t('files.dropZone.unrecognizedFolder'))
         }
       }
     } else {
       if (side === 'left') {
         await saveFiles(droppedFiles)
       } else {
-        toast.warning('无法识别文件夹，请使用按钮选择')
+        toast.warning(t('files.dropZone.unrecognizedFolder'))
       }
     }
-  }, [saveFiles, onFoldersDropped, onFilesAttached, isUploading])
+  }, [saveFiles, onFoldersDropped, onFilesAttached, isUploading, t])
 
   const handleDragOver = React.useCallback((e: React.DragEvent, side: 'left' | 'right'): void => {
     e.preventDefault()
@@ -202,15 +204,15 @@ export function FileDropZone({ workspaceSlug, sessionId, target = 'session', onF
       if (largeFiles.length > 0) {
         if (onFilesAttached) {
           await onFilesAttached(largeFiles.map((f) => f.path))
-          toast.success(`已作为附加文件显示在右侧文件区：${formatFileNames(largeFiles.map((f) => f.filename))}`)
+          toast.success(t('files.dropZone.attachedShownInFileArea', { names: formatFileNames(largeFiles.map((f) => f.filename)) }))
         } else {
-          toast.error(`以下文件超过 100MB，未复制到目标文件夹：${formatFileNames(largeFiles.map((f) => f.filename))}`, {
-            description: '可在输入框中直接发送为附加文件，或使用附加文件夹。',
+          toast.error(t('files.dropZone.oversizedNotCopied', { names: formatFileNames(largeFiles.map((f) => f.filename)) }), {
+            description: t('files.dropZone.oversizedNotCopiedDescription'),
           })
         }
       }
       if (skippedFiles.length > 0) {
-        toast.warning(`以下文件无法读取，已跳过：${formatFileNames(skippedFiles.map((f) => f.filename))}`)
+        toast.warning(t('files.dropZone.unreadableSkipped', { names: formatFileNames(skippedFiles.map((f) => f.filename)) }))
       }
 
       const oversized: string[] = []
@@ -223,8 +225,8 @@ export function FileDropZone({ workspaceSlug, sessionId, target = 'session', onF
       })
 
       if (oversized.length > 0) {
-        toast.error(`以下文件超过 100MB，未复制到目标文件夹：${formatFileNames(oversized)}`, {
-          description: '可在输入框中直接发送为附加文件，或使用附加文件夹。',
+        toast.error(t('files.dropZone.oversizedNotCopied', { names: formatFileNames(oversized) }), {
+          description: t('files.dropZone.oversizedNotCopiedDescription'),
         })
       }
 
@@ -250,14 +252,14 @@ export function FileDropZone({ workspaceSlug, sessionId, target = 'session', onF
       }
 
       onFilesUploaded()
-      toast.success(`已添加 ${okFiles.length} 个文件`)
+      toast.success(t('files.dropZone.filesAdded', { count: okFiles.length }))
     } catch (error) {
       console.error('[FileDropZone] 选择文件失败:', error)
-      toast.error('文件上传失败')
+      toast.error(t('files.dropZone.uploadFailed'))
     } finally {
       setIsUploading(false)
     }
-  }, [workspaceSlug, sessionId, isWorkspace, onFilesUploaded, onFilesAttached])
+  }, [workspaceSlug, sessionId, isWorkspace, onFilesUploaded, onFilesAttached, t])
 
   const zoneClass = (side: 'left' | 'right'): string =>
     cn(
@@ -281,7 +283,7 @@ export function FileDropZone({ workspaceSlug, sessionId, target = 'session', onF
       {isUploading ? (
         <div className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[11px] text-muted-foreground">
           <Loader2 className="size-3.5 animate-spin" />
-          正在上传...
+          {t('files.dropZone.uploading')}
         </div>
       ) : (
         <>
@@ -291,7 +293,7 @@ export function FileDropZone({ workspaceSlug, sessionId, target = 'session', onF
               <div
                 role="button"
                 tabIndex={0}
-                aria-label={isWorkspace ? '添加文件到项目文件目录' : '添加文件到会话文件夹'}
+                aria-label={isWorkspace ? t('files.dropZone.addFilesToProject') : t('files.dropZone.addFilesToSession')}
                 className={zoneClass('left')}
                 onDragOver={(e) => handleDragOver(e, 'left')}
                 onDragLeave={handleDragLeave}
@@ -299,12 +301,12 @@ export function FileDropZone({ workspaceSlug, sessionId, target = 'session', onF
                 onClick={handleSelectFiles}
                 onKeyDown={activateOnKey(handleSelectFiles)}
               >
-                <span className="text-[11px] text-muted-foreground/75">添加文件</span>
+                <span className="text-[11px] text-muted-foreground/75">{t('files.dropZone.addFiles')}</span>
                 <Paperclip className="size-4 text-muted-foreground/60" />
               </div>
             </TooltipTrigger>
             <TooltipContent side="bottom">
-              <p>{isWorkspace ? '添加文件到项目文件目录' : '将文件放入 Agent 工作文件夹'}</p>
+              <p>{isWorkspace ? t('files.dropZone.addFilesToProject') : t('files.dropZone.putFilesInAgentFolder')}</p>
             </TooltipContent>
           </Tooltip>
           <Tooltip open={isDragOver === 'right' ? false : undefined}>
@@ -312,7 +314,7 @@ export function FileDropZone({ workspaceSlug, sessionId, target = 'session', onF
               <div
                 role="button"
                 tabIndex={0}
-                aria-label={isWorkspace ? '附加项目文件夹' : '附加文件夹'}
+                aria-label={isWorkspace ? t('files.dropZone.attachProjectFolder') : t('files.dropZone.attachFolder')}
                 className={zoneClass('right')}
                 onDragOver={(e) => handleDragOver(e, 'right')}
                 onDragLeave={handleDragLeave}
@@ -320,12 +322,12 @@ export function FileDropZone({ workspaceSlug, sessionId, target = 'session', onF
                 onClick={onAttachFolder}
                 onKeyDown={activateOnKey(onAttachFolder)}
               >
-                <span className="text-[11px] text-muted-foreground/75">附加文件夹</span>
+                <span className="text-[11px] text-muted-foreground/75">{t('files.dropZone.attachFolder')}</span>
                 <FolderPlus className="size-4 text-muted-foreground/60" />
               </div>
             </TooltipTrigger>
             <TooltipContent side="bottom">
-              <p>{isWorkspace ? '将外部文件夹作为项目引用；也可拖入外部文件作为引用' : '告知 Agent 你想处理的文件夹'}</p>
+              <p>{isWorkspace ? t('files.dropZone.attachExternalFolderHint') : t('files.dropZone.tellAgentFolder')}</p>
             </TooltipContent>
           </Tooltip>
         </>

@@ -9,6 +9,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { useT } from '@/i18n'
 
 interface ConfirmDialogProps {
   open: boolean
@@ -29,14 +30,18 @@ export function ConfirmDialog({
   onOpenChange,
   title,
   description,
-  confirmLabel = '确认',
-  cancelLabel = '取消',
+  confirmLabel,
+  cancelLabel,
   loadingLabel,
   onConfirm,
   loading = false,
   variant = 'destructive',
   children,
 }: ConfirmDialogProps): React.ReactElement {
+  const t = useT()
+  // 未显式传入时回退到 common 域通用按钮文案
+  const finalConfirmLabel = confirmLabel ?? t('common.confirm')
+  const finalCancelLabel = cancelLabel ?? t('common.cancel')
   return (
     <AlertDialog open={open} onOpenChange={(v) => { if (!v && !loading) onOpenChange(v) }}>
       <AlertDialogContent>
@@ -49,13 +54,13 @@ export function ConfirmDialog({
           )}
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={loading}>{cancelLabel}</AlertDialogCancel>
+          <AlertDialogCancel disabled={loading}>{finalCancelLabel}</AlertDialogCancel>
           <AlertDialogAction
             onClick={onConfirm}
             disabled={loading}
             className={variant === 'destructive' ? 'bg-destructive text-white hover:bg-destructive/90' : undefined}
           >
-            {loading ? (loadingLabel ?? confirmLabel) : confirmLabel}
+            {loading ? (loadingLabel ?? finalConfirmLabel) : finalConfirmLabel}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

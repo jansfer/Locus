@@ -1,5 +1,6 @@
 import MarkdownIt from 'markdown-it'
 import { normalizeMalformedStrongDelimiters } from './markdown-emphasis'
+import { t } from '@/i18n'
 
 const VIDEO_EXT_RE = /\.(mp4|webm|ogg|ogv|mov|m4v)(?:[?#].*)?$/i
 const PREVIEW_BLOCK_RE = /^<div\s+[^>]*data-type=(["'])(?:raw-html-block|math-block)\1/i
@@ -333,7 +334,7 @@ function renderFrontmatterPreviewHtml(body: string): string {
   const escapedBody = markdownIt.utils.escapeHtml(body.trim())
   return [
     '<details open class="rounded-xl border border-border/30 bg-muted/20 shadow-sm">',
-    '<summary class="cursor-pointer select-none px-4 py-3 text-sm font-medium text-foreground/70">前置元数据</summary>',
+    `<summary class="cursor-pointer select-none px-4 py-3 text-sm font-medium text-foreground/70">${t('misc.frontmatter.summaryLabel')}</summary>`,
     '<div class="px-4 pb-4">',
     '<pre class="m-0 max-h-56 overflow-auto rounded-lg border border-border/30 bg-background/80 p-4 font-mono text-[13px] leading-7 whitespace-pre-wrap text-foreground/85">',
     escapedBody,

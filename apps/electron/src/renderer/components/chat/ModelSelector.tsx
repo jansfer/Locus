@@ -36,6 +36,7 @@ import { cn } from '@/lib/utils'
 import type { Channel, ModelOption, ProviderType } from '@proma/shared'
 import { ChannelPlanQuotaBadge } from './ChannelPlanQuotaBadge'
 import { getModelSelectorOptionVisualState } from './model-selector-visual-state'
+import { useT } from '@/i18n'
 
 /** 渠道标题与模型项共享的三列栅格，确保左右边距和文字起点一致。 */
 const MODEL_SELECTOR_ROW_LAYOUT =
@@ -142,6 +143,7 @@ export function ModelSelector({
   const setOpen = useSharedOpenState ? setSharedOpen : setLocalOpen
   const [tooltipOpen, setTooltipOpen] = React.useState(false)
   const [search, setSearch] = React.useState('')
+  const t = useT()
 
   // 外部模型优先 → per-conversation 模型
   const selectedModel = externalSelectedModel !== undefined ? externalSelectedModel : conversationModel
@@ -274,7 +276,7 @@ export function ModelSelector({
     return (
       <div className="flex items-center gap-1.5 text-xs text-muted-foreground px-2 py-1">
         <Cpu className="size-3.5" />
-        <span>暂无可用模型</span>
+        <span>{t('chat.model.noModels')}</span>
       </div>
     )
   }
@@ -307,14 +309,14 @@ export function ModelSelector({
               )}
               <span className="max-w-[200px] truncate">
                 {displayModelInfo
-                  ? (showChannelInTrigger ? `${displayModelInfo.channelName} · ${displayModelInfo.modelName}` : displayModelInfo.modelName)
-                  : '选择模型'}
+                  ? (showChannelInTrigger ? t('chat.model.channelModel', { channel: displayModelInfo.channelName, model: displayModelInfo.modelName }) : displayModelInfo.modelName)
+                  : t('chat.model.selectModel')}
               </span>
               <ChevronDown className="size-3" />
             </button>
           </PopoverTrigger>
         </TooltipTrigger>
-        <TooltipContent side="top">渠道：{displayModelInfo?.channelName}</TooltipContent>
+        <TooltipContent side="top">{t('chat.model.channelPrefix', { name: displayModelInfo?.channelName ?? '' })}</TooltipContent>
       </Tooltip>
 
       {/* 模型选择 Popover — 锚定触发按钮，向上展开（end 对齐，内容向左上延伸）。
@@ -325,7 +327,7 @@ export function ModelSelector({
         sideOffset={8}
         collisionPadding={12}
         className="w-[min(400px,calc(100vw-24px))] p-0"
-        aria-label="选择模型"
+        aria-label={t('chat.model.selectModel')}
       >
         {/* 搜索栏 */}
         <div className="flex items-center gap-2 px-3.5 py-2.5 border-b border-border/60">
@@ -335,7 +337,7 @@ export function ModelSelector({
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             onKeyDown={handleSearchKeyDown}
-            placeholder="搜索模型..."
+            placeholder={t('chat.model.searchPlaceholder')}
             className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground/50"
             autoFocus
           />
@@ -345,7 +347,7 @@ export function ModelSelector({
         <div className="max-h-[min(360px,55vh)] overflow-y-auto scrollbar-thin">
           {filteredGrouped.size === 0 ? (
             <div className="py-8 text-center text-sm text-muted-foreground">
-              未找到模型
+              {t('chat.model.notFound')}
             </div>
           ) : (
             (() => {

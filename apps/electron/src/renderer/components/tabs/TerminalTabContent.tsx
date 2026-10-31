@@ -5,6 +5,7 @@ import type { TerminalOutputEvent } from '@proma/shared'
 import '@xterm/xterm/css/xterm.css'
 import { detectIsWindows } from '@/lib/platform'
 import { getWindowsPtyOptions } from '@/lib/terminal-windows-pty'
+import { useT } from '@/i18n'
 
 // 保持系统等宽字体的字形度量；仅在 Powerline 私有区字符缺字时回退到 Nerd Font。
 const TERMINAL_FONT_FALLBACKS = [
@@ -34,6 +35,7 @@ export interface TerminalTabContentProps {
  * 因此切 Tab 不会销毁 PTY 或终端屏幕。
  */
 export function TerminalTabContent({ terminalId, sessionId, cwd, terminateOnUnmount = true }: TerminalTabContentProps): React.ReactElement {
+  const t = useT()
   const hostRef = React.useRef<HTMLDivElement>(null)
   const terminalRef = React.useRef<Terminal>()
   const fitAddonRef = React.useRef<FitAddon>()
@@ -124,7 +126,7 @@ export function TerminalTabContent({ terminalId, sessionId, cwd, terminateOnUnmo
       else renderOutput(event)
     })
     const disposeExit = window.electronAPI.onTerminalExit((event) => {
-      if (event.terminalId === terminalId) terminal.write(`\r\n\x1b[90m终端已退出（${event.exitCode}）\x1b[0m\r\n`)
+      if (event.terminalId === terminalId) terminal.write(`\r\n\x1b[90m${t('appShell.terminalExited', { code: event.exitCode })}\x1b[0m\r\n`)
     })
 
     let creation: Promise<unknown> | undefined
@@ -156,7 +158,7 @@ export function TerminalTabContent({ terminalId, sessionId, cwd, terminateOnUnmo
       } catch (error) {
         if (disposed) return
         restoring = false
-        terminal.write(`\r\n\x1b[31m无法启动终端：${error instanceof Error ? error.message : String(error)}\x1b[0m\r\n`)
+        terminal.write(`\r\n\x1b[31m${t('appShell.terminalStartFailed', { message: error instanceof Error ? error.message : String(error) })}\x1b[0m\r\n`)
       }
     }
     void create()

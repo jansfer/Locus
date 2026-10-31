@@ -1,5 +1,6 @@
 import * as React from 'react'
 import type { FileEntry } from '@proma/shared'
+import { useT } from '@/i18n'
 
 interface AttachedDirectoryChildrenOptions {
   stateKey: string
@@ -27,6 +28,7 @@ export function useAttachedDirectoryChildren({ stateKey, path, sessionId, allowe
   const identity = JSON.stringify([stateKey, path, sessionId, allowedPathsKey])
   const [snapshot, setSnapshot] = React.useState<DirectorySnapshot | null>(null)
   const [errorState, setErrorState] = React.useState<{ identity: string; message: string } | null>(null)
+  const t = useT()
 
   React.useEffect(() => {
     if (!expanded || !isDirectory) return
@@ -40,7 +42,7 @@ export function useAttachedDirectoryChildren({ stateKey, path, sessionId, allowe
     }).catch((error: unknown) => {
       if (cancelled) return
       console.error('[AttachedDirectory] 加载子目录失败:', error)
-      setErrorState({ identity, message: '加载失败，请收起后重新展开重试' })
+      setErrorState({ identity, message: t('files.attachedDir.loadChildrenFailed') })
     })
     return () => { cancelled = true }
   }, [identity, path, sessionId, allowedPathsKey, expanded, isDirectory, refreshVersion])

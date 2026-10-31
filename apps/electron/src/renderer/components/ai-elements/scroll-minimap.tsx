@@ -19,6 +19,7 @@ import { getModelLogo, resolveModelProvider } from '@/lib/model-logo'
 import { channelsAtom } from '@/atoms/chat-atoms'
 import { useShortcut } from '@/hooks/useShortcut'
 import { cn } from '@/lib/utils'
+import { useT } from '@/i18n'
 import { MAX_SEARCH_QUERY_SOURCE_LENGTH } from '@proma/shared'
 import type { SessionMessageSearchResponse, SessionMessageSearchResult } from '@proma/shared'
 import type { SessionMessageSearch } from '@/lib/session-message-search'
@@ -88,6 +89,7 @@ function escapeRegExp(str: string): string {
 // ── 主组件 ──
 
 export function ScrollMinimap({ items, searchMessages, onRevealSearchResult }: ScrollMinimapProps): React.ReactElement | null {
+  const t = useT()
   const { scrollRef, stopScroll, state: stickyState } = useStickToBottomContext()
   const [hovered, setHovered] = React.useState(false)
   const [isLeaving, setIsLeaving] = React.useState(false)
@@ -570,7 +572,7 @@ export function ScrollMinimap({ items, searchMessages, onRevealSearchResult }: S
           >
             {/* 标题栏 */}
             <div className="flex items-center justify-between px-3 py-2 border-b shrink-0">
-              <span className="text-xs font-medium text-popover-foreground/70">消息导航</span>
+              <span className="text-xs font-medium text-popover-foreground/70">{t('aiElementsMisc.minimap.title')}</span>
               <span className="text-[11px] text-muted-foreground tabular-nums">
                 {visibleIds.size}/{items.length}
               </span>
@@ -582,7 +584,7 @@ export function ScrollMinimap({ items, searchMessages, onRevealSearchResult }: S
                 <Search className="absolute left-2 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground/50" />
                 <Input
                   ref={searchInputRef}
-                  placeholder="搜索消息..."
+                  placeholder={t('aiElementsMisc.minimap.searchPlaceholder')}
                   value={searchQuery}
                   maxLength={MAX_SEARCH_QUERY_SOURCE_LENGTH}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -600,19 +602,19 @@ export function ScrollMinimap({ items, searchMessages, onRevealSearchResult }: S
             <div ref={listRef} className="overflow-y-auto flex-1 p-1.5 space-y-0.5 scrollbar-thin">
               {searchQueryTooLong && (
                 <div className="px-2 py-1 text-[11px] text-muted-foreground">
-                  查询过长，请缩短后重试。
+                  {t('aiElementsMisc.minimap.queryTooLong')}
                 </div>
               )}
               {searchTruncated && (
                 <div className="px-2 py-1 text-[11px] text-muted-foreground">
-                  历史过长，仅显示可索引范围内的结果；请缩小范围。
+                  {t('aiElementsMisc.minimap.historyTooLong')}
                 </div>
               )}
               {isSearching ? (
-                <div className="py-6 text-center text-xs text-muted-foreground">搜索中...</div>
+                <div className="py-6 text-center text-xs text-muted-foreground">{t('aiElementsMisc.minimap.searching')}</div>
               ) : filteredItems.length === 0 ? (
                 <div className="py-6 text-center text-xs text-muted-foreground">
-                  未找到匹配消息
+                  {t('aiElementsMisc.minimap.noResults')}
                 </div>
               ) : (
                 filteredItems.map((item) => (
@@ -739,8 +741,10 @@ function HighlightedPreview({
   matchStart?: number
   matchLength?: number
 }): React.ReactElement {
+  const t = useT()
+
   if (!text) {
-    return <span className="text-xs opacity-40">(空消息)</span>
+    return <span className="text-xs opacity-40">{t('aiElementsMisc.minimap.emptyMessage')}</span>
   }
 
   if (query.trim() && matchStart !== undefined && matchLength !== undefined) {

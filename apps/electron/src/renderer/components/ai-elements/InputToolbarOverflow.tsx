@@ -24,6 +24,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
+import { useT } from '@/i18n'
 import { inputToolbarButtonClass } from './input-toolbar-styles'
 
 export interface ToolbarItem {
@@ -61,6 +62,7 @@ export function InputToolbarOverflow({
   const [containerWidth, setContainerWidth] = React.useState(0)
   const [itemWidths, setItemWidths] = React.useState<Record<string, number>>({})
   const [popoverOpen, setPopoverOpen] = React.useState(false)
+  const t = useT()
 
   // 容器宽度监听
   React.useLayoutEffect(() => {
@@ -185,14 +187,14 @@ export function InputToolbarOverflow({
                     variant="ghost"
                     size="icon"
                     className={inputToolbarButtonClass}
-                    aria-label="更多工具"
+                    aria-label={t('aiElementsMisc.toolbarOverflow.moreTools')}
                   >
                     <MoreHorizontal className="size-5" />
                   </Button>
                 </PopoverTrigger>
               </TooltipTrigger>
               <TooltipContent side="top">
-                <p>更多</p>
+                <p>{t('common.more')}</p>
               </TooltipContent>
             </Tooltip>
             <PopoverContent

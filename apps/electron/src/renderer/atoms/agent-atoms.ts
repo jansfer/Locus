@@ -12,6 +12,7 @@ import { atomFamily } from 'jotai-family'
 import type { AgentSessionMeta, AgentEvent, AgentWorkspace, AgentPendingFile, RetryAttempt, PromaPermissionMode, PermissionRequest, AskUserRequest, ExitPlanModeRequest, ThinkingConfig, AgentEffort, SDKMessage, UnstagedChangesResult } from '@proma/shared'
 import { PROMA_DEFAULT_PERMISSION_MODE } from '@proma/shared'
 import { calculateDockBadgeCount, countPendingRequests } from '@/lib/dock-badge-count'
+import { t } from '@/i18n'
 import type { AgentQueuedMessage } from '@/lib/agent-message-queue'
 import type { SessionFileChange } from '@/lib/session-file-changes'
 import type { RightWorkspaceSplitState } from '@/lib/right-workspace-split'
@@ -698,7 +699,7 @@ export function sanitizeWorkspaceComponentTabs(tabs: readonly string[]): Workspa
 
 /** 协作子 Agent 尚未提供标题时仍需有可见的 Tab 标签。 */
 export function getDelegationTabLabel(title: string | null | undefined): string {
-  return title?.trim() || '委派任务'
+  return title?.trim() || t('misc.session.delegationTabTitle')
 }
 
 export type AgentSidePanelBaseTab = 'files' | 'changes' | 'chat' | 'temporary-agent' | 'delegation' | WorkspaceComponentTab

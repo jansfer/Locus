@@ -25,6 +25,7 @@ import type { SkillFileNode, SkillFileContent } from '@proma/shared'
 import { Button } from '@/components/ui/button'
 import { SettingsCard } from './primitives'
 import { cn } from '@/lib/utils'
+import { useT } from '@/i18n'
 
 interface SkillFilesPanelProps {
   workspaceSlug: string
@@ -60,6 +61,7 @@ function hasFile(nodes: SkillFileNode[], path: string): boolean {
 }
 
 export function SkillFilesPanel({ workspaceSlug, skillSlug, contentVersion = 0, onFileCountChange }: SkillFilesPanelProps): React.ReactElement {
+  const t = useT()
   const [tree, setTree] = React.useState<SkillFileNode[]>([])
   const [loading, setLoading] = React.useState(true)
   const [expanded, setExpanded] = React.useState<Set<string>>(new Set())
@@ -146,11 +148,11 @@ export function SkillFilesPanel({ workspaceSlug, skillSlug, contentVersion = 0, 
       if (!isCurrent()) return
       console.error('[SkillFiles] 加载文件树失败:', err)
       setTreeError(true)
-      toast.error('加载文件树失败')
+      toast.error(t('settingsMisc.skillFiles.treeLoadFailed'))
     } finally {
       if (isCurrent()) setLoading(false)
     }
-  }, [workspaceSlug, skillSlug, markMissing])
+  }, [workspaceSlug, skillSlug, markMissing, t])
 
   React.useEffect(() => {
     void refreshTree()
@@ -161,7 +163,7 @@ export function SkillFilesPanel({ workspaceSlug, skillSlug, contentVersion = 0, 
     async (relativePath: string): Promise<void> => {
       if (saving) return
       if (editing && editText !== (fileContent?.content ?? '')
-        && !window.confirm('当前文件有未保存的修改，确认放弃并打开文件？')) return
+        && !window.confirm(t('settingsMisc.skillFiles.unsavedConfirm'))) return
       const scope = scopeRef.current
       const request = ++fileRequestRef.current
       const isCurrent = (): boolean => scope === scopeRef.current && request === fileRequestRef.current
@@ -180,13 +182,13 @@ export function SkillFilesPanel({ workspaceSlug, skillSlug, contentVersion = 0, 
       } catch (err) {
         if (!isCurrent()) return
         console.error('[SkillFiles] 读取文件失败:', err)
-        toast.error(err instanceof Error ? err.message : '读取文件失败')
+        toast.error(err instanceof Error ? err.message : t('settingsMisc.skillFiles.readFailed'))
         setFileContent(null)
       } finally {
         if (isCurrent()) setLoadingFile(false)
       }
     },
-    [workspaceSlug, skillSlug, saving, editing, editText, fileContent],
+    [workspaceSlug, skillSlug, saving, editing, editText, fileContent, t],
   )
 
   // 创建操作可能跨过一轮编辑；完成后必须使用最新草稿状态判断是否可切换。
@@ -222,12 +224,12 @@ export function SkillFilesPanel({ workspaceSlug, skillSlug, contentVersion = 0, 
       if (!isCurrent() || missingFileRef.current) return
       setFileContent({ ...fileContent, content: snapshot, size: new Blob([snapshot]).size })
       setEditing(false)
-      toast.success('已保存')
+      toast.success(t('settingsMisc.skillFiles.saved'))
       void refreshTree()
     } catch (err) {
       if (!isCurrent()) return
       console.error('[SkillFiles] 保存文件失败:', err)
-      toast.error(err instanceof Error ? err.message : '保存失败')
+      toast.error(err instanceof Error ? err.message : t('settingsMisc.skillFiles.saveFailed'))
     } finally {
       if (scope === scopeRef.current) setSaving(false)
     }
@@ -247,7 +249,7 @@ export function SkillFilesPanel({ workspaceSlug, skillSlug, contentVersion = 0, 
       return
     }
     if (name.includes('/') || name.includes('\\')) {
-      toast.error('名称不能包含 / 或 \\')
+      toast.error(t('settingsMisc.skillFiles.invalidName'))
       return
     }
     const relativePath = creating.parent ? `${creating.parent}/${name}` : name
@@ -256,7 +258,9 @@ export function SkillFilesPanel({ workspaceSlug, skillSlug, contentVersion = 0, 
     try {
       await window.electronAPI.createSkillEntry(workspaceSlug, skillSlug, relativePath, creating.type)
       if (scope !== scopeRef.current) return
-      toast.success(`已创建${creating.type === 'directory' ? '目录' : '文件'}: ${name}`)
+      toast.success(creating.type === 'directory'
+        ? t('settingsMisc.skillFiles.createdDir', { name })
+        : t('settingsMisc.skillFiles.createdFile', { name }))
       setCreating(null)
       setCreateName('')
       await refreshTree()
@@ -265,25 +269,27 @@ export function SkillFilesPanel({ workspaceSlug, skillSlug, contentVersion = 0, 
     } catch (err) {
       if (scope !== scopeRef.current) return
       console.error('[SkillFiles] 创建失败:', err)
-      toast.error(err instanceof Error ? err.message : '创建失败')
+      toast.error(err instanceof Error ? err.message : t('settingsMisc.skillFiles.createFailed'))
     }
   }
 
   const deleteEntry = async (node: SkillFileNode): Promise<void> => {
-    const label = node.type === 'directory' ? '目录及其内容' : '文件'
-    if (!window.confirm(`确认删除${label} "${node.relativePath}"？此操作不可撤销。`)) return
+    const confirmMessage = node.type === 'directory'
+      ? t('settingsMisc.skillFiles.deleteDirConfirm', { path: node.relativePath })
+      : t('settingsMisc.skillFiles.deleteFileConfirm', { path: node.relativePath })
+    if (!window.confirm(confirmMessage)) return
     if (saving) return
     const scope = scopeRef.current
     try {
       await window.electronAPI.deleteSkillEntry(workspaceSlug, skillSlug, node.relativePath)
       if (scope !== scopeRef.current) return
-      toast.success('已删除')
+      toast.success(t('settingsMisc.skillFiles.deleted'))
       if (selectedRef.current === node.relativePath || selectedRef.current?.startsWith(node.relativePath + '/')) markMissing()
       void refreshTree()
     } catch (err) {
       if (scope !== scopeRef.current) return
       console.error('[SkillFiles] 删除失败:', err)
-      toast.error(err instanceof Error ? err.message : '删除失败')
+      toast.error(err instanceof Error ? err.message : t('settingsMisc.skillFiles.deleteFailed'))
     }
   }
 
@@ -299,7 +305,7 @@ export function SkillFilesPanel({ workspaceSlug, skillSlug, contentVersion = 0, 
       return
     }
     if (newName.includes('/') || newName.includes('\\')) {
-      toast.error('名称不能包含 / 或 \\')
+      toast.error(t('settingsMisc.skillFiles.invalidName'))
       return
     }
     const parentParts = node.relativePath.split('/').slice(0, -1)
@@ -309,14 +315,14 @@ export function SkillFilesPanel({ workspaceSlug, skillSlug, contentVersion = 0, 
     try {
       await window.electronAPI.renameSkillEntry(workspaceSlug, skillSlug, node.relativePath, newRel)
       if (scope !== scopeRef.current) return
-      toast.success('已重命名')
+      toast.success(t('settingsMisc.skillFiles.renamed'))
       if (selectedRef.current === node.relativePath || selectedRef.current?.startsWith(node.relativePath + '/')) markMissing()
       setRenaming(null)
       void refreshTree()
     } catch (err) {
       if (scope !== scopeRef.current) return
       console.error('[SkillFiles] 重命名失败:', err)
-      toast.error(err instanceof Error ? err.message : '重命名失败')
+      toast.error(err instanceof Error ? err.message : t('settingsMisc.skillFiles.renameFailed'))
     }
   }
 
@@ -325,16 +331,18 @@ export function SkillFilesPanel({ workspaceSlug, skillSlug, contentVersion = 0, 
       <div className="flex items-center justify-between px-1 pb-2 shrink-0 min-h-[28px]">
         <div className="text-xs text-muted-foreground">
           {loading
-            ? '加载中...'
+            ? t('common.loading')
             : (() => {
                 const { files, dirs } = countTree(tree)
-                return `共 ${files} 个文件${tree.length === 0 ? '' : `，${dirs} 个目录`}`
+                return tree.length === 0
+                  ? t('settingsMisc.skillFiles.fileCount', { files })
+                  : t('settingsMisc.skillFiles.fileCountWithDirs', { files, dirs })
               })()}
         </div>
         <div className="flex items-center gap-1">
           <button
             type="button"
-            title="新建文件（根目录）"
+            title={t('settingsMisc.skillFiles.newFileRootTitle')}
             onClick={() => startCreate('file', '')}
             className="p-1 rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
           >
@@ -342,7 +350,7 @@ export function SkillFilesPanel({ workspaceSlug, skillSlug, contentVersion = 0, 
           </button>
           <button
             type="button"
-            title="新建目录（根目录）"
+            title={t('settingsMisc.skillFiles.newDirRootTitle')}
             onClick={() => startCreate('directory', '')}
             className="p-1 rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
           >
@@ -350,7 +358,7 @@ export function SkillFilesPanel({ workspaceSlug, skillSlug, contentVersion = 0, 
           </button>
           <button
             type="button"
-            title="刷新"
+            title={t('common.refresh')}
             onClick={() => void refreshTree()}
             className="p-1 rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
           >
@@ -359,22 +367,22 @@ export function SkillFilesPanel({ workspaceSlug, skillSlug, contentVersion = 0, 
         </div>
       </div>
 
-      {treeError && <div role="alert" className="px-1 pb-2 text-xs text-destructive">资源列表刷新失败，已保留当前内容。请重试刷新。</div>}
+      {treeError && <div role="alert" className="px-1 pb-2 text-xs text-destructive">{t('settingsMisc.skillFiles.treeError')}</div>}
       <SettingsCard divided={false} className="flex-1 min-h-0">
         <div className="grid grid-cols-[minmax(220px,1fr)_2fr] h-full min-h-[420px]">
           {/* Tree */}
           <div className="border-r border-border bg-muted/30 p-2 overflow-y-auto">
             {loading ? (
-              <div className="px-2 py-4 text-xs text-muted-foreground">加载中...</div>
+              <div className="px-2 py-4 text-xs text-muted-foreground">{t('common.loading')}</div>
             ) : tree.length === 0 && !creating ? (
               <div className="px-2 py-6 text-xs text-muted-foreground flex flex-col items-center gap-3 text-center">
-                <div>该 Skill 暂无其他资源文件</div>
+                <div>{t('settingsMisc.skillFiles.emptyTree')}</div>
                 <div className="flex gap-2">
                   <Button size="sm" variant="outline" onClick={() => startCreate('file', '')}>
-                    <FilePlus size={12} /> 新建文件
+                    <FilePlus size={12} /> {t('settingsMisc.skillFiles.newFile')}
                   </Button>
                   <Button size="sm" variant="outline" onClick={() => startCreate('directory', '')}>
-                    <FolderPlus size={12} /> 新建目录
+                    <FolderPlus size={12} /> {t('settingsMisc.skillFiles.newDir')}
                   </Button>
                 </div>
               </div>
@@ -408,25 +416,25 @@ export function SkillFilesPanel({ workspaceSlug, skillSlug, contentVersion = 0, 
           {/* Editor */}
           <div className="flex flex-col min-w-0">
             {missingFile && <div role="alert" className="p-3 text-xs text-destructive">
-              文件已被删除或重命名：{selected}。已保留当前内容和草稿，请先复制备份；保存已禁用，重新打开现有文件后才能保存。
+              {t('settingsMisc.skillFiles.missingFileAlert', { path: selected ?? '' })}
             </div>}
             {!selected ? (
               <div className="flex-1 flex items-center justify-center text-xs text-muted-foreground p-6 text-center">
-                从左侧选择文件以查看或编辑
+                {t('settingsMisc.skillFiles.pickFileHint')}
               </div>
             ) : loadingFile ? (
               <div className="flex-1 flex items-center justify-center text-xs text-muted-foreground">
-                加载中...
+                {t('common.loading')}
               </div>
             ) : !fileContent ? (
               <div className="flex-1 flex items-center justify-center text-xs text-muted-foreground p-6 text-center">
-                无法加载该文件
+                {t('settingsMisc.skillFiles.loadFileFailed')}
               </div>
             ) : !fileContent.isText ? (
               <div className="flex-1 flex flex-col items-center justify-center text-xs text-muted-foreground p-6 text-center gap-2">
                 <FileIcon size={20} />
                 <div className="font-mono">{fileContent.relativePath}</div>
-                <div>二进制文件（{formatSize(fileContent.size)}），不支持内置编辑</div>
+                <div>{t('settingsMisc.skillFiles.binaryFile', { size: formatSize(fileContent.size) })}</div>
               </div>
             ) : (
               <>
@@ -440,7 +448,7 @@ export function SkillFilesPanel({ workspaceSlug, skillSlug, contentVersion = 0, 
                     </span>
                     {!editing ? (
                       <Button size="sm" variant="ghost" onClick={() => setEditing(true)} disabled={missingFile} className="h-7">
-                        <Pencil size={12} /> 编辑
+                        <Pencil size={12} /> {t('common.edit')}
                       </Button>
                     ) : (
                       <>
@@ -448,17 +456,17 @@ export function SkillFilesPanel({ workspaceSlug, skillSlug, contentVersion = 0, 
                           size="sm"
                           variant="ghost"
                           onClick={() => {
-                            if (missingFile && !window.confirm('文件已失效，确认放弃保留的草稿？')) return
+                            if (missingFile && !window.confirm(t('settingsMisc.skillFiles.discardDraftConfirm'))) return
                             setEditText(fileContent.content ?? '')
                             setEditing(false)
                           }}
                           disabled={saving}
                           className="h-7"
                         >
-                          <X size={12} /> 取消
+                          <X size={12} /> {t('common.cancel')}
                         </Button>
                         <Button size="sm" onClick={() => void saveFile()} disabled={saving || missingFile} className="h-7">
-                          <Save size={12} /> {saving ? '保存中...' : '保存'}
+                          <Save size={12} /> {saving ? t('common.saving') : t('common.save')}
                         </Button>
                       </>
                     )}
@@ -536,6 +544,7 @@ interface TreeNodeProps extends FileTreeProps {
 }
 
 function TreeNode(props: TreeNodeProps): React.ReactElement {
+  const t = useT()
   const { node, depth } = props
   const isExpanded = props.expanded.has(node.relativePath)
   const isSelected = props.selected === node.relativePath
@@ -591,7 +600,7 @@ function TreeNode(props: TreeNodeProps): React.ReactElement {
                     props.onStartCreate('file', node.relativePath)
                   }}
                   className="p-0.5 hover:text-foreground text-muted-foreground"
-                  title="在此新建文件"
+                  title={t('settingsMisc.skillFiles.newFileHereTitle')}
                 >
                   <FilePlus size={11} />
                 </button>
@@ -601,7 +610,7 @@ function TreeNode(props: TreeNodeProps): React.ReactElement {
                     props.onStartCreate('directory', node.relativePath)
                   }}
                   className="p-0.5 hover:text-foreground text-muted-foreground"
-                  title="在此新建目录"
+                  title={t('settingsMisc.skillFiles.newDirHereTitle')}
                 >
                   <FolderPlus size={11} />
                 </button>
@@ -613,7 +622,7 @@ function TreeNode(props: TreeNodeProps): React.ReactElement {
                 props.onStartRename(node)
               }}
               className="p-0.5 hover:text-foreground text-muted-foreground"
-              title="重命名"
+              title={t('common.rename')}
             >
               <Pencil size={11} />
             </button>
@@ -623,7 +632,7 @@ function TreeNode(props: TreeNodeProps): React.ReactElement {
                 props.onDelete(node)
               }}
               className="p-0.5 hover:text-destructive text-muted-foreground"
-              title="删除"
+              title={t('common.delete')}
             >
               <Trash2 size={11} />
             </button>
@@ -667,6 +676,7 @@ function CreatePlaceholder({
   onCommit: () => void
   onCancel: () => void
 }): React.ReactElement {
+  const t = useT()
   return (
     <li>
       <div
@@ -686,7 +696,7 @@ function CreatePlaceholder({
             if (e.key === 'Enter') onCommit()
             else if (e.key === 'Escape') onCancel()
           }}
-          placeholder={type === 'directory' ? '目录名' : '文件名'}
+          placeholder={type === 'directory' ? t('settingsMisc.skillFiles.dirNamePlaceholder') : t('settingsMisc.skillFiles.fileNamePlaceholder')}
           className="flex-1 min-w-0 bg-background border border-border rounded px-1 text-xs"
         />
       </div>

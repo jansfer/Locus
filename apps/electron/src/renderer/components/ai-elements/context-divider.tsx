@@ -7,6 +7,7 @@
 
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { useT } from '@/i18n'
 import { X } from 'lucide-react'
 import type { ComponentProps } from 'react'
 
@@ -23,6 +24,8 @@ export function ContextDivider({
   className,
   ...props
 }: ContextDividerProps): React.ReactElement {
+  const t = useT()
+
   return (
     <div
       className={cn(
@@ -37,7 +40,7 @@ export function ContextDivider({
       {/* 中间文字和关闭按钮 */}
       <div className="mx-3 flex items-center gap-1.5">
         <span className="text-xs text-muted-foreground select-none">
-          清除上下文
+          {t('aiElementsMisc.contextDivider.clearContext')}
         </span>
         <Button
           type="button"
@@ -45,7 +48,7 @@ export function ContextDivider({
           size="icon"
           className="h-4 w-4 rounded-full hover:bg-muted"
           onClick={() => onDelete?.(messageId)}
-          aria-label="删除分隔线"
+          aria-label={t('aiElementsMisc.contextDivider.deleteDivider')}
         >
           <X className="h-3 w-3 text-muted-foreground" />
         </Button>

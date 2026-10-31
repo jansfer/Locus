@@ -1,4 +1,25 @@
 /** browser 域文案（简体中文）。迁移时按功能补充键；叶子必须是 string。 */
 export const browser = {
-
+  panel: {
+    navBack: '后退',
+    navForward: '前进',
+    reload: '刷新',
+    addressPlaceholder: '输入网址或搜索内容',
+    addressAria: '浏览器地址',
+    openExternal: '通过默认浏览器打开',
+    stopBackgroundAgent: '停止当前后台 Agent',
+    stopAutomationRun: '停止当前自动任务运行',
+    stopDelegationRun: '停止当前委派运行',
+    riskGateTitle: '使用前请阅读风险告知',
+    riskGateSubtitle: '受管浏览器将在确认后启用，登录状态只保存在本机。',
+    riskDialogTitle: '首次使用受管浏览器',
+    riskDesc1: 'Locus 可让 Agent 在浏览器中读取、搜索、点击和输入。部分平台可能将这些行为或高频操作识别为自动化活动。',
+    riskDesc2: '这可能导致验证码、限流、功能限制、账号风控，严重时可能造成账号处罚或封禁。请自行了解并遵守目标平台规则，并自行承担相应风险。',
+    riskDesc3: 'Locus 不会保证第三方平台接受这些操作；请避免不必要的高频互动，并在重要操作前核对页面状态。',
+    riskDecline: '暂不使用',
+    riskConfirming: '正在确认…',
+    riskAccept: '我已知悉并承担风险',
+    sessionMissing: '受管浏览器会话不存在。',
+    slotAria: '受管浏览器页面',
+  },
 } as const

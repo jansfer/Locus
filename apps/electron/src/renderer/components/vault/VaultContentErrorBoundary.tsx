@@ -1,5 +1,6 @@
 import * as React from 'react'
 import { AlertTriangle, RotateCw } from 'lucide-react'
+import { t } from '@/i18n'
 
 interface VaultContentErrorBoundaryProps {
   /** 笔记切换或显式重载后自动清除前一篇笔记的错误状态。 */
@@ -49,14 +50,14 @@ export class VaultContentErrorBoundary extends React.Component<
       return (
         <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center text-muted-foreground">
           <AlertTriangle className="size-7 text-destructive/70" />
-          <p className="text-[13px]">此笔记的编辑器渲染失败，已保留 Vault 其他内容。</p>
+          <p className="text-[13px]">{t('vault.editor.editorRenderFailed')}</p>
           <button
             type="button"
             onClick={this.handleRetry}
             className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted"
           >
             <RotateCw className="size-3.5" />
-            重试渲染
+            {t('vault.editor.retryRender')}
           </button>
         </div>
       )

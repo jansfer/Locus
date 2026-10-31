@@ -21,6 +21,7 @@ import {
 } from '../ui/select'
 import { Button } from '../ui/button'
 import { cn } from '@/lib/utils'
+import { useT } from '@/i18n'
 
 interface StorageCategory {
   label: string
@@ -81,6 +82,7 @@ function StorageBar({ categories, totalBytes }: { categories: StorageCategory[];
 }
 
 export function StorageSettings(): React.ReactElement {
+  const t = useT()
   const [stats, setStats] = React.useState<StorageStats | null>(null)
   const [loading, setLoading] = React.useState(false)
   const [cleaningKey, setCleaningKey] = React.useState<string | null>(null)
@@ -145,8 +147,8 @@ export function StorageSettings(): React.ReactElement {
     <div className="space-y-6">
       {/* 存储用量 */}
       <SettingsSection
-        title="存储用量"
-        description={stats ? `总计 ${formatBytes(stats.totalBytes)}` : '正在计算...'}
+        title={t('settingsMisc.storage.title')}
+        description={stats ? t('settingsMisc.storage.totalSize', { size: formatBytes(stats.totalBytes) }) : t('settingsMisc.storage.calculating')}
         action={
           <Button
             variant="ghost"
@@ -156,7 +158,7 @@ export function StorageSettings(): React.ReactElement {
             className="gap-1.5"
           >
             <RefreshCw size={14} className={cn(loading && 'animate-spin')} />
-            刷新
+            {t('common.refresh')}
           </Button>
         }
       >
@@ -186,7 +188,7 @@ export function StorageSettings(): React.ReactElement {
                     className="h-7 gap-1 text-xs"
                   >
                     <Trash2 size={12} />
-                    {cleaningKey === 'temp-files' ? '清理中...' : '清理'}
+                    {cleaningKey === 'temp-files' ? t('settingsMisc.storage.cleaning') : t('settingsMisc.storage.clean')}
                   </Button>
                 ) : null}
               </div>
@@ -197,26 +199,26 @@ export function StorageSettings(): React.ReactElement {
 
       {/* 自动清理 */}
       <SettingsSection
-        title="自动清理"
-        description="配置启动时和定期的自动清理规则"
+        title={t('settingsMisc.storage.autoTitle')}
+        description={t('settingsMisc.storage.autoDesc')}
       >
         <SettingsCard>
           <SettingsToggle
-            label="启动时清理临时文件"
-            description="每次启动时自动删除预览和安装缓存"
+            label={t('settingsMisc.storage.tempToggle')}
+            description={t('settingsMisc.storage.tempToggleDesc')}
             checked={autoCleanupTemp}
             onCheckedChange={handleAutoCleanupTempChange}
           />
-          <SettingsRow label="清理已归档会话数据" description="自动清理超过指定天数的已归档会话消息和 SDK 数据">
+          <SettingsRow label={t('settingsMisc.storage.archivedToggle')} description={t('settingsMisc.storage.archivedToggleDesc')}>
             <Select value={String(autoCleanupDays)} onValueChange={handleAutoCleanupDaysChange}>
               <SelectTrigger className="w-28">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="0">禁用</SelectItem>
-                <SelectItem value="7">7 天</SelectItem>
-                <SelectItem value="30">30 天</SelectItem>
-                <SelectItem value="90">90 天</SelectItem>
+                <SelectItem value="0">{t('settingsMisc.storage.disabledOption')}</SelectItem>
+                <SelectItem value="7">{t('settingsMisc.storage.daysOption', { n: 7 })}</SelectItem>
+                <SelectItem value="30">{t('settingsMisc.storage.daysOption', { n: 30 })}</SelectItem>
+                <SelectItem value="90">{t('settingsMisc.storage.daysOption', { n: 90 })}</SelectItem>
               </SelectContent>
             </Select>
           </SettingsRow>
@@ -228,10 +230,13 @@ export function StorageSettings(): React.ReactElement {
         <div className="rounded-lg border border-border bg-muted/30 px-4 py-3 text-sm">
           {lastResult.freedBytes > 0 ? (
             <span className="text-emerald-600 dark:text-emerald-400">
-              已释放 {formatBytes(lastResult.freedBytes)}，删除 {lastResult.deletedCount} 个文件
+              {t('settingsMisc.storage.freedResult', {
+                size: formatBytes(lastResult.freedBytes),
+                count: lastResult.deletedCount,
+              })}
             </span>
           ) : (
-            <span className="text-muted-foreground">没有需要清理的数据</span>
+            <span className="text-muted-foreground">{t('settingsMisc.storage.nothingToClean')}</span>
           )}
           {lastResult.errors.length > 0 && (
             <div className="mt-1 text-xs text-destructive">

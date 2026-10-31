@@ -4,11 +4,13 @@ import type { VisionRelaySettings as VisionRelaySettingsValue } from '@/types/se
 import { ModelSelector } from '@/components/chat/ModelSelector'
 import { Switch } from '@/components/ui/switch'
 import { SettingsCard, SettingsRow, SettingsSection } from './primitives'
+import { useT } from '@/i18n'
 
 const DEFAULT_SETTINGS: VisionRelaySettingsValue = { enabled: false }
 
 /** 为无视觉输入能力的 Agent 选择独立的视觉模型路由。 */
 export function VisionRelaySettings(): React.ReactElement {
+  const t = useT()
   const [settings, setSettings] = React.useState<VisionRelaySettingsValue>(DEFAULT_SETTINGS)
   const [saving, setSaving] = React.useState(false)
 
@@ -40,16 +42,16 @@ export function VisionRelaySettings(): React.ReactElement {
   return (
     <div className="space-y-8">
       <SettingsSection
-        title="视觉助手"
-        description="为不支持原生视觉的 Agent（当前为 DeepSeek V4 Pro）接入独立视觉模型。图片不会发送给当前 DeepSeek 渠道。"
+        title={t('settingsMisc.visionRelay.title')}
+        description={t('settingsMisc.visionRelay.titleDesc')}
       >
         <SettingsCard>
           <SettingsRow
-            label="启用视觉助手"
+            label={t('settingsMisc.visionRelay.enableLabel')}
             icon={<Eye className="size-4 text-violet-500" />}
             description={configured
-              ? 'Agent 在需要理解已授权图片时，会请求使用下方选择的视觉模型。'
-              : '先选择一个支持图片输入的已配置模型。'}
+              ? t('settingsMisc.visionRelay.enableDescConfigured')
+              : t('settingsMisc.visionRelay.enableDescUnconfigured')}
           >
             <Switch
               checked={settings.enabled}
@@ -58,8 +60,8 @@ export function VisionRelaySettings(): React.ReactElement {
             />
           </SettingsRow>
           <SettingsRow
-            label="视觉模型"
-            description="选择已有渠道中的视觉模型。Locus 继续复用该渠道加密保存的 API Key。"
+            label={t('settingsMisc.visionRelay.modelLabel')}
+            description={t('settingsMisc.visionRelay.modelDesc')}
           >
             <ModelSelector
               externalSelectedModel={selectedModel}
@@ -75,12 +77,12 @@ export function VisionRelaySettings(): React.ReactElement {
         </SettingsCard>
       </SettingsSection>
 
-      <SettingsSection title="隐私边界" description="视觉助手遵循最小外发原则。">
+      <SettingsSection title={t('settingsMisc.visionRelay.privacyTitle')} description={t('settingsMisc.visionRelay.privacyDesc')}>
         <SettingsCard>
           <SettingsRow
-            label="启用后自动使用视觉模型"
+            label={t('settingsMisc.visionRelay.autoUseLabel')}
             icon={<ShieldCheck className="size-4 text-emerald-500" />}
-            description="启用即授权 Agent 在需要时将当前会话或用户已附加目录中的 PNG、JPEG、GIF、WebP 图片，以及最多 1000 字符的视觉问题发送给所选模型；单张上限 10MB。视觉结果只会以文本 JSON 返回给 Agent。"
+            description={t('settingsMisc.visionRelay.autoUseDesc')}
           />
         </SettingsCard>
       </SettingsSection>

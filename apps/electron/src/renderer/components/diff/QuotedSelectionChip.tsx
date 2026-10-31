@@ -8,6 +8,7 @@
 import * as React from 'react'
 import { X, Quote } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useT } from '@/i18n'
 
 interface QuotedSelectionChipProps {
   /** 选中的文本（截断显示） */
@@ -41,6 +42,7 @@ export function QuotedSelectionChip({
   onRemove,
   className,
 }: QuotedSelectionChipProps): React.ReactElement {
+  const t = useT()
   const handleRemoveClick = React.useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation()
     onRemove()
@@ -75,7 +77,7 @@ export function QuotedSelectionChip({
           'opacity-0 group-hover/chip:opacity-100 transition-opacity duration-200',
           'hover:bg-foreground/20 hover:text-foreground',
         )}
-        aria-label="移除引用"
+        aria-label={t('diff.chip.remove')}
       >
         <X className="size-3" />
       </button>

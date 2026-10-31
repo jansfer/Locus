@@ -4,9 +4,10 @@
  * 列表按 MRU（最近访问）顺序排列，键盘和鼠标共享同一套选择模型。
  */
 
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import type { ReactElement, ReactNode } from 'react'
 import { useAtomValue, useSetAtom, useStore } from 'jotai'
+import { useT, subscribeI18n, getI18nLanguage } from '@/i18n'
 import type { AgentSessionMeta, ConversationMeta } from '@proma/shared'
 import { cn } from '@/lib/utils'
 import {
@@ -67,6 +68,9 @@ interface SwitcherModel {
 }
 
 export function TabSwitcher(): ReactElement | null {
+  const t = useT()
+  // 语言变化时重算下方 switcherModel，避免缓存中的 fallback/分组文案停留在旧语言。
+  const language = useSyncExternalStore(subscribeI18n, getI18nLanguage)
   const store = useStore()
   const tabs = useAtomValue(tabsAtom)
   const setTabs = useSetAtom(tabsAtom)
@@ -110,7 +114,7 @@ export function TabSwitcher(): ReactElement | null {
       return {
         id: session.id,
         type: 'agent',
-        title: session.title || '新 Agent 会话',
+        title: session.title || t('appShell.newAgentSessionFallback'),
         updatedAt: session.updatedAt,
         status,
         workspaceId: session.workspaceId,
@@ -124,7 +128,7 @@ export function TabSwitcher(): ReactElement | null {
       .map((conversation: ConversationMeta): SwitchCandidate => ({
         id: conversation.id,
         type: 'chat',
-        title: conversation.title || '新对话',
+        title: conversation.title || t('appShell.newChatFallback'),
         updatedAt: conversation.updatedAt,
         status: streamingConversationIds.has(conversation.id) ? 'running' : 'idle',
       }))
@@ -179,16 +183,16 @@ export function TabSwitcher(): ReactElement | null {
     if (shouldShowCollaborationSection) {
       sections.push({
         id: 'collaboration',
-        title: '当前协作',
-        description: '父会话与子会话',
+        title: t('appShell.switcher.collaborationTitle'),
+        description: t('appShell.switcher.collaborationDescription'),
         candidates: relatedCandidates,
       })
     }
     if (recentCandidates.length > 0) {
       sections.push({
         id: 'recent',
-        title: '最近访问',
-        description: '按访问顺序排列',
+        title: t('appShell.switcher.recentTitle'),
+        description: t('appShell.switcher.recentDescription'),
         candidates: recentCandidates,
       })
     }
@@ -209,6 +213,7 @@ export function TabSwitcher(): ReactElement | null {
     streamingConversationIds,
     tabMru,
     unviewedCompletedIds,
+    language,
   ])
 
   // Refs 用于事件回调中读取最新值，避免全局键盘监听闭包过期。
@@ -429,13 +434,13 @@ export function TabSwitcher(): ReactElement | null {
       <div className="relative bg-popover border border-border/50 rounded-xl shadow-2xl min-w-[420px] max-w-[540px] overflow-hidden">
         <div className="flex items-center justify-between gap-3 px-5 py-2.5 border-b border-border/40 bg-muted/30">
           <div className="flex items-center gap-2 min-w-0">
-            <span className="text-[13px] font-medium text-foreground">切换标签</span>
+            <span className="text-[13px] font-medium text-foreground">{t('appShell.switcher.title')}</span>
           </div>
           <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
             <Kbd>Ctrl</Kbd>
             <span>+</span>
             <Kbd>Tab</Kbd>
-            <span className="opacity-60 ml-1">循环</span>
+            <span className="opacity-60 ml-1">{t('appShell.switcher.cycle')}</span>
           </div>
         </div>
 
@@ -473,10 +478,10 @@ export function TabSwitcher(): ReactElement | null {
         </div>
 
         <div className="flex items-center justify-between gap-2 px-5 py-2 border-t border-border/40 bg-muted/30 text-[11px] text-muted-foreground">
-          <span className="truncate">松开 Ctrl 确认，也可以直接点击选择</span>
+          <span className="truncate">{t('appShell.switcher.releaseToConfirm')}</span>
           <div className="flex items-center gap-1 shrink-0">
             <Kbd>Esc</Kbd>
-            <span className="opacity-60">取消</span>
+            <span className="opacity-60">{t('common.cancel')}</span>
           </div>
         </div>
       </div>
@@ -499,6 +504,7 @@ function SwitcherCandidateRow({
   onMouseEnter: () => void
   onClick: () => void
 }): ReactElement {
+  const t = useT()
   const indicatorColor = getIndicatorColor(candidate.status)
   const indicatorPulse = candidate.status === 'running' || candidate.status === 'blocked'
 
@@ -530,7 +536,7 @@ function SwitcherCandidateRow({
         {candidate.isDelegation ? (
           <>
             <GitBranch className="size-2.5" />
-            子会话
+            {t('appShell.delegatedChild')}
           </>
         ) : candidate.type === 'agent' ? (
           <>

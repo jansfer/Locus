@@ -2,6 +2,7 @@ import * as React from 'react'
 import { useAtom, useAtomValue, useSetAtom } from 'jotai'
 import { toast } from 'sonner'
 import { AlertTriangle, Brain, ChevronDown, ChevronRight, FileText, FolderOpen, RefreshCw, Sparkles } from 'lucide-react'
+import { useT, getI18nLanguage } from '@/i18n'
 import type { SkillFileNode, WorkspaceMemorySummary } from '@proma/shared'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -71,6 +72,7 @@ function filterNodes(nodes: SkillFileNode[], query: string, contentMatchPaths = 
 }
 
 export function WorkspaceMemoryTab({ workspaceSlug, sessionId, search, embedded = false, onCloseChangeView }: WorkspaceMemoryTabProps): React.ReactElement {
+  const t = useT()
   const { createAgent } = useCreateSession()
   const setPendingPrompt = useSetAtom(agentPendingPromptAtom)
   const [memoryNavigationRequest, setMemoryNavigationRequest] = useAtom(memoryFileNavigationAtom)
@@ -112,8 +114,8 @@ export function WorkspaceMemoryTab({ workspaceSlug, sessionId, search, embedded 
   }, [selected, editText, editBaseText, isDirty, saveConflict])
   const autoSaveTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
   const persistInFlightRef = React.useRef<Promise<void> | null>(null)
-  const historyRangeLabel = React.useMemo(
-    () => MEMORY_HISTORY_RANGE_OPTIONS.find((option) => option.value === historyRange)?.label ?? '近 1 个月',
+  const historyRangeLabelKey = React.useMemo(
+    () => MEMORY_HISTORY_RANGE_OPTIONS.find((option) => option.value === historyRange)?.labelKey ?? 'last1Month',
     [historyRange],
   )
 
@@ -167,18 +169,18 @@ export function WorkspaceMemoryTab({ workspaceSlug, sessionId, search, embedded 
       await p
     } catch (err) {
       console.error('[工作区记忆] 自动保存失败:', err)
-      const message = err instanceof Error ? err.message : '自动保存失败'
+      const message = err instanceof Error ? err.message : t('skills.skillDetail.autoSaveFailed')
       toast.error(message)
       if (message.startsWith('文件已被外部更新')) setSaveConflict(true)
       setIsDirty(true)
     } finally {
       persistInFlightRef.current = null
     }
-  }, [persistTarget])
+  }, [persistTarget, t])
 
   const openAgents = React.useCallback(async (knownSummary?: WorkspaceMemorySummary): Promise<void> => {
     if (saveStateRef.current.saveConflict) {
-      toast.error('当前文件有外部更新，请先刷新或复制修改后再切换。')
+      toast.error(t('skills.memory.conflictSwitchBlocked'))
       return
     }
     await flushPendingSave()
@@ -198,15 +200,15 @@ export function WorkspaceMemoryTab({ workspaceSlug, sessionId, search, embedded 
       setIsDirty(false)
     } catch (err) {
       console.error('[工作区记忆] 读取 AGENTS.md 失败:', err)
-      toast.error(err instanceof Error ? err.message : '读取 AGENTS.md 失败')
+      toast.error(err instanceof Error ? err.message : t('skills.memory.readAgentsFailed'))
     } finally {
       setLoadingFile(false)
     }
-  }, [summary, workspaceSlug, flushPendingSave])
+  }, [summary, workspaceSlug, flushPendingSave, t])
 
   const openAutoFile = React.useCallback(async (relativePath: string, knownSummary?: WorkspaceMemorySummary): Promise<void> => {
     if (saveStateRef.current.saveConflict) {
-      toast.error('当前文件有外部更新，请先刷新或复制修改后再切换。')
+      toast.error(t('skills.memory.conflictSwitchBlocked'))
       return
     }
     await flushPendingSave()
@@ -226,11 +228,11 @@ export function WorkspaceMemoryTab({ workspaceSlug, sessionId, search, embedded 
       setIsDirty(false)
     } catch (err) {
       console.error('[工作区记忆] 读取长期记忆文件失败:', err)
-      toast.error(err instanceof Error ? err.message : '读取长期记忆文件失败')
+      toast.error(err instanceof Error ? err.message : t('skills.memory.readAutoFileFailed'))
     } finally {
       setLoadingFile(false)
     }
-  }, [summary, workspaceSlug, flushPendingSave])
+  }, [summary, workspaceSlug, flushPendingSave, t])
 
   React.useEffect(() => {
     if (!memoryNavigationRequest || memoryNavigationRequest.workspaceSlug !== workspaceSlug) return
@@ -276,11 +278,11 @@ export function WorkspaceMemoryTab({ workspaceSlug, sessionId, search, embedded 
       }
     } catch (err) {
       console.error('[工作区记忆] 刷新失败:', err)
-      toast.error('刷新协作知识失败')
+      toast.error(t('skills.memory.refreshFailed'))
     } finally {
       setLoading(false)
     }
-  }, [openAutoFile, openAgents, refreshSummaryAndTree, selected, flushPendingSave])
+  }, [openAutoFile, openAgents, refreshSummaryAndTree, selected, flushPendingSave, t])
 
   React.useEffect(() => {
     let cancelled = false
@@ -313,13 +315,13 @@ export function WorkspaceMemoryTab({ workspaceSlug, sessionId, search, embedded 
         setIsDirty(false)
       } catch (err) {
         console.error('[工作区记忆] 加载失败:', err)
-        toast.error('加载协作知识失败')
+        toast.error(t('skills.memory.loadFailed'))
       } finally {
         if (!cancelled) setLoading(false)
       }
     })()
     return () => { cancelled = true }
-  }, [workspaceSlug])
+  }, [workspaceSlug, t])
 
   // 防抖自动保存：编辑内容变脏后 800ms 内无新输入则自动保存。
   React.useEffect(() => {
@@ -350,14 +352,14 @@ export function WorkspaceMemoryTab({ workspaceSlug, sessionId, search, embedded 
     try {
       const sessionId = await createAgent()
       if (!sessionId) {
-        toast.error('创建 Agent 会话失败')
+        toast.error(t('skills.view.createSessionFailed'))
         return
       }
       setPendingPrompt({ sessionId, message })
-      toast.success(kind === 'bootstrap' ? '已创建项目地图与协作画像引导会话' : '已创建会话补证据任务')
+      toast.success(kind === 'bootstrap' ? t('skills.memory.bootstrapSessionCreated') : t('skills.memory.evidenceSessionCreated'))
     } catch (err) {
       console.error('[工作区记忆] 创建引导会话失败:', err)
-      toast.error(err instanceof Error ? err.message : '创建引导会话失败')
+      toast.error(err instanceof Error ? err.message : t('skills.memory.guidedSessionFailed'))
     } finally {
       setLoadingState(false)
     }
@@ -369,7 +371,7 @@ export function WorkspaceMemoryTab({ workspaceSlug, sessionId, search, embedded 
       await window.electronAPI.approveWorkspaceProjectKnowledgeMaintenance(workspaceSlug)
       await startGuidedSession(buildWorkspaceKnowledgeBootstrapPrompt(), 'bootstrap')
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : '记录项目知识维护授权失败')
+      toast.error(err instanceof Error ? err.message : t('skills.memory.knowledgeAuthFailed'))
     }
   }
 
@@ -417,13 +419,14 @@ export function WorkspaceMemoryTab({ workspaceSlug, sessionId, search, embedded 
     [autoFiles, contentMatches, effectiveSearch],
   )
   const hasProfile = autoFiles.some((node) => node.relativePath === 'user-profile.md')
+  const issueSeparator = getI18nLanguage() === 'zh-CN' ? '、' : ', '
   const migrationIssues = [
-    summary?.legacyAutoMemory ? '长期记忆迁移' : null,
-    summary?.instructionConflict ? '工作区规则迁移' : null,
+    summary?.legacyAutoMemory ? t('skills.memory.migrationLegacyMemory') : null,
+    summary?.instructionConflict ? t('skills.memory.migrationInstructionConflict') : null,
   ].filter((issue): issue is string => issue !== null)
   const migrationReminderTitle = [
-    summary?.legacyAutoMemory ? `长期记忆：${summary.legacyAutoMemory.directory}` : null,
-    summary?.instructionConflict ? `工作区规则：${summary.instructionConflict.legacyPath}` : null,
+    summary?.legacyAutoMemory ? t('skills.memory.migrationLegacyDetail', { path: summary.legacyAutoMemory.directory }) : null,
+    summary?.instructionConflict ? t('skills.memory.migrationConflictDetail', { path: summary.instructionConflict.legacyPath }) : null,
   ].filter((detail): detail is string => detail !== null).join('\n')
 
   if (activeMemoryChange && sessionId) {
@@ -441,7 +444,7 @@ export function WorkspaceMemoryTab({ workspaceSlug, sessionId, search, embedded 
   }
 
   if (loading || !summary) {
-    return <div className="py-20 text-center text-sm text-muted-foreground">加载协作知识中...</div>
+    return <div className="py-20 text-center text-sm text-muted-foreground">{t('skills.memory.loading')}</div>
   }
 
   return (
@@ -450,23 +453,23 @@ export function WorkspaceMemoryTab({ workspaceSlug, sessionId, search, embedded 
         <div className="flex shrink-0 items-center gap-2 rounded-xl bg-muted/45 px-3 py-2">
           <Brain className="size-4 shrink-0 text-foreground/65" />
           <div className="min-w-0 flex-1">
-            <div className="text-sm font-semibold text-foreground">项目记忆</div>
-            <div className="text-[11px] text-muted-foreground">{summary.autoMemory.fileCount} 个记忆文件</div>
+            <div className="text-sm font-semibold text-foreground">{t('skills.memory.tabTitle')}</div>
+            <div className="text-[11px] text-muted-foreground">{t('skills.memory.fileCount', { n: summary.autoMemory.fileCount })}</div>
           </div>
         </div>
       )}
-      {embedded && <AgentActionHint action="查找、补充或整理项目记忆" />}
+      {embedded && <AgentActionHint action={t('skills.memory.actionHint')} />}
       {!embedded && <SettingsCard divided={false}>
         <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
-            <div className="text-sm font-medium text-foreground">建立项目地图与协作画像</div>
+            <div className="text-sm font-medium text-foreground">{t('skills.memory.bootstrapTitle')}</div>
             <div className="mt-1 text-xs leading-relaxed text-muted-foreground">
-              点击即授权 Agent 基于可验证证据维护项目根与 Locus 工作区的 AGENTS.md；随后在真实协作中逐步校准你的偏好。不会扫描历史会话。
+              {t('skills.memory.bootstrapDescription')}
             </div>
           </div>
           <Button onClick={handleBootstrapKnowledge} disabled={bootstrapping}>
             <Sparkles size={14} className="mr-1.5" />
-            {bootstrapping ? '创建中...' : '同意并开始建立'}
+            {bootstrapping ? t('skills.memory.creating') : t('skills.memory.bootstrapAction')}
           </Button>
         </div>
       </SettingsCard>}
@@ -474,11 +477,11 @@ export function WorkspaceMemoryTab({ workspaceSlug, sessionId, search, embedded 
       {!embedded && <SettingsCard divided={false}>
         <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
-            <div className="text-sm font-medium text-foreground">授权会话补证据</div>
+            <div className="text-sm font-medium text-foreground">{t('skills.memory.evidenceTitle')}</div>
             <div className="mt-1 text-xs leading-relaxed text-muted-foreground">
               {hasProfile
-                ? `仅在你授权的范围内，分批选择少量高信号工作会话补充证据；不会全量扫描，协作记忆仍须确认后写入。`
-                : '先在真实协作中建立初步协作画像，再决定是否用历史会话补充证据。'}
+                ? t('skills.memory.evidenceDescriptionReady')
+                : t('skills.memory.evidenceDescriptionNoProfile')}
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-2">
@@ -486,13 +489,13 @@ export function WorkspaceMemoryTab({ workspaceSlug, sessionId, search, embedded 
               <SelectTrigger className="h-9 w-[116px] text-xs"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {MEMORY_HISTORY_RANGE_OPTIONS.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                  <SelectItem key={option.value} value={option.value}>{t(`skills.memory.historyRange.${option.labelKey}`)}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            <Button onClick={handleScanSessionEvidence} disabled={scanningHistory || !hasProfile} title={hasProfile ? undefined : '请先建立协作画像'}>
+            <Button onClick={handleScanSessionEvidence} disabled={scanningHistory || !hasProfile} title={hasProfile ? undefined : t('skills.memory.evidenceNeedsProfile')}>
               <Sparkles size={14} className="mr-1.5" />
-              {scanningHistory ? '创建中...' : '授权整理'}
+              {scanningHistory ? t('skills.memory.creating') : t('skills.memory.evidenceAction')}
             </Button>
           </div>
         </div>
@@ -502,10 +505,10 @@ export function WorkspaceMemoryTab({ workspaceSlug, sessionId, search, embedded 
         <SettingsCard divided={false} className="min-h-0 overflow-hidden">
           <div className="flex h-full min-h-0 flex-col">
             <div className="flex items-center justify-between border-b border-border/50 px-3 py-2">
-              <div className="text-[13px] font-medium text-foreground/75">记忆文件</div>
+              <div className="text-[13px] font-medium text-foreground/75">{t('skills.memory.filesTitle')}</div>
               <button
                 type="button"
-                title="刷新"
+                title={t('common.refresh')}
                 onClick={() => void refresh()}
                 className="rounded p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
               >
@@ -519,7 +522,7 @@ export function WorkspaceMemoryTab({ workspaceSlug, sessionId, search, embedded 
                 className="mx-2 mt-2 flex items-center gap-1.5 rounded-md bg-amber-500/10 px-2 py-1.5 text-[11px] leading-relaxed text-amber-800 dark:text-amber-300"
               >
                 <AlertTriangle size={13} className="shrink-0" />
-                <span>待处理：{migrationIssues.join('、')}，请检查旧文件。</span>
+                <span>{t('skills.memory.migrationPending', { issues: migrationIssues.join(issueSeparator) })}</span>
               </div>
             )}
             <div className="min-h-0 flex-1 overflow-y-auto p-2">
@@ -527,16 +530,16 @@ export function WorkspaceMemoryTab({ workspaceSlug, sessionId, search, embedded 
                 active={selected?.kind === 'agents'}
                 icon={<FileText size={14} />}
                 label="AGENTS.md"
-                meta="Locus 工作区项目指令"
+                meta={t('skills.memory.agentsMeta')}
                 onClick={() => void openAgents(summary)}
                 onReveal={() => window.electronAPI.showItemInFolder(summary.agentsMd.path)}
               />
               <div className="mt-3 px-2 pb-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground/70">
-                长期记忆
+                {t('skills.memory.autoMemorySection')}
               </div>
               <div className="space-y-0.5">
                 {visibleAutoFiles.length === 0 ? (
-                  <div className="px-2 py-6 text-center text-xs text-muted-foreground">没有匹配的记忆文件</div>
+                  <div className="px-2 py-6 text-center text-xs text-muted-foreground">{t('skills.memory.noMatchFiles')}</div>
                 ) : (
                   visibleAutoFiles.map((node) => (
                     <MemoryTreeNode
@@ -569,22 +572,22 @@ export function WorkspaceMemoryTab({ workspaceSlug, sessionId, search, embedded 
             <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border/50 px-4 py-3">
               <div className="min-w-0">
                 <div className="truncate text-sm font-medium text-foreground">
-                  {selected?.title ?? '未选择文件'}
+                  {selected?.title ?? t('skills.memory.noFileSelected')}
                 </div>
                 <div className="mt-0.5 truncate font-mono text-[11px] text-muted-foreground">
-                  {selected?.absolutePath ?? '从左侧选择一个记忆文件'}
+                  {selected?.absolutePath ?? t('skills.memory.pickFileHint')}
                 </div>
               </div>
 
             </div>
             {saveConflict && (
               <div className="mx-4 mt-3 flex items-center justify-between gap-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-300">
-                <span>文件已被外部更新，已停止保存以避免覆盖。请复制你的修改后刷新文件。</span>
-                <Button size="sm" variant="outline" className="h-7 shrink-0 px-2 text-xs" onClick={() => void refresh()}>刷新文件</Button>
+                <span>{t('skills.memory.externalUpdateConflict')}</span>
+                <Button size="sm" variant="outline" className="h-7 shrink-0 px-2 text-xs" onClick={() => void refresh()}>{t('skills.memory.refreshFile')}</Button>
               </div>
             )}
             {loadingFile ? (
-              <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">读取文件中...</div>
+              <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">{t('skills.memory.readingFile')}</div>
             ) : selected ? (
               <div className="min-h-0 flex-1 overflow-y-auto">
                 <LiveMarkdownEditor
@@ -599,7 +602,7 @@ export function WorkspaceMemoryTab({ workspaceSlug, sessionId, search, embedded 
                 />
               </div>
             ) : (
-              <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">从左侧选择一个记忆文件</div>
+              <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">{t('skills.memory.pickFileHint')}</div>
             )}
           </div>
         </SettingsCard>
@@ -623,6 +626,7 @@ function FileButton({
   onClick: () => void
   onReveal: () => void
 }): React.ReactElement {
+  const t = useT()
   return (
     <div className="flex items-center gap-0.5">
       <button
@@ -643,12 +647,12 @@ function FileButton({
             type="button"
             onClick={onReveal}
             className="flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-            aria-label={`打开 ${label} 所在位置`}
+            aria-label={t('skills.memory.revealAria', { name: label })}
           >
             <FolderOpen size={13} />
           </button>
         </TooltipTrigger>
-        <TooltipContent side="right">打开文件所在位置</TooltipContent>
+        <TooltipContent side="right">{t('skills.memory.revealTooltip')}</TooltipContent>
       </Tooltip>
     </div>
   )
@@ -673,6 +677,7 @@ function MemoryTreeNode({
   onOpen: (path: string) => void
   onReveal: (path: string) => void
 }): React.ReactElement {
+  const t = useT()
   const isDirectory = node.type === 'directory'
   const isExpanded = expanded.has(node.relativePath)
   const isActive = selectedPath === node.relativePath
@@ -711,12 +716,12 @@ function MemoryTreeNode({
                 type="button"
                 onClick={() => onReveal(node.relativePath)}
                 className="flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-                aria-label={`打开 ${node.name} 所在位置`}
+                aria-label={t('skills.memory.revealAria', { name: node.name })}
               >
                 <FolderOpen size={13} />
               </button>
             </TooltipTrigger>
-            <TooltipContent side="right">打开文件所在位置</TooltipContent>
+            <TooltipContent side="right">{t('skills.memory.revealTooltip')}</TooltipContent>
           </Tooltip>
         )}
       </div>

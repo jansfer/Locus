@@ -12,6 +12,7 @@ import { parseDiffFromFile, type FileContents, type FileDiffMetadata } from '@pi
 import { resolvedThemeAtom } from '@/atoms/theme'
 import { currentAgentSessionIdAtom } from '@/atoms/agent-atoms'
 import { PIERRE_DIFF_CSS } from './pierre-styles'
+import { useT } from '@/i18n'
 
 function cheapHash(s: string): number {
   let h = 0
@@ -84,6 +85,7 @@ function offsetFileDiffLineNumbers(fileDiff: FileDiffMetadata, lineNumberStart: 
 }
 
 export function EditResultRenderer({ result, isError, input, basePath }: EditResultRendererProps): React.ReactElement {
+  const t = useT()
   const theme = useAtomValue(resolvedThemeAtom)
   const sessionId = useAtomValue(currentAgentSessionIdAtom)
   const oldStr = typeof input.old_string === 'string' ? input.old_string : ''
@@ -166,7 +168,7 @@ export function EditResultRenderer({ result, isError, input, basePath }: EditRes
   if (!oldStr && !newStr) {
     return (
       <div className="text-[12px] text-muted-foreground">
-        {result || '编辑成功'}
+        {result || t('agentMisc.toolResult.editSucceeded')}
       </div>
     )
   }
@@ -174,7 +176,7 @@ export function EditResultRenderer({ result, isError, input, basePath }: EditRes
   if (!fileDiff) {
     return (
       <div className="text-[12px] text-muted-foreground">
-        {result || '编辑成功'}
+        {result || t('agentMisc.toolResult.editSucceeded')}
       </div>
     )
   }

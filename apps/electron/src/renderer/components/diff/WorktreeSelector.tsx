@@ -1,6 +1,7 @@
 import * as React from 'react'
 import { ChevronDown, GitBranch, RotateCw, SquareTerminal } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useT } from '@/i18n'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import type { WorktreeInfo, WorkspaceWorktreeRepo } from '@proma/shared'
 import { normalizePathForCompare } from '@proma/shared'
@@ -35,6 +36,7 @@ export function WorktreeSelector({
   onSelect,
   onOpenTerminal,
 }: WorktreeSelectorProps): React.ReactElement {
+  const t = useT()
   const [repoWorktrees, setRepoWorktrees] = React.useState<RepoWorktrees[]>([])
   const [isOpen, setIsOpen] = React.useState(false)
   // 初次挂载即保留工具栏高度，避免切回「改动」Tab 后选择器异步出现而推挤文件列表。
@@ -140,10 +142,10 @@ export function WorktreeSelector({
             <GitBranch className="size-3.5 shrink-0 text-primary" />
             <span className="min-w-0 flex-1">
               <span className="block truncate text-xs font-medium leading-4">
-                {selectedWorktree?.branch ?? '选择开发 Worktree'}
+                {selectedWorktree?.branch ?? t('diff.worktree.select')}
               </span>
               <span className="block truncate text-[10px] leading-3 text-muted-foreground">
-                {selectedWorktree ? getPathBasename(selectedWorktree.path) : '会话改动'}
+                {selectedWorktree ? getPathBasename(selectedWorktree.path) : t('diff.worktree.sessionChanges')}
               </span>
             </span>
             <ChevronDown className={cn('size-3.5 shrink-0 text-muted-foreground transition-transform', isOpen && 'rotate-180')} />
@@ -161,27 +163,27 @@ export function WorktreeSelector({
                 type="button"
                 onClick={() => onOpenTerminal(selectedWorktree)}
                 className="inline-flex size-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-[background-color,color,transform] hover:bg-muted hover:text-foreground active:scale-[0.96]"
-                aria-label={`在 ${selectedWorktree.branch} 打开终端`}
+                aria-label={t('diff.list.openTerminalIn', { name: selectedWorktree.branch })}
               >
                 <SquareTerminal className="size-4" />
               </button>
             </TooltipTrigger>
-            <TooltipContent side="bottom">在右侧标签中打开终端</TooltipContent>
+            <TooltipContent side="bottom">{t('diff.list.openTerminalSide')}</TooltipContent>
           </Tooltip>
         )}
         <button
           type="button"
           onClick={() => void fetchWorktrees()}
           className="inline-flex size-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-[background-color,color,transform] hover:bg-muted hover:text-foreground active:scale-[0.96]"
-          title="刷新 Worktree 列表"
-          aria-label="刷新 Worktree 列表"
+          title={t('diff.worktree.refresh')}
+          aria-label={t('diff.worktree.refresh')}
         >
           <RotateCw className={cn('size-3.5', isLoading && 'animate-spin')} />
         </button>
       </div>
 
       {isOpen && (
-        <div className="absolute inset-x-2 top-full z-50 mt-1 overflow-hidden rounded-xl border border-border bg-popover p-1 shadow-lg" aria-label="开发 Worktree">
+        <div className="absolute inset-x-2 top-full z-50 mt-1 overflow-hidden rounded-xl border border-border bg-popover p-1 shadow-lg" aria-label={t('diff.worktree.menuAria')}>
           <button
             type="button"
             onClick={() => {
@@ -195,8 +197,8 @@ export function WorktreeSelector({
           >
             <GitBranch className="size-3.5 shrink-0 text-muted-foreground" />
             <span className="min-w-0 flex-1">
-              <span className="block leading-4">会话改动</span>
-              <span className="block truncate text-[10px] leading-3 text-muted-foreground">显示此会话直接产生的改动</span>
+              <span className="block leading-4">{t('diff.worktree.sessionChanges')}</span>
+              <span className="block truncate text-[10px] leading-3 text-muted-foreground">{t('diff.worktree.sessionChangesHint')}</span>
             </span>
           </button>
           <div className="my-1 h-px bg-border/70" />
@@ -235,8 +237,8 @@ export function WorktreeSelector({
                           type="button"
                           onClick={() => onOpenTerminal(wt)}
                           className="mr-1 inline-flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-[background-color,color,opacity,transform] hover:bg-background/80 hover:text-foreground group-hover:opacity-100 focus-visible:opacity-100 active:scale-[0.96]"
-                          title={`在 ${wt.branch} 打开终端`}
-                          aria-label={`在 ${wt.branch} 打开终端`}
+                          title={t('diff.list.openTerminalIn', { name: wt.branch })}
+                          aria-label={t('diff.list.openTerminalIn', { name: wt.branch })}
                         >
                           <SquareTerminal className="size-3.5" />
                         </button>

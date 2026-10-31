@@ -1,4 +1,5 @@
 import type { QuotedSelection, QuotedSelectionSourceType } from '@/atoms/preview-atoms'
+import { t } from '@/i18n'
 
 export interface ParsedQuotedSelectionRef {
   path: string
@@ -146,8 +147,9 @@ function parseAgentHistoryQuotePayload(payload: string): QuotedSelection | null 
 /** 构建内联 Agent 历史引用 chip 的固定展示文案。 */
 export function buildAgentHistoryQuoteLabel(quote: Pick<QuotedSelection, 'text' | 'turn'>): string {
   const preview = Array.from(quote.text.replace(/\s+/g, ' ').trim()).slice(0, 25).join('')
-  const prefix = isPositiveInteger(quote.turn) ? `第${quote.turn}轮` : '历史引用'
-  return `${prefix}：${preview}`
+  return isPositiveInteger(quote.turn)
+    ? t('misc.session.historyQuoteRound', { turn: quote.turn, preview })
+    : t('misc.session.historyQuoteFallback', { preview })
 }
 
 /** 将可定位的 Agent 历史选区编码为 TipTap 草稿和队列使用的内联 marker。 */
@@ -329,7 +331,7 @@ export function parseQuotedSelectionRefs(
     const sourceMatch = quoteMatch[0].match(/source="([^"]*)"/)
     const messageIdMatch = quoteMatch[0].match(/message_id="([^"]*)"/)
     const roleMatch = quoteMatch[0].match(/role="([^"]*)"/)
-    const label = labelMatch ? decodeXmlAttribute(labelMatch[1]!) : 'Agent 历史'
+    const label = labelMatch ? decodeXmlAttribute(labelMatch[1]!) : t('misc.session.agentHistoryLabel')
     const sourceType = normalizeContextSourceType(sourceMatch ? decodeXmlAttribute(sourceMatch[1]!) : 'agent-history')
     const quoteBodyMatch = quoteMatch[0].match(/>\r?\n([\s\S]*?)\r?\n<\/quoted_context>/)
     const turnMatch = quoteMatch[0].match(/\bturn="(\d+)"/)

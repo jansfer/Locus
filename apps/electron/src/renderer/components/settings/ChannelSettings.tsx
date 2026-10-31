@@ -12,6 +12,7 @@ import { Switch } from '@/components/ui/switch'
 import { PROVIDER_LABELS } from '@proma/shared'
 import type { Channel } from '@proma/shared'
 import { getChannelLogo } from '@/lib/model-logo'
+import { useT } from '@/i18n'
 import { agentChannelIdAtom, agentModelIdAtom } from '@/atoms/agent-atoms'
 import { channelsAtom } from '@/atoms/chat-atoms'
 import { SettingsSection, SettingsCard, SettingsRow } from './primitives'
@@ -31,6 +32,7 @@ import { ChannelForm } from './ChannelForm'
 type ViewMode = 'list' | 'create' | 'edit'
 
 export function ChannelSettings(): React.ReactElement {
+  const t = useT()
   const [channels, setChannels] = React.useState<Channel[]>([])
   const [viewMode, setViewMode] = React.useState<ViewMode>('list')
   const [editingChannel, setEditingChannel] = React.useState<Channel | null>(null)
@@ -138,12 +140,12 @@ export function ChannelSettings(): React.ReactElement {
     <div className="space-y-8">
       {/* 区块一：模型配置 */}
       <SettingsSection
-        title="模型配置"
-        description="管理 AI 供应商连接，配置 API Key 和可用模型。"
+        title={t('settings.channels.sectionTitle')}
+        description={t('settings.channels.sectionDesc')}
         action={
           <Button size="sm" onClick={() => setViewMode('create')}>
             <Plus size={16} />
-            <span>添加配置</span>
+            <span>{t('settings.channels.addConfig')}</span>
           </Button>
         }
       >
@@ -159,11 +161,11 @@ export function ChannelSettings(): React.ReactElement {
           />
         )}
         {loading ? (
-          <div className="text-sm text-muted-foreground py-8 text-center">加载中...</div>
+          <div className="text-sm text-muted-foreground py-8 text-center">{t('common.loading')}</div>
         ) : channels.length === 0 ? (
           <SettingsCard divided={false}>
             <div className="text-sm text-muted-foreground py-12 text-center">
-              还没有配置任何模型，点击上方"添加配置"开始
+              {t('settings.channels.emptyChannels')}
             </div>
           </SettingsCard>
         ) : (
@@ -188,14 +190,14 @@ export function ChannelSettings(): React.ReactElement {
       <AlertDialog open={deleteTarget !== null} onOpenChange={(open) => { if (!open) setDeleteTarget(null) }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>确定删除渠道？</AlertDialogTitle>
+            <AlertDialogTitle>{t('settings.channels.deleteTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
-              确定删除渠道「{deleteTarget?.name}」？此操作不可恢复。
+              {t('settings.channels.deleteDesc', { name: deleteTarget?.name ?? '' })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setDeleteTarget(null)}>取消</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteConfirm}>确认删除</AlertDialogAction>
+            <AlertDialogCancel onClick={() => setDeleteTarget(null)}>{t('common.cancel')}</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteConfirm}>{t('common.delete')}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -212,6 +214,7 @@ function AuthorizationSuccessNotice({
   onViewModels: () => void
   onDismiss: () => void
 }): React.ReactElement {
+  const t = useT()
   const enabledModelCount = channel.models.filter((model) => model.enabled).length
   return (
     <div
@@ -221,9 +224,9 @@ function AuthorizationSuccessNotice({
     >
       <CheckCircle2 size={20} className="mt-0.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium text-wrap-pretty">GitHub Copilot 已授权并保存</p>
+        <p className="text-sm font-medium text-wrap-pretty">{t('settings.channels.copilotAuthorizedSaved')}</p>
         <p className="mt-0.5 text-xs leading-5 text-emerald-800/80 dark:text-emerald-200/80">
-          已启用 <span className="font-medium tabular-nums">{enabledModelCount}</span> 个当前订阅可用模型；现在可在 Agent 的模型选择器中使用。
+          {t('settings.channels.copilotAuthorizedDesc', { n: enabledModelCount })}
         </p>
         <Button
           type="button"
@@ -232,15 +235,15 @@ function AuthorizationSuccessNotice({
           onClick={onViewModels}
           className="mt-1 h-7 px-0 text-emerald-800 hover:text-emerald-950 dark:text-emerald-200 dark:hover:text-emerald-50"
         >
-          查看已启用模型
+          {t('settings.channels.viewEnabledModels')}
         </Button>
       </div>
       <button
         type="button"
         onClick={onDismiss}
         className="-mr-1 -mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-emerald-800/70 transition-colors hover:bg-emerald-500/10 hover:text-emerald-950 active:scale-[0.96] dark:text-emerald-200/70 dark:hover:text-emerald-50"
-        title="关闭授权成功提示"
-        aria-label="关闭授权成功提示"
+        title={t('settings.channels.dismissAuthNotice')}
+        aria-label={t('settings.channels.dismissAuthNotice')}
       >
         <X size={16} />
       </button>
@@ -258,10 +261,11 @@ interface ChannelRowProps {
 }
 
 function ChannelRow({ channel, onEdit, onDelete, onToggle }: ChannelRowProps): React.ReactElement {
+  const t = useT()
   const enabledCount = channel.models.filter((m) => m.enabled).length
   const description = [
     PROVIDER_LABELS[channel.provider],
-    enabledCount > 0 ? `${enabledCount} 个模型已启用` : undefined,
+    enabledCount > 0 ? t('settings.channels.modelsEnabledCount', { n: enabledCount }) : undefined,
   ]
     .filter(Boolean)
     .join(' · ')
@@ -280,14 +284,14 @@ function ChannelRow({ channel, onEdit, onDelete, onToggle }: ChannelRowProps): R
         <button
           onClick={onEdit}
           className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors opacity-0 group-hover:opacity-100"
-          title="编辑"
+          title={t('common.edit')}
         >
           <Pencil size={14} />
         </button>
         <button
           onClick={onDelete}
           className="p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors opacity-0 group-hover:opacity-100"
-          title="删除"
+          title={t('common.delete')}
         >
           <Trash2 size={14} />
         </button>

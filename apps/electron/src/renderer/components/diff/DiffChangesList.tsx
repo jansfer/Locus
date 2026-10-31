@@ -9,6 +9,7 @@ import { Box, ChevronDown, ChevronRight, FolderSearch, Search, SquareTerminal, U
 import { useAtomValue, useSetAtom } from 'jotai'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import { useT } from '@/i18n'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { FileTypeIcon } from '@/components/file-browser/FileTypeIcon'
 import { agentDiffUnseenFilesAtom, agentDiffDataAtom, agentNonGitFileChangesAtom, agentSelectedWorktreeAtom, agentSessionsAtom, workspaceGitDiffRefreshVersionAtom } from '@/atoms/agent-atoms'
@@ -96,6 +97,7 @@ export const DiffChangesList = React.memo(function DiffChangesList({
   currentFileChangeRunId,
   onPlainFileClick,
 }: DiffChangesListProps): React.ReactElement {
+  const t = useT()
   // Worktree 选择状态（内联 WorktreeSelector）
   const selectedWorktreeMap = useAtomValue(agentSelectedWorktreeAtom)
   const setSelectedWorktreeMap = useSetAtom(agentSelectedWorktreeAtom)
@@ -133,9 +135,9 @@ export const DiffChangesList = React.memo(function DiffChangesList({
       })
     } catch (error) {
       console.error('[DiffChangesList] 保存活动 worktree 失败:', error)
-      window.alert(`切换 worktree 失败：${error instanceof Error ? error.message : '未知错误'}`)
+      window.alert(t('diff.list.switchWorktreeFailed', { reason: error instanceof Error ? error.message : t('common.unknown') }))
     }
-  }, [sessionId, setSelectedWorktreeMap, setSessions])
+  }, [sessionId, setSelectedWorktreeMap, setSessions, t])
 
   // Diff 数据缓存：mount 时若已有上次结果，立即用作初值，避免空数组闪 1s "没有代码改动"
   const diffDataMap = useAtomValue(agentDiffDataAtom)
@@ -211,14 +213,14 @@ export const DiffChangesList = React.memo(function DiffChangesList({
 
   /** Revert 文件 */
   const handleRevert = React.useCallback(async (filePath: string, gitRoot: string) => {
-    if (!window.confirm(`确定要还原 ${filePath} 的所有变更吗？此操作不可撤销。`)) return
+    if (!window.confirm(t('diff.list.revertConfirm', { file: filePath }))) return
     try {
       await window.electronAPI.revertFile({ dirPath, filePath, gitRoot, sessionId })
       await fetchChanges()
     } catch (err) {
-      window.alert(`还原失败：${err instanceof Error ? err.message : '未知错误'}`)
+      window.alert(t('diff.list.revertFailed', { reason: err instanceof Error ? err.message : t('common.unknown') }))
     }
-  }, [dirPath, fetchChanges, sessionId])
+  }, [dirPath, fetchChanges, sessionId, t])
 
   /** 切换文件夹折叠 */
   const toggleDir = React.useCallback((dirName: string) => {
@@ -278,9 +280,9 @@ export const DiffChangesList = React.memo(function DiffChangesList({
   const handleShowDirectoryInFolder = React.useCallback((directoryPath: string) => {
     void window.electronAPI.showInFolder(directoryPath, { sessionId, unrestricted: true }).catch((error) => {
       console.error('[DiffChangesList] 在文件夹中显示目录失败:', error)
-      toast.error('无法在文件夹中显示该目录')
+      toast.error(t('diff.list.showDirectoryFailed'))
     })
-  }, [sessionId])
+  }, [sessionId, t])
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -304,9 +306,9 @@ export const DiffChangesList = React.memo(function DiffChangesList({
             <Search className="size-3 text-muted-foreground flex-shrink-0" />
             <input
               type="text"
-              aria-label="搜索改动文件"
+              aria-label={t('diff.list.searchAria')}
               className="flex-1 bg-transparent text-[11px] outline-none placeholder:text-muted-foreground/40"
-              placeholder="搜索改动文件..."
+              placeholder={t('diff.list.searchPlaceholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -317,7 +319,7 @@ export const DiffChangesList = React.memo(function DiffChangesList({
                 </span>
                 <button
                   type="button"
-                  aria-label="清除搜索"
+                  aria-label={t('diff.list.clearSearch')}
                   className="flex-shrink-0 p-0.5 rounded-sm hover:bg-foreground/[0.08] text-muted-foreground/50 hover:text-muted-foreground transition-colors"
                   onClick={() => setSearchQuery('')}
                 >
@@ -341,13 +343,13 @@ export const DiffChangesList = React.memo(function DiffChangesList({
       {!hasAnyVisibleChanges && (
         <div className="flex flex-col items-center justify-center h-full text-muted-foreground p-4">
           <p className="text-[12px] text-center">
-            {isGitRepo ? (hasFetched ? '没有文件改动' : '加载中…') : '当前目录不是 Git 仓库，或暂无文件改动'}
+            {isGitRepo ? (hasFetched ? t('diff.list.noChanges') : t('common.loading')) : t('diff.list.notGitRepo')}
           </p>
         </div>
       )}
       {hasGitChanges && isEmpty && (
         <div className="flex flex-col items-center justify-center h-full text-muted-foreground p-4">
-          <p className="text-[12px] text-center">没有匹配的代码改动</p>
+          <p className="text-[12px] text-center">{t('diff.list.noMatched')}</p>
         </div>
       )}
       {hasGitChanges && !isEmpty && (
@@ -361,12 +363,12 @@ export const DiffChangesList = React.memo(function DiffChangesList({
                     const config = DIFF_CHANGE_SOURCE_CONFIG[source]
                     return (
                       <span key={source} className={cn('shrink-0 rounded px-1 py-0.5 text-[11px] leading-none', config.color)}>
-                        {config.label}
+                        {t(config.labelKey)}
                       </span>
                     )
                   })}
                   <span className="ml-auto flex shrink-0 items-center gap-1.5 text-[11px] font-normal tabular-nums">
-                    <span className="text-muted-foreground/60">{group.fileCount} 个文件</span>
+                    <span className="text-muted-foreground/60">{t('diff.list.fileCount', { n: group.fileCount })}</span>
                     {group.totalAdditions > 0 && <span className="text-emerald-600 dark:text-emerald-400">+{group.totalAdditions}</span>}
                     {group.totalDeletions > 0 && <span className="text-red-600 dark:text-red-400">-{group.totalDeletions}</span>}
                   </span>
@@ -375,30 +377,30 @@ export const DiffChangesList = React.memo(function DiffChangesList({
                       <TooltipTrigger asChild>
                         <button
                           type="button"
-                          aria-label={`在 ${group.dirName} 打开终端`}
-                          title={`在 ${group.dirName} 打开终端`}
+                          aria-label={t('diff.list.openTerminalIn', { name: group.dirName })}
+                          title={t('diff.list.openTerminalIn', { name: group.dirName })}
                           className="inline-flex size-6 shrink-0 items-center justify-center rounded text-muted-foreground transition-[background-color,color,transform] hover:bg-accent/70 hover:text-foreground active:scale-[0.96]"
                           onClick={() => onOpenDirectoryTerminal(group.gitRoot, group.dirName)}
                         >
                           <SquareTerminal className="size-3.5" />
                         </button>
                       </TooltipTrigger>
-                      <TooltipContent side="left">在右侧标签中打开终端</TooltipContent>
+                      <TooltipContent side="left">{t('diff.list.openTerminalSide')}</TooltipContent>
                     </Tooltip>
                   )}
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <button
                         type="button"
-                        aria-label={`在文件夹中显示 ${group.dirName}`}
-                        title={`在文件夹中显示 ${group.dirName}`}
+                        aria-label={t('diff.list.showInFolderNamed', { name: group.dirName })}
+                        title={t('diff.list.showInFolderNamed', { name: group.dirName })}
                         className="inline-flex size-6 shrink-0 items-center justify-center rounded text-muted-foreground transition-[background-color,color,transform] hover:bg-accent/70 hover:text-foreground active:scale-[0.96]"
                         onClick={() => handleShowDirectoryInFolder(group.gitRoot)}
                       >
                         <FolderSearch className="size-3.5" />
                       </button>
                     </TooltipTrigger>
-                    <TooltipContent side="left">在文件夹中显示</TooltipContent>
+                    <TooltipContent side="left">{t('diff.tab.showInFolder')}</TooltipContent>
                   </Tooltip>
                 </div>
                 {group.tree.map((node) => (
@@ -461,6 +463,7 @@ function GitFileTreeNode({
   onOpenDirectoryTerminal?: (directoryPath: string, directoryName: string) => void
   onShowDirectoryInFolder: (directoryPath: string) => void
 }): React.ReactElement {
+  const t = useT()
   if (node.kind === 'file') {
     const file = node.entry
     const absPath = `${file.gitRoot || dirPath}/${file.filePath}`.replace(/\/+/g, '/')
@@ -504,30 +507,30 @@ function GitFileTreeNode({
           <TooltipTrigger asChild>
             <button
               type="button"
-              aria-label={`在 ${node.name} 打开终端`}
-              title={`在 ${node.name} 打开终端`}
+              aria-label={t('diff.list.openTerminalIn', { name: node.name })}
+              title={t('diff.list.openTerminalIn', { name: node.name })}
               className="flex size-6 shrink-0 items-center justify-center rounded text-muted-foreground transition-[background-color,color,transform] hover:bg-accent/70 hover:text-foreground active:scale-[0.96]"
               onClick={() => onOpenDirectoryTerminal(directoryPath, node.name)}
             >
               <SquareTerminal className="size-3.5" />
             </button>
           </TooltipTrigger>
-          <TooltipContent side="left">在右侧标签中打开终端</TooltipContent>
+          <TooltipContent side="left">{t('diff.list.openTerminalSide')}</TooltipContent>
         </Tooltip>
       )}
       <Tooltip>
         <TooltipTrigger asChild>
           <button
             type="button"
-            aria-label={`在文件夹中显示 ${node.name}`}
-            title={`在文件夹中显示 ${node.name}`}
+            aria-label={t('diff.list.showInFolderNamed', { name: node.name })}
+            title={t('diff.list.showInFolderNamed', { name: node.name })}
             className="flex size-6 shrink-0 items-center justify-center rounded text-muted-foreground transition-[background-color,color,transform] hover:bg-accent/70 hover:text-foreground active:scale-[0.96]"
             onClick={() => onShowDirectoryInFolder(directoryPath)}
           >
             <FolderSearch className="size-3.5" />
           </button>
         </TooltipTrigger>
-        <TooltipContent side="left">在文件夹中显示</TooltipContent>
+        <TooltipContent side="left">{t('diff.tab.showInFolder')}</TooltipContent>
       </Tooltip>
       </div>
       {!isCollapsed && (
@@ -572,6 +575,7 @@ function NonGitChangesList({
   sessionId: string
   onFileClick?: (filePath: string) => void
 }): React.ReactElement {
+  const t = useT()
   const { current, earlier } = React.useMemo(
     () => groupSessionFileChanges(changes, currentRunId),
     [changes, currentRunId],
@@ -618,8 +622,8 @@ function NonGitChangesList({
   }, [earlier, sessionId, setNonGitFileChanges])
   const hasEarlierChanges = earlier.length > 0
   const title = hasEarlierChanges
-    ? `本会话文件变更 · ${changes.length}`
-    : `本会话文件变更 · 本轮 · ${current.length}`
+    ? t('diff.list.sessionChanges', { n: changes.length })
+    : t('diff.list.sessionChangesThisRun', { n: current.length })
   const [isExpanded, setIsExpanded] = React.useState(true)
   const contentId = React.useId()
 
@@ -639,13 +643,13 @@ function NonGitChangesList({
         )}
         <Box className="size-3.5 shrink-0" aria-hidden="true" />
         <span className="min-w-0 flex-1 truncate">{title}</span>
-        <span className="sr-only">{isExpanded ? '，点击折叠' : '，点击展开'}</span>
+        <span className="sr-only">{isExpanded ? t('diff.list.collapseHint') : t('diff.list.expandHint')}</span>
       </button>
       <div id={contentId} hidden={!isExpanded}>
         {hasEarlierChanges ? (
           <>
-            {current.length > 0 && <NonGitRunGroup title="本轮" changes={current} sessionId={sessionId} onFileClick={onFileClick} />}
-            <NonGitRunGroup title="更早" changes={earlier} sessionId={sessionId} onFileClick={onFileClick} collapsible defaultCollapsed />
+            {current.length > 0 && <NonGitRunGroup title={t('diff.list.thisRun')} changes={current} sessionId={sessionId} onFileClick={onFileClick} />}
+            <NonGitRunGroup title={t('diff.list.earlier')} changes={earlier} sessionId={sessionId} onFileClick={onFileClick} collapsible defaultCollapsed />
           </>
         ) : (
           <NonGitFileList changes={current} sessionId={sessionId} onFileClick={onFileClick} />
@@ -672,6 +676,7 @@ function NonGitRunGroup({
 }): React.ReactElement {
   const [isExpanded, setIsExpanded] = React.useState(!defaultCollapsed)
   const contentId = React.useId()
+  const t = useT()
   const headerClassName = "flex w-full items-center gap-1.5 px-3 py-1 text-left text-[11px] font-medium text-muted-foreground tabular-nums"
   const headerContent = (
     <>
@@ -681,7 +686,7 @@ function NonGitRunGroup({
         <ChevronRight className="size-3 shrink-0 transition-transform duration-150" aria-hidden="true" />
       ))}
       <span>{title} · {changes.length}</span>
-      {collapsible && <span className="sr-only">{isExpanded ? '，点击折叠' : '，点击展开'}</span>}
+      {collapsible && <span className="sr-only">{isExpanded ? t('diff.list.collapseHint') : t('diff.list.expandHint')}</span>}
     </>
   )
 
@@ -716,6 +721,7 @@ function NonGitFileList({
   sessionId: string
   onFileClick?: (filePath: string) => void
 }): React.ReactElement {
+  const t = useT()
   return (
     <div>
       {changes.map((change) => {
@@ -743,11 +749,11 @@ function NonGitFileList({
               <TooltipTrigger asChild>
                 <button
                   type="button"
-                  aria-label="在文件夹中显示"
+                  aria-label={t('diff.tab.showInFolder')}
                   onClick={() => {
                     void window.electronAPI.showInFolder(change.path, { sessionId, unrestricted: true }).catch((error) => {
                       console.error('[DiffChangesList] 在文件夹中显示失败:', error)
-                      toast.error('无法在文件夹中显示该文件')
+                      toast.error(t('diff.list.showFileFailed'))
                     })
                   }}
                   className="mr-1 flex size-8 shrink-0 items-center justify-center rounded text-muted-foreground hover:bg-foreground/[0.08] hover:text-foreground"
@@ -755,7 +761,7 @@ function NonGitFileList({
                   <FolderSearch className="size-3.5" />
                 </button>
               </TooltipTrigger>
-              <TooltipContent side="left">在文件夹中显示</TooltipContent>
+              <TooltipContent side="left">{t('diff.tab.showInFolder')}</TooltipContent>
             </Tooltip>
           </div>
         )
@@ -786,6 +792,7 @@ function FileRow({
   isUnseen?: boolean
   dirPath: string
 }): React.ReactElement {
+  const t = useT()
   const fileName = file.filePath.split('/').pop()!
   const fullPath = `${file.gitRoot || dirPath}/${file.filePath}`.replace(/\/+/g, '/')
   const hasLineChanges = file.additions > 0 || file.deletions > 0
@@ -841,7 +848,7 @@ function FileRow({
           <TooltipTrigger asChild>
             <button
               type="button"
-              aria-label="还原文件变更"
+              aria-label={t('diff.list.revertFile')}
               className="absolute right-7 top-1/2 flex size-5 -translate-y-1/2 items-center justify-center text-foreground/35 opacity-0 transition-opacity hover:text-foreground/80 focus-visible:text-foreground/80 focus-visible:opacity-100 focus-visible:outline-none group-hover/file:opacity-100"
               onClick={(event) => {
                 event.stopPropagation()
@@ -851,7 +858,7 @@ function FileRow({
               <Undo2 className="size-3.5" />
             </button>
           </TooltipTrigger>
-          <TooltipContent side="bottom">还原文件变更</TooltipContent>
+          <TooltipContent side="bottom">{t('diff.list.revertFile')}</TooltipContent>
         </Tooltip>
       )}
 
@@ -867,10 +874,11 @@ function GitStatusMarker({
   status: ChangedFileStatus
   className?: string
 }): React.ReactElement {
+  const t = useT()
   const config: Record<ChangedFileStatus, { label: string; description: string; color: string }> = {
-    modified: { label: 'M', description: '已修改', color: 'text-amber-500' },
-    deleted: { label: 'D', description: '已删除', color: 'text-red-500' },
-    untracked: { label: 'U', description: '未追踪', color: 'text-emerald-500' },
+    modified: { label: 'M', description: t('diff.list.statusModified'), color: 'text-amber-500' },
+    deleted: { label: 'D', description: t('diff.list.statusDeleted'), color: 'text-red-500' },
+    untracked: { label: 'U', description: t('diff.list.statusUntracked'), color: 'text-emerald-500' },
   }
   const { label, description, color } = config[status]
 

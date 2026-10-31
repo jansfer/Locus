@@ -16,6 +16,7 @@ import type { PromaPermissionMode } from '@proma/shared'
 import { PROMA_PERMISSION_MODE_CONFIG, PROMA_PERMISSION_MODE_ORDER } from '@proma/shared'
 import { getDisplayedPermissionMode, updatePlanModeSessionSet } from '@/lib/agent-plan-mode'
 import { inputToolbarButtonClass } from '@/components/ai-elements/input-toolbar-styles'
+import { useT } from '@/i18n'
 
 const MODE_ICONS: Record<PromaPermissionMode, React.ComponentType<{ className?: string }>> = {
   bypassPermissions: Zap,
@@ -88,6 +89,7 @@ export function PermissionModeSelector({ sessionId }: PermissionModeSelectorProp
 
   const config = PROMA_PERMISSION_MODE_CONFIG[displayMode]
   const Icon = MODE_ICONS[displayMode]
+  const t = useT()
 
   return (
     <TooltipProvider delayDuration={300} disableHoverableContent>
@@ -107,7 +109,7 @@ export function PermissionModeSelector({ sessionId }: PermissionModeSelectorProp
         <TooltipContent side="bottom" className="max-w-[200px]">
           <p className="font-medium">{config.label}</p>
           <p className="text-xs text-muted-foreground mt-0.5">{config.description}</p>
-          <p className="text-xs text-muted-foreground mt-1">点击切换模式</p>
+          <p className="text-xs text-muted-foreground mt-1">{t('agentMisc.clickToSwitchMode')}</p>
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>

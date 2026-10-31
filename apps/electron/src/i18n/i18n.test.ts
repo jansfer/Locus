@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test'
+import { describe, expect, test, afterEach } from 'bun:test'
 import { getI18nLanguage, setI18nLanguage, t, formatDate, formatNumber, currentLocaleTag } from './core'
 import { resolveLanguage } from './resolve-language'
 import { APP_LANGUAGES, isAppLanguage, type MessageKey } from './types'
@@ -166,3 +166,8 @@ function lookup(dict: unknown, key: string): string | undefined {
   }
   return typeof current === 'string' ? current : undefined
 }
+
+// 语言状态是模块级单例：测试结束后必须恢复默认，避免污染同进程的后续测试。
+afterEach(() => {
+  setI18nLanguage('zh-CN')
+})

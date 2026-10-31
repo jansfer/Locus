@@ -15,6 +15,7 @@ import { SettingsCard } from './primitives/SettingsCard'
 import { SettingsInput } from './primitives/SettingsInput'
 import { SettingsSecretInput } from './primitives/SettingsSecretInput'
 import { dingtalkBotStatesAtom } from '@/atoms/dingtalk-atoms'
+import { useT } from '@/i18n'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -48,17 +49,18 @@ function Link({ href, children }: { href: string; children: React.ReactNode }): 
   )
 }
 
-/** 状态指示器颜色映射 */
-const STATUS_CONFIG: Record<DingTalkBridgeStatus, { color: string; label: string }> = {
-  disconnected: { color: 'bg-gray-400', label: '未连接' },
-  connecting: { color: 'bg-amber-400 animate-pulse', label: '连接中...' },
-  connected: { color: 'bg-green-500', label: '已连接' },
-  error: { color: 'bg-red-500', label: '连接错误' },
+/** 状态指示器颜色映射（label 存状态枚举名，渲染处经词典转换；当前未直接渲染 label） */
+const STATUS_CONFIG: Record<DingTalkBridgeStatus, { color: string; label: DingTalkBridgeStatus }> = {
+  disconnected: { color: 'bg-gray-400', label: 'disconnected' },
+  connecting: { color: 'bg-amber-400 animate-pulse', label: 'connecting' },
+  connected: { color: 'bg-green-500', label: 'connected' },
+  error: { color: 'bg-red-500', label: 'error' },
 }
 
 // ===== 主组件 =====
 
 export function DingTalkSettings(): React.ReactElement {
+  const t = useT()
   const botStates = useAtomValue(dingtalkBotStatesAtom)
   const [bots, setBots] = React.useState<DingTalkBotConfig[]>([])
   const [loading, setLoading] = React.useState(true)
@@ -74,7 +76,7 @@ export function DingTalkSettings(): React.ReactElement {
         if (oldConfig.clientId) {
           setBots([{
             id: 'legacy',
-            name: '钉钉助手',
+            name: t('settingsIntegrations.dingtalk.legacyBotName'),
             enabled: oldConfig.enabled,
             clientId: oldConfig.clientId,
             clientSecret: oldConfig.clientSecret,
@@ -84,23 +86,23 @@ export function DingTalkSettings(): React.ReactElement {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [t])
 
   React.useEffect(() => { loadBots() }, [loadBots])
 
   const handleAddBot = React.useCallback(async () => {
     try {
       const saved = await window.electronAPI.saveDingTalkBotConfig({
-        name: `钉钉助手 ${bots.length + 1}`,
+        name: t('settingsIntegrations.dingtalk.defaultBotName', { n: bots.length + 1 }),
         enabled: false,
         clientId: '',
         clientSecret: '',
       })
       setBots((prev) => [...prev, saved])
     } catch {
-      toast.error('创建 Bot 失败')
+      toast.error(t('settingsIntegrations.shared.createBotFailed'))
     }
-  }, [bots.length])
+  }, [bots.length, t])
 
   if (loading) {
     return (
@@ -114,19 +116,19 @@ export function DingTalkSettings(): React.ReactElement {
     <div className="space-y-8">
       {/* Bot 列表 */}
       <SettingsSection
-        title="钉钉 Bot 列表"
-        description="管理多个钉钉机器人，每个 Bot 可绑定不同的项目和模型"
+        title={t('settingsIntegrations.dingtalk.botListTitle')}
+        description={t('settingsIntegrations.dingtalk.botListDesc')}
         action={
           <Button size="sm" variant="outline" onClick={handleAddBot}>
             <Plus size={14} className="mr-1.5" />
-            添加 Bot
+            {t('settingsIntegrations.shared.addBot')}
           </Button>
         }
       >
         {bots.length === 0 ? (
           <SettingsCard divided={false}>
             <div className="px-4 py-8 text-center text-sm text-muted-foreground">
-              还没有配置钉钉 Bot。点击「添加 Bot」开始。
+              {t('settingsIntegrations.dingtalk.botListEmpty')}
             </div>
           </SettingsCard>
         ) : (
@@ -146,8 +148,8 @@ export function DingTalkSettings(): React.ReactElement {
 
       {/* 创建钉钉机器人引导 */}
       <SettingsSection
-        title="创建钉钉机器人"
-        description="按以下步骤在钉钉开放平台创建企业内部应用"
+        title={t('settingsIntegrations.dingtalk.guideTitle')}
+        description={t('settingsIntegrations.dingtalk.guideDesc')}
       >
         <SettingsCard divided={false}>
           <div className="px-4 py-4 space-y-5 text-sm">
@@ -155,12 +157,12 @@ export function DingTalkSettings(): React.ReactElement {
             <div className="space-y-1.5">
               <div className="flex items-center gap-2">
                 <span className="flex-shrink-0 w-5 h-5 rounded-full bg-primary/10 text-primary text-xs font-semibold flex items-center justify-center">1</span>
-                <span className="font-medium text-foreground">创建企业内部应用</span>
+                <span className="font-medium text-foreground">{t('settingsIntegrations.dingtalk.step1Title')}</span>
               </div>
               <p className="pl-7 text-muted-foreground">
-                前往{' '}
-                <Link href="https://open-dev.dingtalk.com">钉钉开放平台</Link>
-                ，点击「创建应用」，选择「企业内部开发」，填写应用信息。
+                {t('settingsIntegrations.dingtalk.step1Before')}
+                <Link href="https://open-dev.dingtalk.com">{t('settingsIntegrations.dingtalk.openPlatform')}</Link>
+                {t('settingsIntegrations.dingtalk.step1After')}
               </p>
             </div>
 
@@ -168,13 +170,14 @@ export function DingTalkSettings(): React.ReactElement {
             <div className="space-y-1.5">
               <div className="flex items-center gap-2">
                 <span className="flex-shrink-0 w-5 h-5 rounded-full bg-primary/10 text-primary text-xs font-semibold flex items-center justify-center">2</span>
-                <span className="font-medium text-foreground">获取凭证</span>
+                <span className="font-medium text-foreground">{t('settingsIntegrations.dingtalk.step2Title')}</span>
               </div>
               <p className="pl-7 text-muted-foreground">
-                进入应用详情页，在「凭证与基础信息」中找到{' '}
-                <span className="text-foreground font-medium">Client ID (AppKey)</span> 和{' '}
-                <span className="text-foreground font-medium">Client Secret (AppSecret)</span>，
-                复制到上方配置表单中。
+                {t('settingsIntegrations.dingtalk.step2Before')}
+                <span className="text-foreground font-medium">Client ID (AppKey)</span>
+                {t('settingsIntegrations.dingtalk.step2Mid')}
+                <span className="text-foreground font-medium">Client Secret (AppSecret)</span>
+                {t('settingsIntegrations.dingtalk.step2After')}
               </p>
             </div>
 
@@ -182,12 +185,12 @@ export function DingTalkSettings(): React.ReactElement {
             <div className="space-y-1.5">
               <div className="flex items-center gap-2">
                 <span className="flex-shrink-0 w-5 h-5 rounded-full bg-primary/10 text-primary text-xs font-semibold flex items-center justify-center">3</span>
-                <span className="font-medium text-foreground">添加机器人能力并保存连接</span>
+                <span className="font-medium text-foreground">{t('settingsIntegrations.dingtalk.step3Title')}</span>
               </div>
               <p className="pl-7 text-muted-foreground">
-                在「应用能力」中启用机器人功能。
-                然后回到 Locus，<span className="text-foreground font-medium">先点击「保存配置」</span>，
-                确认状态变为「已连接」后，再去钉钉后台配置事件订阅（选择 Stream 模式）。
+                {t('settingsIntegrations.dingtalk.step3Before')}
+                <span className="text-foreground font-medium">{t('settingsIntegrations.dingtalk.step3Highlight')}</span>
+                {t('settingsIntegrations.dingtalk.step3After')}
               </p>
             </div>
 
@@ -195,18 +198,17 @@ export function DingTalkSettings(): React.ReactElement {
             <div className="space-y-1.5">
               <div className="flex items-center gap-2">
                 <span className="flex-shrink-0 w-5 h-5 rounded-full bg-primary/10 text-primary text-xs font-semibold flex items-center justify-center">4</span>
-                <span className="font-medium text-foreground">配置权限并发布</span>
+                <span className="font-medium text-foreground">{t('settingsIntegrations.dingtalk.step4Title')}</span>
               </div>
               <p className="pl-7 text-muted-foreground">
-                在「权限管理」中申请所需权限（消息收发、群组管理等），
-                然后发布应用版本，等待企业管理员审批通过。
+                {t('settingsIntegrations.dingtalk.step4Desc')}
               </p>
             </div>
 
             {/* 提示 */}
             <div className="pl-7 p-3 rounded-lg bg-amber-500/10 text-amber-700 dark:text-amber-400 text-xs">
-              <span className="font-medium">重要：</span>配置事件订阅前，必须先在 Locus 中保存凭证并确认 Stream 连接成功，
-              否则钉钉后台会提示「Stream 模式接入失败」。
+              <span className="font-medium">{t('settingsIntegrations.dingtalk.importantLabel')}</span>
+              {t('settingsIntegrations.dingtalk.eventSubNote')}
             </div>
           </div>
         </SettingsCard>
@@ -225,6 +227,7 @@ interface BotConfigCardProps {
 }
 
 function BotConfigCard({ bot, state, onSaved, onRemoved }: BotConfigCardProps): React.ReactElement {
+  const t = useT()
   const [name, setName] = React.useState(bot.name)
   const [clientId, setClientId] = React.useState(bot.clientId)
   const [clientSecret, setClientSecret] = React.useState('')
@@ -259,12 +262,12 @@ function BotConfigCard({ bot, state, onSaved, onRemoved }: BotConfigCardProps): 
         clientId: clientId.trim(),
         clientSecret: clientSecret || '',
       })
-      toast.success(`Bot "${name}" 已保存`)
+      toast.success(t('settingsIntegrations.shared.botSaved', { name }))
       onSaved()
     } catch {
-      toast.error('保存配置失败')
+      toast.error(t('settingsIntegrations.shared.saveFailed'))
     }
-  }, [bot.id, name, clientId, clientSecret, onSaved])
+  }, [bot.id, name, clientId, clientSecret, onSaved, t])
 
   const handleTest = React.useCallback(async () => {
     if (!clientId.trim() || !clientSecret.trim()) return
@@ -274,35 +277,35 @@ function BotConfigCard({ bot, state, onSaved, onRemoved }: BotConfigCardProps): 
       const result = await window.electronAPI.testDingTalkConnection(clientId.trim(), clientSecret.trim())
       setTestResult(result)
     } catch (err) {
-      setTestResult({ success: false, message: `测试失败: ${err instanceof Error ? err.message : String(err)}` })
+      setTestResult({ success: false, message: t('settingsIntegrations.shared.testFailed', { message: err instanceof Error ? err.message : String(err) }) })
     } finally {
       setTesting(false)
     }
-  }, [clientId, clientSecret])
+  }, [clientId, clientSecret, t])
 
   const handleToggle = React.useCallback(async () => {
     if (isConnected) {
       await window.electronAPI.stopDingTalkBot(bot.id)
-      toast.success(`Bot "${bot.name}" 已停止`)
+      toast.success(t('settingsIntegrations.shared.botStopped', { name: bot.name }))
     } else {
       try {
         await window.electronAPI.startDingTalkBot(bot.id)
-        toast.success(`Bot "${bot.name}" 启动中...`)
+        toast.success(t('settingsIntegrations.shared.botStarting', { name: bot.name }))
       } catch (err) {
-        toast.error(err instanceof Error ? err.message : '启动失败')
+        toast.error(err instanceof Error ? err.message : t('settingsIntegrations.shared.startFailed'))
       }
     }
-  }, [bot.id, bot.name, isConnected])
+  }, [bot.id, bot.name, isConnected, t])
 
   const handleRemove = React.useCallback(async () => {
     try {
       await window.electronAPI.removeDingTalkBot(bot.id)
-      toast.success(`Bot "${bot.name}" 已删除`)
+      toast.success(t('settingsIntegrations.shared.botDeleted', { name: bot.name }))
       onRemoved()
     } catch {
-      toast.error('删除失败')
+      toast.error(t('settingsIntegrations.shared.deleteFailed'))
     }
-  }, [bot.id, bot.name, onRemoved])
+  }, [bot.id, bot.name, onRemoved, t])
 
   return (
     <SettingsCard>
@@ -314,20 +317,20 @@ function BotConfigCard({ bot, state, onSaved, onRemoved }: BotConfigCardProps): 
       >
         <div className="flex items-center gap-3">
           <span className={`w-2 h-2 rounded-full flex-shrink-0 ${statusConfig.color}`} />
-          <span className="font-medium text-sm">{bot.name || '未命名 Bot'}</span>
-          <span className="text-xs text-muted-foreground">{bot.clientId ? bot.clientId.slice(0, 12) + '...' : '未配置'}</span>
+          <span className="font-medium text-sm">{bot.name || t('settingsIntegrations.shared.unnamedBot')}</span>
+          <span className="text-xs text-muted-foreground">{bot.clientId ? bot.clientId.slice(0, 12) + '...' : t('settingsIntegrations.shared.notConfigured')}</span>
         </div>
         <div className="flex items-center gap-2">
           {isConnected ? (
             <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); handleToggle() }}>
               <PowerOff size={14} className="mr-1" />
-              停止
+              {t('settingsIntegrations.shared.stop')}
             </Button>
           ) : bot.clientId ? (
             <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); handleToggle() }}
               disabled={state?.status === 'connecting'}>
               {state?.status === 'connecting' ? <Loader2 size={14} className="animate-spin mr-1" /> : <Power size={14} className="mr-1" />}
-              启动
+              {t('settingsIntegrations.shared.start')}
             </Button>
           ) : null}
           <span className="text-xs text-muted-foreground">{expanded ? '▾' : '▸'}</span>
@@ -338,10 +341,10 @@ function BotConfigCard({ bot, state, onSaved, onRemoved }: BotConfigCardProps): 
       {expanded && (
         <div className="px-4 pb-4 space-y-4 border-t border-border pt-4">
           <SettingsInput
-            label="Bot 名称"
+            label={t('settingsIntegrations.shared.botName')}
             value={name}
             onChange={setName}
-            placeholder="如：研发助手"
+            placeholder={t('settingsIntegrations.shared.botNamePlaceholder')}
           />
           <SettingsInput
             label="Client ID (AppKey)"
@@ -353,35 +356,35 @@ function BotConfigCard({ bot, state, onSaved, onRemoved }: BotConfigCardProps): 
             label="Client Secret (AppSecret)"
             value={clientSecret}
             onChange={setClientSecret}
-            placeholder="输入 Client Secret"
+            placeholder={t('settingsIntegrations.dingtalk.enterClientSecret')}
           />
 
           <div className="flex items-center gap-3">
             <Button size="sm" variant="outline" onClick={handleTest}
               disabled={testing || !clientId.trim() || !clientSecret.trim()}>
               {testing && <Loader2 size={14} className="animate-spin" />}
-              <span>{testing ? '测试中...' : '测试连接'}</span>
+              <span>{testing ? t('settingsIntegrations.shared.testing') : t('settingsIntegrations.shared.testConnection')}</span>
             </Button>
             <Button size="sm" onClick={handleSave} disabled={!clientId.trim() || !name.trim()}>
-              保存配置
+              {t('settingsIntegrations.shared.saveConfig')}
             </Button>
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button size="sm" variant="destructive">
                   <Trash2 size={14} className="mr-1" />
-                  删除
+                  {t('common.delete')}
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>确认删除</AlertDialogTitle>
+                  <AlertDialogTitle>{t('settingsIntegrations.shared.confirmDelete')}</AlertDialogTitle>
                   <AlertDialogDescription>
-                    删除 Bot &quot;{bot.name}&quot; 将同时断开连接。此操作不可撤销。
+                    {t('settingsIntegrations.dingtalk.deleteBotDesc', { name: bot.name })}
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                  <AlertDialogCancel>取消</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleRemove}>删除</AlertDialogAction>
+                  <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleRemove}>{t('common.delete')}</AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>

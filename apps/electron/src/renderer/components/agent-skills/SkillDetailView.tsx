@@ -7,6 +7,7 @@
 import * as React from 'react'
 import { toast } from 'sonner'
 import { Sparkles, FolderOpen, RefreshCw, Trash2, ArrowLeft } from 'lucide-react'
+import { useT } from '@/i18n'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -44,6 +45,7 @@ export function SkillDetailView({
   onRequestDelete,
   onOpenFolder,
 }: SkillDetailViewProps): React.ReactElement {
+  const t = useT()
   const [content, setContent] = React.useState<string | null>(null)
   const [loadingContent, setLoadingContent] = React.useState(true)
   const [editName, setEditName] = React.useState(skill.name)
@@ -186,7 +188,7 @@ export function SkillDetailView({
         console.error('[SkillDetail] 自动保存失败:', err)
         if (mountedRef.current) {
           setSaveFailed(true)
-          toast.error('自动保存失败')
+          toast.error(t('skills.skillDetail.autoSaveFailed'))
         }
       })
       .finally(() => {
@@ -228,10 +230,10 @@ export function SkillDetailView({
   }, [])
 
   const sourceLabel = isBuiltin
-    ? 'PROMA 内置'
+    ? t('skills.skillDetail.builtinSource')
     : skill.importSource
-      ? `从 ${skill.importSource.sourceWorkspaceName} 导入`
-      : '当前项目'
+      ? t('skills.skillDetail.importedFrom', { name: skill.importSource.sourceWorkspaceName })
+      : t('skills.skillDetail.currentProjectSource')
 
   return (
     <div
@@ -249,9 +251,9 @@ export function SkillDetailView({
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="sm" className="h-10 gap-1.5 px-2" type="button" onClick={onBack}>
             <ArrowLeft size={16} />
-            返回 Skills
+            {t('skills.skillDetail.backToSkills')}
           </Button>
-          <h3 className="text-lg font-medium text-foreground">Skill 详情</h3>
+          <h3 className="text-lg font-medium text-foreground">{t('skills.skillDetail.title')}</h3>
         </div>
 
         <div className="mt-4 flex items-start gap-3">
@@ -275,12 +277,12 @@ export function SkillDetailView({
         <div className="mt-3 flex items-center gap-2">
           <div className="flex items-center gap-2 mr-auto">
             <Switch checked={skill.enabled} onCheckedChange={onToggle} />
-            <span className="text-xs text-muted-foreground">{skill.enabled ? '已启用' : '已禁用'}</span>
+            <span className="text-xs text-muted-foreground">{skill.enabled ? t('common.enabled') : t('common.disabled')}</span>
           </div>
           {skill.hasUpdate && (
             <Button size="sm" variant="outline" onClick={onUpdate} disabled={updating}>
               <RefreshCw size={14} className={cn(updating && 'animate-spin')} />
-              {updating ? '更新中' : '更新'}
+              {updating ? t('skills.skillCard.updating') : t('skills.skillDetail.update')}
             </Button>
           )}
           <Tooltip>
@@ -289,7 +291,7 @@ export function SkillDetailView({
                 <FolderOpen size={14} />
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="top">打开目录</TooltipContent>
+            <TooltipContent side="top">{t('skills.skillDetail.openFolder')}</TooltipContent>
           </Tooltip>
           {!isBuiltin && (
             <Tooltip>
@@ -303,45 +305,45 @@ export function SkillDetailView({
                   <Trash2 size={14} />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent side="top">卸载</TooltipContent>
+              <TooltipContent side="top">{t('skills.skillDetail.uninstall')}</TooltipContent>
             </Tooltip>
           )}
         </div>
       </div>
 
       {loadingContent ? (
-        <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">加载中...</div>
+        <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">{t('common.loading')}</div>
       ) : (
         <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin">
           <div className="flex flex-col gap-4 p-5">
             {/* 元数据 */}
             <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">元数据</h4>
+              <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t('skills.skillDetail.metadata')}</h4>
               {saveFailed ? (
                 <Button size="sm" variant="outline" onClick={retrySave} disabled={saving}>
-                  重试保存
+                  {t('skills.skillDetail.retrySave')}
                 </Button>
               ) : (
                 <span className="text-xs text-muted-foreground" aria-live="polite">
-                  {saving ? '正在保存…' : '自动保存'}
+                  {saving ? t('skills.skillDetail.savingNow') : t('skills.skillDetail.autoSaved')}
                 </span>
               )}
             </div>
             <SettingsCard divided>
-              <MetaEditRow label="名称" value={editName} onChange={(name) => updateDraft({ name })} />
-              <MetaEditRow label="描述" value={editDescription} onChange={(description) => updateDraft({ description })} multiline />
-              <MetaRow label="数据源" value={sourceLabel} />
-              <MetaRow label="位置" value={`skills/${skill.slug}`} />
+              <MetaEditRow label={t('skills.skillDetail.nameLabel')} value={editName} onChange={(name) => updateDraft({ name })} />
+              <MetaEditRow label={t('skills.skillDetail.descriptionLabel')} value={editDescription} onChange={(description) => updateDraft({ description })} multiline />
+              <MetaRow label={t('skills.skillDetail.sourceLabel')} value={sourceLabel} />
+              <MetaRow label={t('skills.skillDetail.locationLabel')} value={`skills/${skill.slug}`} />
             </SettingsCard>
           </div>
 
           {/* 说明 / 资源文件 */}
           <Tabs value={detailTab} onValueChange={(v) => setDetailTab(v as 'body' | 'files')} className="flex flex-col">
             <TabsList className="self-start shrink-0">
-              <TabsTrigger value="body">说明</TabsTrigger>
+              <TabsTrigger value="body">{t('skills.skillDetail.bodyTab')}</TabsTrigger>
               <TabsTrigger value="files">
-                资源文件
+                {t('skills.skillDetail.filesTab')}
                 {fileCount !== null && (
                   <span className="ml-1.5 inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-muted-foreground/15 px-1 text-[10px] font-medium">
                     {fileCount}

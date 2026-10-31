@@ -25,6 +25,7 @@ import {
   type InstallerDownloadState,
 } from '@/atoms/environment'
 import type { InstallerDownloadRequest } from '@proma/shared'
+import { useT } from '@/i18n'
 
 type CheckStatus = 'checking' | 'success' | 'warning' | 'error'
 
@@ -56,6 +57,7 @@ export function EnvironmentCheckCard({
   statusText,
   action,
 }: EnvironmentCheckCardProps) {
+  const t = useT()
   const StatusIcon = {
     checking: Loader2,
     success: CheckCircle2,
@@ -71,10 +73,10 @@ export function EnvironmentCheckCard({
   }[status]
 
   const statusTextDefault = {
-    checking: '检测中...',
-    success: version ? `v${version} (已安装)` : '已安装',
-    warning: version ? `v${version} (建议升级)` : '版本过低',
-    error: '未安装',
+    checking: t('environment.card.checking'),
+    success: version ? t('environment.card.installedWithVersion', { version }) : t('environment.card.installed'),
+    warning: version ? t('environment.card.upgradeAdvised', { version }) : t('environment.card.outdated'),
+    error: t('environment.card.notInstalled'),
   }[status]
 
   return (
@@ -104,6 +106,7 @@ export function EnvironmentCheckCard({
 }
 
 function CardAction({ action, toolName }: { action: CardAction; toolName: string }) {
+  const t = useT()
   if (action.type === 'openExternal') {
     return (
       <Button
@@ -113,7 +116,7 @@ function CardAction({ action, toolName }: { action: CardAction; toolName: string
         className="mt-1.5 h-7 text-xs"
       >
         <ExternalLink className="mr-1.5 h-3 w-3" />
-        {action.label ?? `下载 ${toolName}`}
+        {action.label ?? t('environment.card.downloadTool', { tool: toolName })}
       </Button>
     )
   }
@@ -139,6 +142,7 @@ function detectArch(): 'x64' | 'arm64' {
 }
 
 function DownloadAction({ installerId, toolName }: { installerId: string; toolName: string }) {
+  const t = useT()
   const [downloadStates, setDownloadStates] = useAtom(installerDownloadStatesAtom)
   const manifest = useAtomValue(installerManifestAtom)
 
@@ -216,8 +220,11 @@ function DownloadAction({ installerId, toolName }: { installerId: string; toolNa
       <div className="mt-1.5 space-y-1.5">
         <div className="flex items-center justify-between text-[11px] text-muted-foreground">
           <span>
-            下载中 {pct}%（{formatBytes(state.downloaded ?? 0)} /{' '}
-            {formatBytes(state.total ?? 0)}）
+            {t('environment.card.downloadingProgress', {
+              pct,
+              downloaded: formatBytes(state.downloaded ?? 0),
+              total: formatBytes(state.total ?? 0),
+            })}
           </span>
           <span>{formatBytes(state.speed ?? 0)}/s</span>
         </div>
@@ -233,7 +240,7 @@ function DownloadAction({ installerId, toolName }: { installerId: string; toolNa
           onClick={handleCancel}
           className="h-6 text-[11px]"
         >
-          取消下载
+          {t('environment.card.cancelDownload')}
         </Button>
       </div>
     )
@@ -243,11 +250,11 @@ function DownloadAction({ installerId, toolName }: { installerId: string; toolNa
     return (
       <div className="mt-1.5 space-y-1">
         <p className="text-[11px] text-muted-foreground">
-          已下载完成，请在安装器中完成安装，然后点「重新检测」刷新状态。
+          {t('environment.card.downloadDone')}
         </p>
         <Button variant="outline" size="sm" onClick={handleRelaunch} className="h-7 text-xs">
           <Rocket className="mr-1.5 h-3 w-3" />
-          再次打开安装程序
+          {t('environment.card.relaunchInstaller')}
         </Button>
       </div>
     )
@@ -256,7 +263,7 @@ function DownloadAction({ installerId, toolName }: { installerId: string; toolNa
   if (state.status === 'failed') {
     return (
       <div className="mt-1.5 space-y-1">
-        <p className="text-[11px] text-destructive">下载失败：{state.error}</p>
+        <p className="text-[11px] text-destructive">{t('environment.card.downloadFailed', { error: state.error ?? '' })}</p>
         <Button
           variant="outline"
           size="sm"
@@ -265,7 +272,7 @@ function DownloadAction({ installerId, toolName }: { installerId: string; toolNa
           className="h-7 text-xs"
         >
           <Download className="mr-1.5 h-3 w-3" />
-          重试下载
+          {t('environment.card.retryDownload')}
         </Button>
       </div>
     )
@@ -280,7 +287,7 @@ function DownloadAction({ installerId, toolName }: { installerId: string; toolNa
       className="mt-1.5 h-7 text-xs"
     >
       <Download className="mr-1.5 h-3 w-3" />
-      一键下载 {toolName}
+      {t('environment.card.oneClickDownload', { tool: toolName })}
     </Button>
   )
 }

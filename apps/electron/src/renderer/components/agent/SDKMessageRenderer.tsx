@@ -14,6 +14,7 @@
 import * as React from 'react'
 import { Bot, Loader2, AlertTriangle, FileText, FileImage, Download, Split, Undo2, RotateCw, Plus, Minimize2, Wrench, Settings, Cpu, ExternalLink, Quote, Clock, FolderInput, FolderPlus, ListTodo, ArrowRightLeft } from 'lucide-react'
 import { useAtomValue, useSetAtom } from 'jotai'
+import { useT } from '@/i18n'
 import { cn } from '@/lib/utils'
 import { ImageLightbox, type LightboxImage } from '@/components/ui/image-lightbox'
 import { ContentBlock } from './ContentBlock'
@@ -107,11 +108,12 @@ export interface SDKMessageRendererProps {
 // ===== system 消息：上下文压缩分割线 =====
 
 function CompactBoundaryDivider(): React.ReactElement {
+  const t = useT()
   return (
     <div className="flex items-center gap-3 my-4 px-1">
       <div className="flex-1 h-px bg-border/40" />
       <span className="shrink-0 text-[11px] text-muted-foreground/60 px-2 py-0.5 rounded-full border border-border/30 bg-muted/20">
-        上下文已压缩
+        {t('agentMessages.compact.successLabel')}
       </span>
       <div className="flex-1 h-px bg-border/40" />
     </div>
@@ -127,6 +129,7 @@ function formatSystemToolName(toolName: string): string {
 }
 
 function PermissionDeniedNotice({ message }: { message: SDKSystemMessage }): React.ReactElement {
+  const t = useT()
   const toolName = typeof message.tool_name === 'string' ? formatSystemToolName(message.tool_name) : undefined
   const denialMessage = typeof message.message === 'string' ? message.message : undefined
   const reason = typeof message.decision_reason === 'string' ? message.decision_reason : undefined
@@ -137,7 +140,7 @@ function PermissionDeniedNotice({ message }: { message: SDKSystemMessage }): Rea
         <AlertTriangle className="mt-0.5 size-3.5 shrink-0 text-amber-500" />
         <div className="min-w-0 space-y-1">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="font-medium text-foreground">权限检查已拒绝操作</span>
+            <span className="font-medium text-foreground">{t('agentMessages.permissionDenied')}</span>
             {toolName && (
               <span className="rounded bg-background/60 px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground">
                 {toolName}
@@ -159,6 +162,7 @@ function PermissionDeniedNotice({ message }: { message: SDKSystemMessage }): Rea
 // ===== system 消息：压缩历史状态 =====
 
 function CompactStatusNotice({ message }: { message: SDKSystemMessage }): React.ReactElement | null {
+  const t = useT()
   const compactStatus = getSDKCompactStatus(message)
   if (compactStatus === 'success') return <CompactBoundaryDivider />
   if (compactStatus === 'compacting') {
@@ -166,7 +170,7 @@ function CompactStatusNotice({ message }: { message: SDKSystemMessage }): React.
       <div className="flex items-center gap-3 my-4 px-1">
         <div className="flex-1 h-px bg-border/40" />
         <span className="shrink-0 text-[11px] text-muted-foreground/60 px-2 py-0.5 rounded-full border border-border/30 bg-muted/20">
-          开始压缩上下文
+          {t('agentMessages.compact.startedLabel')}
         </span>
         <div className="flex-1 h-px bg-border/40" />
       </div>
@@ -177,7 +181,7 @@ function CompactStatusNotice({ message }: { message: SDKSystemMessage }): React.
       <div className="flex items-center gap-3 my-4 px-1">
         <div className="flex-1 h-px bg-border/40" />
         <span className="shrink-0 text-[11px] text-muted-foreground/60 px-2 py-0.5 rounded-full border border-border/30 bg-muted/20">
-          {message.message ?? '当前上下文无需压缩'}
+          {message.message ?? t('agentMessages.compact.noopLabel')}
         </span>
         <div className="flex-1 h-px bg-border/40" />
       </div>
@@ -190,7 +194,7 @@ function CompactStatusNotice({ message }: { message: SDKSystemMessage }): React.
         <div className="flex items-start gap-2.5 rounded-md border border-destructive/25 bg-destructive/5 px-3 py-2.5 text-xs text-foreground/80">
           <AlertTriangle className="mt-0.5 size-3.5 shrink-0 text-destructive" />
           <div className="min-w-0 space-y-1">
-            <div className="font-medium text-foreground">上下文压缩失败</div>
+            <div className="font-medium text-foreground">{t('agentMessages.compact.failedLabel')}</div>
             {error && <p className="break-words text-muted-foreground">{error}</p>}
           </div>
         </div>
@@ -395,6 +399,7 @@ export interface AssistantTurnRendererProps {
 }
 
 export function AssistantTurnRenderer({ turn, allMessages, basePath, onFork, onRewind, onCreateTodo, onRetry, onRetryInNewSession, onSwitchModel, onCompact, onRelinkProjectRoot, onRestoreProjectRoot, isStreaming, stoppedByUser, sessionModelId }: AssistantTurnRendererProps): React.ReactElement | null {
+  const t = useT()
   const channels = useAtomValue(channelsAtom)
   // 收集所有 assistant 消息的内容块，保留 parent_tool_use_id 关联
   interface EnrichedBlock {
@@ -604,23 +609,23 @@ export function AssistantTurnRenderer({ turn, allMessages, basePath, onFork, onR
             {hasDuration && <DurationBadge durationMs={durationMs!} usage={usage} />}
             {textContent && <CopyButton content={textContent} />}
             {textContent && onCreateTodo && (
-              <MessageAction tooltip="标记为 Todo" onClick={() => onCreateTodo(textContent)}>
+              <MessageAction tooltip={t('agentMessages.actions.markAsTodo')} onClick={() => onCreateTodo(textContent)}>
                 <ListTodo className="size-3.5" />
               </MessageAction>
             )}
             {onFork && lastUuid && (
-              <MessageAction tooltip="从此处探索（保留主线，结论可带回）" onClick={() => onFork(lastUuid)}>
+              <MessageAction tooltip={t('agentMessages.actions.exploreFromHere')} onClick={() => onFork(lastUuid)}>
                 <Split className="size-3.5" />
               </MessageAction>
             )}
             {onRewind && lastUuid && (
-              <MessageAction tooltip="回退到此处" onClick={() => onRewind(lastUuid)}>
+              <MessageAction tooltip={t('agentMessages.actions.rewindToHere')} onClick={() => onRewind(lastUuid)}>
                 <Undo2 className="size-3.5" />
               </MessageAction>
             )}
             {showStoppedBadge && (
               <Badge variant="outline" className="text-xs text-muted-foreground/70 border-muted-foreground/30 shrink-0">
-                已被用户中断
+                {t('agentMessages.actions.stoppedByUser')}
               </Badge>
             )}
           </MessageActions>
@@ -792,6 +797,7 @@ function AttachedImageThumb({ file, index, onOpen, onLoaded }: {
   /** 图片 src 加载完成上报父组件（供共享 lightbox 翻页使用） */
   onLoaded: (path: string, src: string) => void
 }): React.ReactElement {
+  const t = useT()
   const [imageSrc, setImageSrc] = React.useState<string | null>(null)
 
   React.useEffect(() => {
@@ -832,7 +838,7 @@ function AttachedImageThumb({ file, index, onOpen, onLoaded }: {
         type="button"
         onClick={handleSave}
         className="absolute bottom-2 right-2 p-1.5 rounded-md bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/70"
-        title="保存图片"
+        title={t('agentMessages.attachment.saveImage')}
       >
         <Download className="size-4" />
       </button>
@@ -895,6 +901,7 @@ const SCHEDULED_RUN_MARKER = '<!--PROMA_SCHEDULED_RUN-->'
 // stripScheduledRunMarker 已迁移至 @proma/session-core（本文件从该包 import 使用）
 
 function ScheduledRunBadge(): React.ReactElement {
+  const t = useT()
   const activeSessionId = useAtomValue(activeSessionIdAtom)
   const sessions = useAtomValue(agentSessionsAtom)
   const automations = useAtomValue(automationsAtom)
@@ -920,10 +927,10 @@ function ScheduledRunBadge(): React.ReactElement {
       type="button"
       onClick={handleClick}
       className="inline-flex items-center gap-1 text-[10px] text-primary/70 hover:text-primary transition-colors"
-      title="来自 Locus 定时任务，点击查看设置"
+      title={t('agentMessages.scheduledRun.badgeTitle')}
     >
       <Clock className="size-3" />
-      <span>来自 Locus 定时任务</span>
+      <span>{t('agentMessages.scheduledRun.badge')}</span>
     </button>
   )
 }
@@ -1133,7 +1140,8 @@ export function AssistantErrorTail({
   onRestoreProjectRoot,
   standalone = false,
 }: AssistantErrorTailProps): React.ReactElement | null {
-  const errorText = message.error?.message ?? '未知错误'
+  const t = useT()
+  const errorText = message.error?.message ?? t('agentMessages.error.unknown')
 
   const msgAny = message as unknown as Record<string, unknown>
   const errorTitle = typeof msgAny._errorTitle === 'string' ? msgAny._errorTitle : undefined
@@ -1275,7 +1283,7 @@ export function AssistantErrorTail({
             onClick={() => setDetailsOpen((v) => !v)}
             className="underline-offset-2 hover:underline"
           >
-            {detailsOpen ? '收起诊断详情' : '查看诊断详情'}
+            {detailsOpen ? t('agentMessages.error.hideDetails') : t('agentMessages.error.viewDetails')}
           </button>
           {detailsOpen && (
             <ul className="mt-1.5 space-y-0.5 list-disc list-inside">
@@ -1293,13 +1301,13 @@ export function AssistantErrorTail({
               {onRelinkProjectRoot && (
                 <Button size="sm" onClick={onRelinkProjectRoot}>
                   <FolderInput className="size-3.5 mr-1.5" />
-                  重新选择文件夹
+                  {t('agentMessages.error.reselectFolder')}
                 </Button>
               )}
               {canRestoreProjectRoot && onRestoreProjectRoot && (
                 <Button size="sm" variant="outline" onClick={onRestoreProjectRoot}>
                   <FolderPlus className="size-3.5 mr-1.5" />
-                  在原路径新建空文件夹
+                  {t('agentMessages.error.createEmptyFolder')}
                 </Button>
               )}
             </>
@@ -1319,23 +1327,23 @@ export function AssistantErrorTail({
           {!hasStructuredActions && isPromptTooLong && onCompact && (
             <Button size="sm" onClick={onCompact}>
               <Minimize2 className="size-3.5 mr-1.5" />
-              压缩上下文
+              {t('agentMessages.compact.compactAction')}
             </Button>
           )}
           {!hasStructuredActions && isThinkingSignature && onRetryInNewSession && (
             <Button
               size="sm"
               onClick={onRetryInNewSession}
-              title="新建对话并引用当前会话继续"
+              title={t('agentMessages.error.retryInNewConversationTitle')}
             >
               <Plus className="size-3.5 mr-1.5" />
-              在新对话继续
+              {t('agentMessages.error.retryInNewConversation')}
             </Button>
           )}
           {!hasStructuredActions && onRetry && (
             <Button size="sm" variant={isPromptTooLong || isThinkingSignature ? 'outline' : 'default'} onClick={() => onRetry(typeof message.uuid === 'string' ? message.uuid : undefined)}>
               <RotateCw className="size-3.5 mr-1.5" />
-              重试
+              {t('common.retry')}
             </Button>
           )}
           {!hasStructuredActions && !isThinkingSignature && onRetryInNewSession && (
@@ -1343,10 +1351,10 @@ export function AssistantErrorTail({
               size="sm"
               variant="outline"
               onClick={onRetryInNewSession}
-              title="如遇到未知错误，可点此按钮在新会话中尝试解决"
+              title={t('agentMessages.error.retryInNewSessionTitle')}
             >
               <Plus className="size-3.5 mr-1.5" />
-              在新会话中重试
+              {t('agentMessages.error.retryInNewSession')}
             </Button>
           )}
         </div>
@@ -1356,10 +1364,11 @@ export function AssistantErrorTail({
 }
 
 function ErrorMessage({ message, onRetry, onRetryInNewSession, onSwitchModel, onCompact, onRelinkProjectRoot, onRestoreProjectRoot }: ErrorMessageProps): React.ReactElement {
+  const t = useT()
   const meta = extractMeta(message as unknown as SDKMessage)
 
   // Do not copy assistant content carried by an error record.
-  const copyText = message.error?.message ?? 'Unknown error'
+  const copyText = message.error?.message ?? t('agentMessages.error.unknown')
 
   return (
     <Message from="assistant">

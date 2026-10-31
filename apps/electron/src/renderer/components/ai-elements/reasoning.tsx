@@ -24,6 +24,8 @@ import {
 } from '@/components/ui/collapsible'
 import { cn } from '@/lib/utils'
 import { normalizeLatexDelimiters } from '@/lib/normalize-latex'
+import { useT } from '@/i18n'
+import type { TranslateFn } from '@/i18n'
 import type { ComponentProps, ReactNode } from 'react'
 
 // ===== 上下文 =====
@@ -151,24 +153,29 @@ interface ReasoningTriggerProps extends ComponentProps<typeof CollapsibleTrigger
   getThinkingMessage?: (isStreaming: boolean, duration?: number) => ReactNode
 }
 
-/** 默认思考状态文案生成 */
-function defaultGetThinkingMessage(isStreaming: boolean, duration?: number): ReactNode {
-  if (isStreaming || duration === 0) {
-    return <span className="animate-pulse">思考中...</span>
+/** 默认思考状态文案生成：文案随界面语言在渲染时解析。 */
+function defaultGetThinkingMessage(t: TranslateFn): (isStreaming: boolean, duration?: number) => ReactNode {
+  return (isStreaming, duration) => {
+    if (isStreaming || duration === 0) {
+      return <span className="animate-pulse">{t('aiElementsMisc.reasoning.thinkingShort')}</span>
+    }
+    if (duration === undefined) {
+      return <p>{t('aiElementsMisc.reasoning.thoughtFewSeconds')}</p>
+    }
+    return <p>{t('aiElementsMisc.reasoning.thoughtSeconds', { n: duration })}</p>
   }
-  if (duration === undefined) {
-    return <p>思考了几秒</p>
-  }
-  return <p>思考了 {duration} 秒</p>
 }
 
 export const ReasoningTrigger = React.memo(function ReasoningTrigger({
   className,
   children,
-  getThinkingMessage = defaultGetThinkingMessage,
+  getThinkingMessage,
   ...props
 }: ReasoningTriggerProps): React.ReactElement {
+  const t = useT()
   const { isStreaming, isOpen, duration } = useReasoning()
+  // 未传入自定义文案函数时使用词典默认值；t 是稳定引用，工厂随语言切换重新求值。
+  const resolvedThinkingMessage = getThinkingMessage ?? defaultGetThinkingMessage(t)
 
   return (
     <CollapsibleTrigger
@@ -181,7 +188,7 @@ export const ReasoningTrigger = React.memo(function ReasoningTrigger({
       {children ?? (
         <>
           <Brain className="size-4" />
-          {getThinkingMessage(isStreaming, duration)}
+          {resolvedThinkingMessage(isStreaming, duration)}
           <ChevronDown
             className={cn(
               'size-4 transition-transform',

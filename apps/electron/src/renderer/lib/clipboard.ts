@@ -1,5 +1,7 @@
 type ClipboardWriter = (text: string) => Promise<void>
 
+import { t } from '@/i18n'
+
 interface ClipboardWriters {
   native?: ClipboardWriter
   browser?: ClipboardWriter
@@ -33,7 +35,7 @@ export async function copyTextToClipboard(
   }
 
   if (!writers.browser) {
-    throw new Error('当前环境不支持写入剪贴板')
+    throw new Error(t('misc.clipboard.writeNotSupported'))
   }
   await writers.browser(content)
 }

@@ -5,6 +5,7 @@ import { X } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { detectIsWindows } from "@/lib/platform"
+import { useT } from "@/i18n"
 import { iconButtonNoRingFocusClass } from "@/components/ui/icon-button-styles"
 
 const Sheet = SheetPrimitive.Root
@@ -60,6 +61,7 @@ const SheetContent = React.forwardRef<
   React.ElementRef<typeof SheetPrimitive.Content>,
   SheetContentProps
 >(({ side = "right", className, children, hideClose, ...props }, ref) => {
+  const t = useT()
   // Windows 下右侧抽屉的关闭按钮（right-4 top-4）会与窗口控制按钮重叠，隐藏它；
   // 用户可点击遮罩空白处或按 Esc 关闭。其他方向的抽屉不在窗口边缘，不受影响。
   // 业务组件也可通过 hideClose 显式移除关闭按钮。
@@ -83,7 +85,7 @@ const SheetContent = React.forwardRef<
             )}
           >
             <X className="h-4 w-4" />
-            <span className="sr-only">关闭</span>
+            <span className="sr-only">{t('common.close')}</span>
           </SheetPrimitive.Close>
         )}
         {children}

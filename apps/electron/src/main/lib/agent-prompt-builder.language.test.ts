@@ -1,39 +1,24 @@
-import { describe, expect, test, beforeEach, mock } from 'bun:test'
+import { describe, expect, test, beforeEach, afterEach } from 'bun:test'
 
-// Agent 提示词构建器依赖大量主进程服务；这里 mock 到最小可用，
-// 只验证与界面语言相关的注入行为。Automation / Collaboration / Bridge
-// 的 headless 运行与正常会话共用 buildSystemPrompt / buildDynamicContext，
-// 因此这里的断言同时覆盖全部调用路径。
-mock.module('./user-profile-service', () => ({
-  getUserProfile: () => ({ userName: 'Tester' }),
-}))
-mock.module('./agent-workspace-manager', () => ({
-  getAgentWorkspaceBySlug: () => undefined,
-  getProjectFilesPath: () => '/tmp/project',
-  getWorkspaceMcpConfig: () => ({ servers: {} }),
-}))
-mock.module('./config-paths', () => ({ getConfigDirName: () => '.proma' }))
-mock.module('./agent-git-attribution', () => ({
-  buildGitAttributionPromptSection: () => '',
-  isGitAttributionEnabled: () => false,
-}))
-mock.module('./settings-service', () => ({
-  getSettings: () => ({ gitAttributionEnabled: false }),
-}))
-mock.module('./project-instruction-resolver', () => ({
-  hasRootProjectAgentsInstruction: () => false,
-}))
-mock.module('./project-instruction-migration', () => ({
-  buildLegacyProjectMigrationPrompt: () => undefined,
-}))
+// Agent 提示词构建器在无 workspaceSlug 的最小上下文下不会触碰磁盘状态，
+// 因此这里直接使用真实依赖模块，不使用 mock.module——Bun 的模块 mock 是
+// 进程级且不可撤销的，会污染同进程运行的其他测试文件（如 config-paths
+// 的其他导出被其他测试需要）。
+// Automation / Collaboration / Bridge 的 headless 运行与正常会话共用
+// buildSystemPrompt / buildDynamicContext，这里的断言同时覆盖全部调用路径。
 
 const { buildSystemPrompt, buildDynamicContext } = await import('./agent-prompt-builder')
 const { setI18nLanguage } = await import('../../i18n/core')
 
+// 语言状态是模块级单例：测试结束后必须恢复默认，避免污染同进程的后续测试。
+afterEach(() => {
+  setI18nLanguage('zh-CN')
+})
+
 function minimalCtx(): Parameters<typeof buildSystemPrompt>[0] {
   return {
     sessionId: 'test-session',
-    permissionMode: 'default',
+    permissionMode: 'bypassPermissions',
     productivityTools: { todosEnabled: false, calendarEnabled: false, obsidianEnabled: false },
   }
 }

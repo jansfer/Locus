@@ -27,6 +27,7 @@ import type {
   SDKUserMessage,
 } from '@proma/shared'
 import { getSDKCompactStatus } from '@proma/shared'
+import { t, useT } from '@/i18n'
 
 export type SessionMiniMapType = 'chat' | 'agent'
 
@@ -172,10 +173,10 @@ function sdkBlockText(block: SDKContentBlock | SDKUserContentBlock): string {
     return block.thinking
   }
   if (block.type === 'tool_use' && 'name' in block && typeof block.name === 'string') {
-    return `调用工具 ${block.name || 'tool'}`
+    return t('sessionPreview.toolUse', { name: block.name || 'tool' })
   }
   if (block.type === 'tool_result') {
-    return block.is_error ? '工具结果出错' : '工具返回结果'
+    return block.is_error ? t('sessionPreview.toolResultError') : t('sessionPreview.toolResultOk')
   }
   return ''
 }
@@ -228,15 +229,15 @@ function buildAgentMinimapItems(messages: SDKMessage[], userAvatar?: string): Ta
       const system = message as SDKSystemMessage
       const compactStatus = getSDKCompactStatus(system)
       const preview = compactStatus === 'success'
-        ? '上下文已压缩'
+        ? t('sessionPreview.compactSuccess')
         : compactStatus === 'noop'
-          ? '当前上下文无需压缩'
+          ? t('sessionPreview.compactNoop')
           : compactStatus === 'compacting'
-            ? '正在压缩上下文...'
+            ? t('sessionPreview.compacting')
             : compactStatus === 'failed'
-              ? '上下文压缩失败'
+              ? t('sessionPreview.compactFailed')
               : system.subtype === 'permission_denied'
-              ? '权限检查已拒绝操作'
+              ? t('sessionPreview.permissionDenied')
               : ''
       if (preview) {
         items.push({
@@ -318,8 +319,9 @@ function getMessageBubbleClass(item: TabMinimapItem): string {
 }
 
 function PreviewText({ text }: { text: string }): React.ReactElement {
+  const t = useT()
   if (!text) {
-    return <span className="text-[11px] text-muted-foreground/60">(空消息)</span>
+    return <span className="text-[11px] text-muted-foreground/60">{t('sessionPreview.emptyMessage')}</span>
   }
 
   return (
@@ -369,6 +371,7 @@ function SessionMiniMapPopoverContent({
   onMouseEnter,
   onMouseLeave,
 }: SessionMiniMapPopoverProps): React.ReactElement | null {
+  const t = useT()
   const userProfile = useAtomValue(userProfileAtom)
   const [cache, setCache] = useAtom(tabMinimapCacheAtom)
   const cachedItems = cache.get(target.sessionId)
@@ -410,7 +413,7 @@ function SessionMiniMapPopoverContent({
         })
       } catch (loadError) {
         console.error('[会话迷你地图] 加载失败:', loadError)
-        if (!cancelled) setError('无法加载会话内容')
+        if (!cancelled) setError(t('sessionPreview.loadFailed'))
       } finally {
         if (!cancelled) setLoading(false)
       }
@@ -449,7 +452,7 @@ function SessionMiniMapPopoverContent({
             )}
           </div>
           <span className="w-[44px] shrink-0 text-right text-[11px] text-muted-foreground tabular-nums">
-            {loading ? '加载中' : `${items.length} 条`}
+            {loading ? t('common.loading') : t('sessionPreview.itemCount', { n: items.length })}
           </span>
         </div>
 
@@ -458,7 +461,7 @@ function SessionMiniMapPopoverContent({
             <div className="absolute inset-1.5 rounded-md bg-muted/30 p-3">
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <Loader2 size={13} className="animate-spin" />
-                <span>正在读取会话...</span>
+                <span>{t('sessionPreview.reading')}</span>
               </div>
               <div className="mt-4 space-y-3">
                 {Array.from({ length: 6 }).map((_, index) => (
@@ -479,7 +482,7 @@ function SessionMiniMapPopoverContent({
           )}
 
           {!loading && !error && items.length === 0 && (
-            <div className="h-full rounded-md bg-muted/30 flex items-center justify-center px-4 text-center text-xs text-muted-foreground">暂无可预览内容</div>
+            <div className="h-full rounded-md bg-muted/30 flex items-center justify-center px-4 text-center text-xs text-muted-foreground">{t('sessionPreview.empty')}</div>
           )}
 
           {!loading && !error && items.length > 0 && (

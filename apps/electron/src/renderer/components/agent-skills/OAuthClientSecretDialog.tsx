@@ -1,5 +1,6 @@
 import * as React from 'react'
 import { KeyRound, Loader2 } from 'lucide-react'
+import { useT } from '@/i18n'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
@@ -12,6 +13,7 @@ interface OAuthClientSecretDialogProps {
 
 /** 用户显式输入 OAuth client secret 的最小安全入口；值只通过 IPC 送入 Keychain。 */
 export function OAuthClientSecretDialog({ serverName, onOpenChange, onSave }: OAuthClientSecretDialogProps): React.ReactElement {
+  const t = useT()
   const inputRef = React.useRef<HTMLInputElement>(null)
   const [saving, setSaving] = React.useState(false)
 
@@ -38,9 +40,9 @@ export function OAuthClientSecretDialog({ serverName, onOpenChange, onSave }: OA
       <DialogContent className="max-w-[560px] p-7" onOpenAutoFocus={(event) => event.preventDefault()}>
         {serverName && <>
           <DialogHeader className="space-y-2 text-left">
-            <DialogTitle className="flex items-center gap-2 text-xl font-semibold"><KeyRound size={19} />保存 OAuth Client Secret</DialogTitle>
+            <DialogTitle className="flex items-center gap-2 text-xl font-semibold"><KeyRound size={19} />{t('skills.oauthSecretDialog.title')}</DialogTitle>
             <DialogDescription className="text-[15px] leading-6">
-              {serverName} 的 OAuth 服务要求 Client Secret。它只会加密保存到系统 Keychain，不会写入 mcp.json、显示给 Agent 或回传到页面。
+              {t('skills.oauthSecretDialog.description', { name: serverName })}
             </DialogDescription>
           </DialogHeader>
           <div className="mt-7">
@@ -50,16 +52,16 @@ export function OAuthClientSecretDialog({ serverName, onOpenChange, onSave }: OA
               autoComplete="off"
               type="password"
               className="mt-2 h-12 text-sm"
-              placeholder="粘贴 OAuth 应用的 Client Secret"
+              placeholder={t('skills.oauthSecretDialog.placeholder')}
               ref={inputRef}
               onKeyDown={(event) => { if (event.key === 'Enter') void handleSave() }}
             />
           </div>
           <DialogFooter className="mt-7 gap-3 sm:justify-end">
-            <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>取消</Button>
+            <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>{t('common.cancel')}</Button>
             <Button onClick={() => { void handleSave() }} disabled={saving}>
               {saving && <Loader2 size={15} className="animate-spin" />}
-              安全保存并继续授权
+              {t('skills.oauthSecretDialog.saveAndContinue')}
             </Button>
           </DialogFooter>
         </>}

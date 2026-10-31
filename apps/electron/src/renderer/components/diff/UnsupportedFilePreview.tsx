@@ -1,6 +1,7 @@
 import * as React from 'react'
 import { FileWarning } from 'lucide-react'
 import type { FileAccessOptions, FilePreviewMetadata } from '@proma/shared'
+import { useT } from '@/i18n'
 import { DefaultAppOpenButton } from './DefaultAppOpenButton'
 
 interface UnsupportedFilePreviewProps {
@@ -40,22 +41,23 @@ export function UnsupportedFilePreview({
   reason,
   metadata,
 }: UnsupportedFilePreviewProps): React.ReactElement {
+  const t = useT()
   return (
     <div className="flex h-full items-center justify-center px-6 py-10 text-center">
       <div className="w-full max-w-sm rounded-xl bg-muted/35 p-5 shadow-[0_1px_2px_rgba(0,0,0,0.06),0_8px_24px_rgba(0,0,0,0.05)]">
         <FileWarning className="mx-auto size-7 text-muted-foreground/80" aria-hidden="true" />
-        <h2 className="mt-3 text-sm font-medium text-foreground text-balance">无法安全内联预览</h2>
+        <h2 className="mt-3 text-sm font-medium text-foreground text-balance">{t('diff.unsupported.title')}</h2>
         <p className="mt-1.5 text-[13px] leading-5 text-muted-foreground text-pretty">{reason}</p>
 
         {metadata && (
           <dl className="mt-4 grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1.5 rounded-lg bg-background/70 px-3 py-2.5 text-left text-xs">
-            <dt className="text-muted-foreground">文件</dt>
+            <dt className="text-muted-foreground">{t('diff.unsupported.file')}</dt>
             <dd className="truncate text-foreground" title={metadata.name}>{metadata.name}</dd>
-            <dt className="text-muted-foreground">类型</dt>
-            <dd className="text-foreground">{metadata.extension || '无扩展名'}</dd>
-            <dt className="text-muted-foreground">大小</dt>
+            <dt className="text-muted-foreground">{t('diff.unsupported.type')}</dt>
+            <dd className="text-foreground">{metadata.extension || t('diff.unsupported.noExtension')}</dd>
+            <dt className="text-muted-foreground">{t('diff.unsupported.size')}</dt>
             <dd className="tabular-nums text-foreground">{formatFileSize(metadata.size)}</dd>
-            <dt className="text-muted-foreground">修改时间</dt>
+            <dt className="text-muted-foreground">{t('diff.unsupported.modifiedAt')}</dt>
             <dd className="tabular-nums text-foreground">{formatModifiedAt(metadata.modifiedAt)}</dd>
           </dl>
         )}

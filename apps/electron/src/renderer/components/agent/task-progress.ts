@@ -1,4 +1,5 @@
 import type { ToolActivity } from '@/atoms/agent-atoms'
+import { t } from '@/i18n'
 
 /** 可见进度工具名集合（用于聚合判断，与 SDKMessageRenderer 共享语义）。 */
 export const TASK_TOOL_NAMES = new Set(['TaskCreate', 'TaskUpdate'])
@@ -153,7 +154,7 @@ export function aggregateTaskItems(
       const subject = typeof activity.input.subject === 'string'
         ? activity.input.subject
         : taskCreateSubjectMap.get(id)
-          ?? (typeof activity.input.description === 'string' ? activity.input.description : '未命名任务')
+          ?? (typeof activity.input.description === 'string' ? activity.input.description : t('agentMisc.task.unnamed'))
 
       taskMap.set(id, {
         id,
@@ -180,7 +181,7 @@ export function aggregateTaskItems(
           id: taskId,
           subject: typeof activity.input.subject === 'string'
             ? activity.input.subject
-            : historicalTaskSubjects?.get(taskId) ?? `任务 #${taskId}`,
+            : historicalTaskSubjects?.get(taskId) ?? t('agentMisc.task.numbered', { taskId }),
           status,
           activeForm: typeof activity.input.activeForm === 'string' ? activity.input.activeForm : undefined,
         })

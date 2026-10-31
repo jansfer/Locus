@@ -11,6 +11,7 @@ import { agentSessionsAtom, agentSideTemporaryAgentMapAtom, agentDiffPanelTabAto
 import { tabsAtom, updateTabTitle } from '@/atoms/tab-atoms'
 import { replaceAgentSessionInFreshnessOrder } from '@/lib/agent-session-list'
 import { cn } from '@/lib/utils'
+import { useT } from '@/i18n'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,6 +25,7 @@ interface AgentHeaderProps {
 }
 
 export function AgentHeader({ sessionId }: AgentHeaderProps): React.ReactElement | null {
+  const t = useT()
   const sessions = useAtomValue(agentSessionsAtom)
   const session = sessions.find((s) => s.id === sessionId) ?? null
   const setAgentSessions = useSetAtom(agentSessionsAtom)
@@ -49,7 +51,7 @@ export function AgentHeader({ sessionId }: AgentHeaderProps): React.ReactElement
       next.set(sessionId, [...openBranches, {
         sessionId: branch.id,
         sourceMessageId,
-        sourceLabel: branch.explorationSourceLabel || '主线探索节点',
+        sourceLabel: branch.explorationSourceLabel || t('agentMisc.mainlineExplorationNode'),
       }])
       return next
     })
@@ -134,7 +136,7 @@ export function AgentHeader({ sessionId }: AgentHeaderProps): React.ReactElement
             <button
               type="button"
               className="titlebar-no-drag group flex min-w-0 items-center gap-1.5 rounded-lg px-2 py-1 text-left transition-colors hover:bg-muted/60"
-              aria-label={`会话菜单：${session.title}`}
+              aria-label={t('agentMisc.sessionMenuAria', { title: session.title })}
             >
               <span className="truncate text-[15px] font-normal text-foreground">{session.title}</span>
               <ChevronDown className="size-3 shrink-0 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
@@ -143,7 +145,7 @@ export function AgentHeader({ sessionId }: AgentHeaderProps): React.ReactElement
           <DropdownMenuContent align="start" className="z-[100] min-w-40 titlebar-no-drag">
             <DropdownMenuItem onSelect={startEdit}>
               <Pencil className="size-3.5" />
-              重命名
+              {t('common.rename')}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -154,11 +156,11 @@ export function AgentHeader({ sessionId }: AgentHeaderProps): React.ReactElement
             <button
               type="button"
               className="titlebar-no-drag inline-flex h-10 shrink-0 items-center gap-1.5 rounded-lg px-2 text-xs text-muted-foreground transition-[background-color,color,transform] hover:bg-muted hover:text-foreground active:scale-[0.96]"
-              aria-label={`打开 ${explorationBranches.length} 个探索分支`}
-              title={`打开探索分支（${explorationBranches.length}）`}
+              aria-label={t('agentMisc.openExplorationBranchesAria', { count: explorationBranches.length })}
+              title={t('agentMisc.openExplorationBranchesTitle', { count: explorationBranches.length })}
             >
               <Split className="size-3.5" />
-              <span className="hidden sm:inline">探索</span>
+              <span className="hidden sm:inline">{t('agentMisc.explorationTrigger')}</span>
               {explorationBranches.length > 1 && <span className="tabular-nums">{explorationBranches.length}</span>}
             </button>
           </DropdownMenuTrigger>
@@ -182,7 +184,7 @@ export function AgentHeader({ sessionId }: AgentHeaderProps): React.ReactElement
           type="button"
           onClick={() => setRightPanelOpen(true)}
           className="titlebar-no-drag ml-auto inline-flex size-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-[background-color,color,transform] hover:bg-muted hover:text-foreground active:scale-[0.96]"
-          aria-label="展开右侧工作区"
+          aria-label={t('agentMisc.expandWorkspaceAria')}
         >
           <PanelRight className="size-4" />
         </button>

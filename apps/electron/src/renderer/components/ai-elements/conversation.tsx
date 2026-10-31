@@ -13,6 +13,7 @@
 
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { useT } from '@/i18n'
 import { ArrowDownIcon } from 'lucide-react'
 import type { ComponentProps } from 'react'
 import { useCallback } from 'react'
@@ -57,12 +58,17 @@ export interface ConversationEmptyStateProps extends ComponentProps<'div'> {
 
 export function ConversationEmptyState({
   className,
-  title = '暂无消息',
-  description = '在下方输入框开始对话',
+  title,
+  description,
   icon,
   children,
   ...props
 }: ConversationEmptyStateProps): React.ReactElement {
+  const t = useT()
+  // 默认文案在渲染时解析，保证语言切换后空状态同步更新。
+  const resolvedTitle = title ?? t('aiElementsMisc.conversation.emptyTitle')
+  const resolvedDescription = description ?? t('aiElementsMisc.conversation.emptyDescription')
+
   return (
     <div
       className={cn(
@@ -75,9 +81,9 @@ export function ConversationEmptyState({
         <>
           {icon && <div className="text-muted-foreground">{icon}</div>}
           <div className="space-y-1">
-            <h3 className="font-medium text-sm">{title}</h3>
+            <h3 className="font-medium text-sm">{resolvedTitle}</h3>
             {description && (
-              <p className="text-muted-foreground text-sm">{description}</p>
+              <p className="text-muted-foreground text-sm">{resolvedDescription}</p>
             )}
           </div>
         </>

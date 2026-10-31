@@ -18,6 +18,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { cn } from '@/lib/utils'
+import { useT } from '@/i18n'
 import { getAttachedDirectoryStateKey } from '@/components/file-browser/file-browser-roots'
 import { useFileTreeExpanded } from '@/components/file-browser/use-file-tree-expanded'
 import { useAttachedDirectoryChildren } from '@/components/file-browser/use-attached-directory-children'
@@ -396,6 +397,7 @@ function ExplorationBringBackAction({
   branch: AgentExplorationBranchTab
   sessions: AgentSessionMeta[]
 }): React.ReactElement {
+  const t = useT()
   const explorationMessagesCache = useAtomValue(agentSDKMessagesCacheAtom)
   const explorationLiveMessages = useAtomValue(agentLiveMessagesAtomFamily(branch.sessionId))
   const parentDrafts = useAtomValue(agentSessionDraftsAtom)
@@ -412,13 +414,13 @@ function ExplorationBringBackAction({
   )
   const handleBringExplorationBack = React.useCallback(() => {
     if (!latestExplorationConclusion) {
-      toast.info('探索分支还没有可带回的 Agent 结论')
+      toast.info(t('agentView.exploration.bringBackNoConclusion'))
       return
     }
-    const branchTitle = sessions.find((item) => item.id === branch.sessionId)?.title || '探索分支'
-    const referenceLabel = `探索后新增内容 · ${branchTitle}`
-    const referenceMarkdown = `这是探索后的新增内容：&session:${branch.sessionId}::${encodeURIComponent(referenceLabel)}`
-    const referenceHtml = `<p>这是探索后的新增内容：<span data-type="mention" data-id="${escapeHtml(branch.sessionId)}" data-label="${escapeHtml(referenceLabel)}" data-mention-suggestion-char="&">${escapeHtml(referenceLabel)}</span></p>`
+    const branchTitle = sessions.find((item) => item.id === branch.sessionId)?.title || t('agentView.tabs.explorationFallback')
+    const referenceLabel = t('agentView.exploration.referenceLabel', { title: branchTitle })
+    const referenceMarkdown = `${t('agentView.exploration.referencePrefix')}&session:${branch.sessionId}::${encodeURIComponent(referenceLabel)}`
+    const referenceHtml = `<p>${t('agentView.exploration.referencePrefix')}<span data-type="mention" data-id="${escapeHtml(branch.sessionId)}" data-label="${escapeHtml(referenceLabel)}" data-mention-suggestion-char="&">${escapeHtml(referenceLabel)}</span></p>`
     setParentDraftSyncVersions((previous) => {
       const next = new Map(previous)
       next.set(parentSessionId, (next.get(parentSessionId) ?? 0) + 1)
@@ -437,17 +439,17 @@ function ExplorationBringBackAction({
       next.set(parentSessionId, nextHtml)
       return next
     })
-    toast.success('已添加探索引用', { description: '探索 Tab 保持打开；主会话发送后 Agent 会读取该标记。' })
-  }, [branch.sessionId, latestExplorationConclusion, parentDraftHtml, parentDrafts, parentSessionId, sessions, setParentDraftHtml, setParentDrafts, setParentDraftSyncVersions])
+    toast.success(t('agentView.exploration.added'), { description: t('agentView.exploration.addedDesc') })
+  }, [branch.sessionId, latestExplorationConclusion, parentDraftHtml, parentDrafts, parentSessionId, sessions, setParentDraftHtml, setParentDrafts, setParentDraftSyncVersions, t])
 
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <Button variant="ghost" size="icon" className="size-7 active:scale-[0.96]" onClick={handleBringExplorationBack} disabled={!latestExplorationConclusion} aria-label="添加探索引用">
+        <Button variant="ghost" size="icon" className="size-7 active:scale-[0.96]" onClick={handleBringExplorationBack} disabled={!latestExplorationConclusion} aria-label={t('agentView.exploration.action')}>
           <GitMerge className="size-3.5" />
         </Button>
       </TooltipTrigger>
-      <TooltipContent side="bottom">{latestExplorationConclusion ? '将探索后新增内容作为会话引用添加到主线草稿；探索 Tab 保持打开，不会自动发送' : '完成一轮新的探索回复后即可添加引用'}</TooltipContent>
+      <TooltipContent side="bottom">{latestExplorationConclusion ? t('agentView.exploration.actionTip') : t('agentView.exploration.noConclusionTip')}</TooltipContent>
     </Tooltip>
   )
 }
@@ -461,6 +463,7 @@ interface SidePanelProps {
 }
 
 export function SidePanel({ sessionId, sessionPath, activeTab, onTabChange, width = 460 }: SidePanelProps): React.ReactElement {
+  const t = useT()
   // 按会话保存最近访问顺序。该历史仅存在于当前 renderer 进程，避免恢复失效的临时 Tab。
   const rightPanelTabHistoryRef = React.useRef(new Map<string, AgentSidePanelTab[]>())
   const workspaceTabsRef = React.useRef<WorkspacePanelTab[]>([])
@@ -1207,7 +1210,7 @@ export function SidePanel({ sessionId, sessionPath, activeTab, onTabChange, widt
     }
   }, [browserState, ensureBrowserOpen, handleWorkspaceTabChange, publishBrowserState, sessionId])
 
-  const handleOpenTerminal = React.useCallback((cwd?: string, title = '终端') => {
+  const handleOpenTerminal = React.useCallback((cwd?: string, title = t('agentView.terminal.defaultTitle')) => {
     const terminalId = crypto.randomUUID()
     setTerminalTabsMap((previous) => {
       const next = new Map(previous)
@@ -1215,15 +1218,15 @@ export function SidePanel({ sessionId, sessionPath, activeTab, onTabChange, widt
       return next
     })
     handleWorkspaceTabChange(getTerminalSidePanelTab(terminalId))
-  }, [handleWorkspaceTabChange, sessionId, setTerminalTabsMap])
+  }, [handleWorkspaceTabChange, sessionId, setTerminalTabsMap, t])
 
   const handleOpenWorktreeTerminal = React.useCallback((worktree: WorktreeInfo) => {
-    handleOpenTerminal(worktree.path, `终端 · ${worktree.branch}`)
-  }, [handleOpenTerminal])
+    handleOpenTerminal(worktree.path, t('agentView.terminal.withName', { name: worktree.branch }))
+  }, [handleOpenTerminal, t])
 
   const handleOpenDirectoryTerminal = React.useCallback((directoryPath: string, directoryName: string) => {
-    handleOpenTerminal(directoryPath, `终端 · ${directoryName}`)
-  }, [handleOpenTerminal])
+    handleOpenTerminal(directoryPath, t('agentView.terminal.withName', { name: directoryName }))
+  }, [handleOpenTerminal, t])
 
   const handleCloseBrowserTab = React.useCallback(async (browserTabId: string): Promise<boolean> => {
     try {
@@ -1282,23 +1285,23 @@ export function SidePanel({ sessionId, sessionPath, activeTab, onTabChange, widt
 
   const [isAddTabMenuOpen, setIsAddTabMenuOpen] = React.useState(false)
   const workspaceTabs = React.useMemo<WorkspacePanelTab[]>(() => [
-    { id: 'files', label: '文件', icon: <FolderOpen className="size-3.5" /> },
-    { id: 'changes', label: '改动', icon: <FileDiff className="size-3.5" /> },
+    { id: 'files', label: t('agentView.tabs.files'), icon: <FolderOpen className="size-3.5" /> },
+    { id: 'changes', label: t('agentView.tabs.changes'), icon: <FileDiff className="size-3.5" /> },
     ...workspaceComponentTabs.map((component) => {
       const meta: Record<WorkspaceComponentTab, { label: string; icon: React.ReactNode }> = {
         todos: { label: 'Todo', icon: <ListTodo className="size-3.5" /> },
-        calendar: { label: '日程', icon: <CalendarDays className="size-3.5" /> },
-        automations: { label: '定时任务', icon: <Clock className="size-3.5" /> },
+        calendar: { label: t('agentView.tabs.calendar'), icon: <CalendarDays className="size-3.5" /> },
+        automations: { label: t('agentView.tabs.automations'), icon: <Clock className="size-3.5" /> },
         skills: { label: 'Skills', icon: <Blocks className="size-3.5" /> },
         mcp: { label: 'MCP', icon: <ServerCog className="size-3.5" /> },
-        memory: { label: '项目记忆', icon: <Brain className="size-3.5" /> },
+        memory: { label: t('agentView.tabs.memory'), icon: <Brain className="size-3.5" /> },
         vault: { label: OBSIDIAN_NAME, icon: <ObsidianIcon className="size-3.5" /> },
       }
       return { id: component, ...meta[component], closable: true }
     }),
     ...previewFiles.map((file) => ({
       id: getPreviewSidePanelTab(getPreviewFileId(file)),
-      label: file.filePath.split(/[\\/]/).pop() || '预览',
+      label: file.filePath.split(/[\\/]/).pop() || t('agentView.tabs.previewFallback'),
       icon: <FileText className="size-3.5" />,
       closable: true,
     })),
@@ -1308,10 +1311,10 @@ export function SidePanel({ sessionId, sessionPath, activeTab, onTabChange, widt
       icon: <SquareTerminal className="size-3.5" />,
       closable: true,
     })),
-    ...(sideChatConversationId ? [{ id: 'chat' as const, label: '问答', icon: <MessageCircle className="size-3.5" />, closable: true }] : []),
+    ...(sideChatConversationId ? [{ id: 'chat' as const, label: t('agentView.tabs.chat'), icon: <MessageCircle className="size-3.5" />, closable: true }] : []),
     ...sideTemporaryAgents.map((branch) => ({
       id: getExplorationSidePanelTab(branch.sessionId),
-      label: sessions.find((item) => item.id === branch.sessionId)?.title || '探索分支',
+      label: sessions.find((item) => item.id === branch.sessionId)?.title || t('agentView.tabs.explorationFallback'),
       icon: <Split className="size-3.5" />,
       closable: true,
     })),
@@ -1324,13 +1327,13 @@ export function SidePanel({ sessionId, sessionPath, activeTab, onTabChange, widt
     }] : []),
     ...(browserState?.tabs.map((tab) => ({
       id: getBrowserSidePanelTab(tab.tabId),
-      label: tab.title || '新建标签页',
+      label: tab.title || t('agentView.tabs.newBrowserTab'),
       icon: <BrowserTabIcon favicon={tab.favicon} />,
       // 用户可关闭任何浏览器标签；关闭 Agent 工作标签后，后续未指定 tabId 的工具会提示新建或选择工作标签。
       closable: true,
       activity: showBrowserActivity && activeBrowserTabId !== tab.tabId && browserState.activeTabId === tab.tabId,
     })) ?? []),
-  ], [activeBrowserTabId, browserState, previewFiles, selectedDelegationSession, selectedDelegationStatus, sessions, showBrowserActivity, sideChatConversationId, sideTemporaryAgents, terminalTabs, workspaceComponentTabs])
+  ], [activeBrowserTabId, browserState, previewFiles, selectedDelegationSession, selectedDelegationStatus, sessions, showBrowserActivity, sideChatConversationId, sideTemporaryAgents, terminalTabs, workspaceComponentTabs, t])
   workspaceTabsRef.current = workspaceTabs
 
   React.useEffect(() => {
@@ -1511,9 +1514,9 @@ export function SidePanel({ sessionId, sessionPath, activeTab, onTabChange, widt
     const roots = isSession ? sessionFileRoots : projectFileRoots
 
     return (
-      <section className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden" aria-label={isSession ? '会话文件' : '项目文件'}>
+      <section className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden" aria-label={isSession ? t('agentView.filesBrowser.sessionFiles') : t('agentView.filesBrowser.projectFiles')}>
         <h3 className="flex h-8 shrink-0 items-center px-3 text-[11px] font-medium text-muted-foreground">
-          {isSession ? '会话文件' : '项目文件'}
+          {isSession ? t('agentView.filesBrowser.sessionFiles') : t('agentView.filesBrowser.projectFiles')}
         </h3>
         <PersistentFileScrollArea
           stateKey={getFileBrowserScrollStateKey(sessionId, scope, roots)}
@@ -1532,7 +1535,7 @@ export function SidePanel({ sessionId, sessionPath, activeTab, onTabChange, widt
           {!isSession && wsAttachedDirs.length > 0 && (
             <AttachedDirsSection scope="project" attachedDirs={wsAttachedDirs} onDetach={handleDetachWorkspaceDirectory} refreshVersion={filesVersion} onAddToChat={handleAddToChat} onFilePreview={handleFilePreview} onOpenDirectoryTerminal={handleOpenDirectoryTerminal} allowedPaths={basePathsRef.current} sessionId={sessionId} />
           )}
-          {!isSession && isProjectRootUnavailable && <div className="mx-2 my-2 rounded-md bg-destructive/10 px-3 py-2 text-xs text-destructive">本地项目根目录不可用；当前会话文件仍可访问。</div>}
+          {!isSession && isProjectRootUnavailable && <div className="mx-2 my-2 rounded-md bg-destructive/10 px-3 py-2 text-xs text-destructive">{t('agentView.filesBrowser.projectRootUnavailable')}</div>}
           <FileBrowser roots={roots} access={fileAccess} projectRootPath={isProjectRootUnavailable ? null : workspaceFilesPath} showSessionBadge={false} hideToolbar embedded hideEmpty={hasAttachedItems} onAddToChat={handleAddToChat} onFilePreview={handleFilePreview} onOpenDirectoryTerminal={handleOpenDirectoryTerminal} />
           {workspaceSlug && (isSession ? (
             <FileDropZone workspaceSlug={workspaceSlug} sessionId={sessionId} target="session" onFilesUploaded={handleFilesUploaded} onFilesAttached={handleSessionFilesAttached} onAttachFolder={handleAttachSessionFolder} onFoldersDropped={handleSessionFoldersDropped} />
@@ -1584,7 +1587,7 @@ export function SidePanel({ sessionId, sessionPath, activeTab, onTabChange, widt
     ) : paneBrowserTabId ? (
       browserState && browserState.tabs.some((tab) => tab.tabId === paneBrowserTabId) ? (
         tabDrag ? (
-          <div className="flex flex-1 items-center justify-center bg-muted/15 text-xs text-muted-foreground">释放后恢复浏览器视图</div>
+          <div className="flex flex-1 items-center justify-center bg-muted/15 text-xs text-muted-foreground">{t('agentView.browser.dropToRestore')}</div>
         ) : (
           <div className="min-h-0 flex-1 overflow-hidden">
             <BrowserPanel
@@ -1596,7 +1599,7 @@ export function SidePanel({ sessionId, sessionPath, activeTab, onTabChange, widt
           </div>
         )
       ) : (
-        <div className="flex flex-1 items-center justify-center text-xs text-muted-foreground">浏览器标签已关闭</div>
+        <div className="flex flex-1 items-center justify-center text-xs text-muted-foreground">{t('agentView.browser.tabClosed')}</div>
       )
     ) : paneTab === 'chat' ? (
       sideChatConversationId ? (
@@ -1604,7 +1607,7 @@ export function SidePanel({ sessionId, sessionPath, activeTab, onTabChange, widt
           <ChatView conversationId={sideChatConversationId} />
         </div>
       ) : (
-        <div className="flex-1 flex items-center justify-center text-muted-foreground text-xs">暂无问答会话</div>
+        <div className="flex-1 flex items-center justify-center text-muted-foreground text-xs">{t('agentView.chatEmpty')}</div>
       )
     ) : paneExplorationBranch ? (
       <SideAgentSessionContent contentKey={`exploration:${paneExplorationBranch.sessionId}`}>
@@ -1633,7 +1636,7 @@ export function SidePanel({ sessionId, sessionPath, activeTab, onTabChange, widt
           <WorkspaceMemoryTab workspaceSlug={workspaceSlug} sessionId={sessionId} embedded onCloseChangeView={() => handleCloseWorkspaceTab('memory')} />
         </div>
       ) : (
-        <div className="flex flex-1 items-center justify-center text-xs text-muted-foreground">等待项目初始化...</div>
+        <div className="flex flex-1 items-center justify-center text-xs text-muted-foreground">{t('agentView.waiting.projectInit')}</div>
       )
     ) : paneTab === 'vault' ? (
       <div className="min-h-0 flex-1 overflow-hidden"><VaultView embedded sessionId={sessionId} /></div>
@@ -1657,7 +1660,7 @@ export function SidePanel({ sessionId, sessionPath, activeTab, onTabChange, widt
           onPlainFileClick={handleFilePreview}
         />
       ) : (
-        <div className="flex-1 flex items-center justify-center text-muted-foreground text-xs">等待会话初始化...</div>
+        <div className="flex-1 flex items-center justify-center text-muted-foreground text-xs">{t('agentView.waiting.sessionInit')}</div>
       )
     ) : paneTab === 'files' ? (
       <div className="flex-1 min-h-0 flex flex-col pt-2 mx-2 mb-2">
@@ -1670,12 +1673,12 @@ export function SidePanel({ sessionId, sessionPath, activeTab, onTabChange, widt
               workspaceAttachedDirs={wsAttachedDirs}
               sourceFilter={showBothFileSources ? 'all' : fileSourceFilter}
               showSessionBadge={showBothFileSources}
-              placeholder="搜索文件..."
+              placeholder={t('agentView.filesBrowser.searchPlaceholder')}
               sessionId={sessionId}
               onFilePreview={handleFilePreview}
             >
               {!showBothFileSources && (
-                <div className="file-source-tabbar main-tabbar mt-1.5 flex h-7 border-b border-border/80" role="tablist" aria-label="文件来源">
+                <div className="file-source-tabbar main-tabbar mt-1.5 flex h-7 border-b border-border/80" role="tablist" aria-label={t('agentView.filesBrowser.sourceTablist')}>
                   <button
                     type="button"
                     role="tab"
@@ -1688,7 +1691,7 @@ export function SidePanel({ sessionId, sessionPath, activeTab, onTabChange, widt
                     aria-selected={fileSourceFilter === 'project'}
                     onClick={() => setFileSourceFilter('project')}
                   >
-                    项目文件
+                    {t('agentView.filesBrowser.projectFiles')}
                   </button>
                   <button
                     type="button"
@@ -1702,7 +1705,7 @@ export function SidePanel({ sessionId, sessionPath, activeTab, onTabChange, widt
                     aria-selected={fileSourceFilter === 'session'}
                     onClick={() => setFileSourceFilter('session')}
                   >
-                    会话文件
+                    {t('agentView.filesBrowser.sessionFiles')}
                   </button>
                 </div>
               )}
@@ -1716,7 +1719,7 @@ export function SidePanel({ sessionId, sessionPath, activeTab, onTabChange, widt
               <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin pt-1">
                 {/* 拖拽引用提示：引用块样式，左侧竖线 + 缩进，与下方文件列表内容左对齐 */}
                 <div className="mb-1.5 ml-4 border-l-2 border-primary/40 pl-2 text-[11px] leading-4 text-foreground/75">
-                  支持拖拽文件或文件夹到输入框，实现引用
+                  {t('agentView.filesBrowser.dragToReference')}
                 </div>
                 {showProjectFiles && wsAttachedFiles.length > 0 && (
                   <AttachedFilesSection scope="project" attachedFiles={wsAttachedFiles} onDetach={handleDetachWorkspaceFile} onAddToChat={handleAddToChat} onFilePreview={handleFilePreview} allowedPaths={basePathsRef.current} sessionId={sessionId} />
@@ -1732,7 +1735,7 @@ export function SidePanel({ sessionId, sessionPath, activeTab, onTabChange, widt
                 )}
                 {showProjectFiles && isProjectRootUnavailable && (
                   <div className="mx-2 my-2 rounded-md bg-destructive/10 px-3 py-2 text-xs text-destructive">
-                    本地项目根目录不可用；当前会话文件仍可访问。
+                    {t('agentView.filesBrowser.projectRootUnavailable')}
                   </div>
                 )}
                 <FileBrowser roots={visibleFileRoots} access={fileAccess} projectRootPath={isProjectRootUnavailable ? null : workspaceFilesPath} showSessionBadge={false} hideToolbar embedded hideEmpty={hasVisibleSessionAttachedItems || hasVisibleWorkspaceAttachedItems} onAddToChat={handleAddToChat} onFilePreview={handleFilePreview} onOpenDirectoryTerminal={handleOpenDirectoryTerminal} />
@@ -1746,7 +1749,7 @@ export function SidePanel({ sessionId, sessionPath, activeTab, onTabChange, widt
             )}
           </>
         ) : (
-          <div className="flex-1 flex items-center justify-center text-muted-foreground text-xs">等待会话初始化...</div>
+          <div className="flex-1 flex items-center justify-center text-muted-foreground text-xs">{t('agentView.waiting.sessionInit')}</div>
         )}
       </div>
     ) : null
@@ -1759,7 +1762,7 @@ export function SidePanel({ sessionId, sessionPath, activeTab, onTabChange, widt
     return (
       <section
         className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-content-area"
-        aria-label={`${pane === 'left' ? '左侧' : '右侧'} Pane：${tab}`}
+        aria-label={t(pane === 'left' ? 'agentView.pane.ariaLeft' : 'agentView.pane.ariaRight', { tab })}
         onPointerDownCapture={() => handleFocusPane(pane)}
       >
         <MeasuredWorkspacePane>{(paneWidth) => renderWorkspaceTabContent(tab, paneWidth)}</MeasuredWorkspacePane>
@@ -1829,7 +1832,7 @@ export function SidePanel({ sessionId, sessionPath, activeTab, onTabChange, widt
                   onDoubleClick={resetSplitRatio}
                   role="separator"
                   aria-orientation="vertical"
-                  aria-label="调整并排宽度；双击恢复均分"
+                  aria-label={t('agentView.pane.resizeAria')}
                 >
                   <span className="pointer-events-none absolute left-1/2 top-1/2 h-9 w-px -translate-x-1/2 -translate-y-1/2 bg-foreground/15 group-hover:bg-primary/50" />
                 </div>
@@ -1851,7 +1854,7 @@ export function SidePanel({ sessionId, sessionPath, activeTab, onTabChange, widt
                         : 'bg-card/65 text-muted-foreground shadow-sm',
                     )}
                   >
-                    在{pane === 'left' ? '左侧' : '右侧'}并排
+                    {t(pane === 'left' ? 'agentView.pane.sideBySideLeft' : 'agentView.pane.sideBySideRight')}
                   </div>
                 ))}
               </div>
@@ -1877,6 +1880,7 @@ interface AttachedFilesSectionProps {
 }
 
 function AttachedFilesSection({ title, scope = 'project', showSessionBadge = true, attachedFiles, onDetach, onAddToChat, onFilePreview, allowedPaths, sessionId }: AttachedFilesSectionProps): React.ReactElement {
+  const t = useT()
   return (
     <div className="pt-1 pb-0 flex-shrink-0">
       {title && <div className="text-[11px] font-medium text-muted-foreground mb-1 px-3">{title}</div>}
@@ -1903,7 +1907,7 @@ function AttachedFilesSection({ title, scope = 'project', showSessionBadge = tru
             <FileTypeIcon name={name} isDirectory={false} />
             <span className="text-xs truncate flex-1" title={filePath}>{name}</span>
             {showSessionBadge && scope === 'session' && (
-              <span className="flex-shrink-0 rounded-md bg-muted px-1.5 py-0.5 text-[10px] leading-none text-muted-foreground">会话文件</span>
+              <span className="flex-shrink-0 rounded-md bg-muted px-1.5 py-0.5 text-[10px] leading-none text-muted-foreground">{t('agentView.filesBrowser.sessionFiles')}</span>
             )}
             <div
               className="flex-shrink-0 mr-1"
@@ -1916,8 +1920,8 @@ function AttachedFilesSection({ title, scope = 'project', showSessionBadge = tru
                   <button
                     type="button"
                     className="h-6 w-6 rounded flex items-center justify-center hover:bg-accent/70 text-muted-foreground hover:text-foreground invisible group-hover:visible focus-visible:visible data-[state=open]:visible"
-                    title="更多操作"
-                    aria-label="更多操作"
+                    title={t('agentView.fileMenu.moreActions')}
+                    aria-label={t('agentView.fileMenu.moreActions')}
                   >
                     <MoreHorizontal className="size-3.5" />
                   </button>
@@ -1933,7 +1937,7 @@ function AttachedFilesSection({ title, scope = 'project', showSessionBadge = tru
                     }])}
                   >
                     <MessageSquarePlus />
-                    引用到 Agent
+                    {t('agentView.fileMenu.referenceToAgent')}
                   </DropdownMenuItem>
                   {onAddToChat && (
                     <DropdownMenuItem
@@ -1941,7 +1945,7 @@ function AttachedFilesSection({ title, scope = 'project', showSessionBadge = tru
                       onSelect={() => onAddToChat(entry)}
                     >
                       <MessageSquarePlus />
-                      添加到聊天
+                      {t('agentView.fileMenu.addToChat')}
                     </DropdownMenuItem>
                   )}
                   <DropdownMenuItem
@@ -1949,7 +1953,7 @@ function AttachedFilesSection({ title, scope = 'project', showSessionBadge = tru
                     onSelect={() => window.electronAPI.showAttachedInFolder(filePath, { sessionId, candidateBasePaths: allowedPaths }).catch(console.error)}
                   >
                     <FolderSearch />
-                    在文件夹中显示
+                    {t('agentView.fileMenu.showInFolder')}
                   </DropdownMenuItem>
                   {onFilePreview && (
                     <DropdownMenuItem
@@ -1957,7 +1961,7 @@ function AttachedFilesSection({ title, scope = 'project', showSessionBadge = tru
                       onSelect={() => onFilePreview(filePath)}
                     >
                       <ExternalLink />
-                      打开文件
+                      {t('agentView.fileMenu.openFile')}
                     </DropdownMenuItem>
                   )}
                   <DropdownMenuItem
@@ -1965,7 +1969,7 @@ function AttachedFilesSection({ title, scope = 'project', showSessionBadge = tru
                     onSelect={() => onDetach(filePath)}
                   >
                     <X />
-                    移除附加
+                    {t('agentView.fileMenu.detach')}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -2095,6 +2099,7 @@ interface AttachedDirTreeProps {
 }
 
 function AttachedDirTree({ dirPath, onDetach, selectedPaths, onSelect, refreshVersion, onAddToChat, onFilePreview, onOpenDirectoryTerminal, allowedPaths, sessionId, scope, showSessionBadge, revealTarget = null, revealTs = 0 }: AttachedDirTreeProps): React.ReactElement {
+  const t = useT()
   const expandedStateKey = getAttachedDirectoryStateKey(sessionId, scope, dirPath)
   const [expanded, setExpanded] = useFileTreeExpanded(expandedStateKey, dirPath)
   const { children, loaded, error } = useAttachedDirectoryChildren({
@@ -2161,15 +2166,15 @@ function AttachedDirTree({ dirPath, onDetach, selectedPaths, onSelect, refreshVe
           {dirName}
         </span>
         {showSessionBadge && scope === 'session' && (
-          <span className="relative z-10 flex-shrink-0 rounded-md bg-muted px-1.5 py-0.5 text-[10px] leading-none text-muted-foreground">会话文件</span>
+          <span className="relative z-10 flex-shrink-0 rounded-md bg-muted px-1.5 py-0.5 text-[10px] leading-none text-muted-foreground">{t('agentView.filesBrowser.sessionFiles')}</span>
         )}
         {onOpenDirectoryTerminal && (
           <Tooltip>
             <TooltipTrigger asChild>
               <button
                 type="button"
-                aria-label={`在 ${dirName} 打开终端`}
-                title={`在 ${dirName} 打开终端`}
+                aria-label={t('agentView.filesBrowser.openTerminalIn', { name: dirName })}
+                title={t('agentView.filesBrowser.openTerminalIn', { name: dirName })}
                 className="relative z-10 flex size-6 shrink-0 items-center justify-center rounded text-muted-foreground opacity-0 transition-[background-color,color,opacity,transform] hover:bg-accent/70 hover:text-foreground group-hover:opacity-100 focus-visible:opacity-100 active:scale-[0.96]"
                 onClick={(event) => {
                   event.stopPropagation()
@@ -2179,7 +2184,7 @@ function AttachedDirTree({ dirPath, onDetach, selectedPaths, onSelect, refreshVe
                 <Terminal className="size-3.5" />
               </button>
             </TooltipTrigger>
-            <TooltipContent side="left">在右侧标签中打开终端</TooltipContent>
+            <TooltipContent side="left">{t('agentView.filesBrowser.openTerminalTip')}</TooltipContent>
           </Tooltip>
         )}
         <Tooltip>
@@ -2188,14 +2193,14 @@ function AttachedDirTree({ dirPath, onDetach, selectedPaths, onSelect, refreshVe
               type="button"
               variant="ghost"
               size="icon"
-              aria-label={`解除附加目录 ${dirName}`}
+              aria-label={t('agentView.filesBrowser.detachDirectoryNamed', { name: dirName })}
               className="relative z-10 h-6 w-6 mr-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
               onClick={(e) => { e.stopPropagation(); onDetach() }}
             >
               <X className="size-3" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent side="left">解除附加目录</TooltipContent>
+          <TooltipContent side="left">{t('agentView.filesBrowser.detachDirectoryTip')}</TooltipContent>
         </Tooltip>
       </div>
       {expanded && (
@@ -2210,7 +2215,7 @@ function AttachedDirTree({ dirPath, onDetach, selectedPaths, onSelect, refreshVe
               className="text-[11px] text-muted-foreground/50 py-1"
               style={{ paddingLeft: paddingLeft + 24 }}
             >
-              {error ?? '空文件夹'}
+              {error ?? t('agentView.filesBrowser.emptyFolder')}
             </div>
           )}
           {children.map((child) => (
@@ -2244,6 +2249,7 @@ interface AttachedDirItemProps {
 }
 
 function AttachedDirItem({ expandedStateKey, entry, depth, selectedPaths, onSelect, refreshVersion, onAddToChat, onFilePreview, onOpenDirectoryTerminal, allowedPaths, sessionId, scope, revealTarget = null, revealTs = 0, revealAncestors }: AttachedDirItemProps): React.ReactElement {
+  const t = useT()
   // 重命名状态
   const [isRenaming, setIsRenaming] = React.useState(false)
   const [renameValue, setRenameValue] = React.useState(entry.name)
@@ -2425,8 +2431,8 @@ function AttachedDirItem({ expandedStateKey, entry, depth, selectedPaths, onSele
             <TooltipTrigger asChild>
               <button
                 type="button"
-                aria-label={`在 ${currentName} 打开终端`}
-                title={`在 ${currentName} 打开终端`}
+                aria-label={t('agentView.filesBrowser.openTerminalIn', { name: currentName })}
+                title={t('agentView.filesBrowser.openTerminalIn', { name: currentName })}
                 className="relative z-10 flex size-6 shrink-0 items-center justify-center rounded text-muted-foreground opacity-0 transition-[background-color,color,opacity,transform] hover:bg-accent/70 hover:text-foreground group-hover:opacity-100 focus-visible:opacity-100 active:scale-[0.96]"
                 onClick={(event) => {
                   event.stopPropagation()
@@ -2436,7 +2442,7 @@ function AttachedDirItem({ expandedStateKey, entry, depth, selectedPaths, onSele
                 <Terminal className="size-3.5" />
               </button>
             </TooltipTrigger>
-            <TooltipContent side="left">在右侧标签中打开终端</TooltipContent>
+            <TooltipContent side="left">{t('agentView.filesBrowser.openTerminalTip')}</TooltipContent>
           </Tooltip>
         )}
 
@@ -2457,8 +2463,8 @@ function AttachedDirItem({ expandedStateKey, entry, depth, selectedPaths, onSele
                   'h-6 w-6 rounded flex items-center justify-center hover:bg-accent/70 text-muted-foreground hover:text-foreground',
                   !isSelected && 'invisible group-hover:visible focus-visible:visible data-[state=open]:visible',
                 )}
-                title="更多操作"
-                aria-label="更多操作"
+                title={t('agentView.fileMenu.moreActions')}
+                aria-label={t('agentView.fileMenu.moreActions')}
                 onClick={() => {
                   if (!isSelected) onSelect(currentPath, false)
                 }}
@@ -2477,7 +2483,7 @@ function AttachedDirItem({ expandedStateKey, entry, depth, selectedPaths, onSele
                   }])}
                 >
                   <MessageSquarePlus />
-                  引用到 Agent
+                  {t('agentView.fileMenu.referenceToAgent')}
                 </DropdownMenuItem>
                 {onAddToChat && !entry.isDirectory && (
                   <DropdownMenuItem
@@ -2485,7 +2491,7 @@ function AttachedDirItem({ expandedStateKey, entry, depth, selectedPaths, onSele
                     onSelect={() => onAddToChat({ ...entry, path: currentPath, name: currentName })}
                   >
                     <MessageSquarePlus />
-                    添加到聊天
+                    {t('agentView.fileMenu.addToChat')}
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuItem
@@ -2493,7 +2499,7 @@ function AttachedDirItem({ expandedStateKey, entry, depth, selectedPaths, onSele
                   onSelect={() => window.electronAPI.showAttachedInFolder(currentPath, { sessionId, candidateBasePaths: allowedPaths }).catch(console.error)}
                 >
                   <FolderSearch />
-                  在文件夹中显示
+                  {t('agentView.fileMenu.showInFolder')}
                 </DropdownMenuItem>
                 {!entry.isDirectory && onFilePreview && (
                   <DropdownMenuItem
@@ -2501,7 +2507,7 @@ function AttachedDirItem({ expandedStateKey, entry, depth, selectedPaths, onSele
                     onSelect={() => onFilePreview(currentPath)}
                   >
                     <ExternalLink />
-                    打开文件
+                    {t('agentView.fileMenu.openFile')}
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuItem
@@ -2509,14 +2515,14 @@ function AttachedDirItem({ expandedStateKey, entry, depth, selectedPaths, onSele
                   onSelect={startRename}
                 >
                   <Pencil />
-                  重命名
+                  {t('common.rename')}
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   className="text-xs py-1 [&>svg]:size-3.5"
                   onSelect={handleMove}
                 >
                   <FolderInput />
-                  移动到...
+                  {t('agentView.fileMenu.moveTo')}
                 </DropdownMenuItem>
               </DropdownMenuContent>
           </DropdownMenu>
@@ -2535,7 +2541,7 @@ function AttachedDirItem({ expandedStateKey, entry, depth, selectedPaths, onSele
               className="text-[11px] text-muted-foreground/50 py-1"
               style={{ paddingLeft: paddingLeft + 24 }}
             >
-              {error ?? '空文件夹'}
+              {error ?? t('agentView.filesBrowser.emptyFolder')}
             </div>
           )}
           {children.map((child) => (

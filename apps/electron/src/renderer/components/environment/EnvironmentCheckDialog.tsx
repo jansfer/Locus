@@ -12,6 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { useT } from '@/i18n'
 import { EnvironmentCheckPanel } from './EnvironmentCheckPanel'
 
 interface EnvironmentCheckDialogProps {
@@ -20,13 +21,14 @@ interface EnvironmentCheckDialogProps {
 }
 
 export function EnvironmentCheckDialog({ open, onOpenChange }: EnvironmentCheckDialogProps) {
+  const t = useT()
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-xl">
         <DialogHeader>
-          <DialogTitle>环境检测</DialogTitle>
+          <DialogTitle>{t('environment.dialog.title')}</DialogTitle>
           <DialogDescription>
-            检查并修复 Locus 运行所需的 Windows 本地环境
+            {t('environment.dialog.description')}
           </DialogDescription>
         </DialogHeader>
         <EnvironmentCheckPanel autoDetectOnMount={open} />

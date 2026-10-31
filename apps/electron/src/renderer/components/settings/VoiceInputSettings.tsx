@@ -16,30 +16,33 @@ import {
   SettingsToggle,
 } from './primitives'
 import type { VoiceDictationSettings, MicPermissionResult } from '../../../types'
+import { useT } from '@/i18n'
 
+/** label 存词典键名，渲染时经组件内映射翻译 */
 const ENDPOINT_OPTIONS = [
-  { value: 'async', label: '双向流式优化版' },
-  { value: 'duplex', label: '双向流式标准版' },
-]
+  { value: 'async', label: 'async' },
+  { value: 'duplex', label: 'duplex' },
+] as const
 
 const OUTPUT_OPTIONS = [
-  { value: 'auto', label: '自动：Locus 激活时写入对话框，否则写入当前光标' },
-  { value: 'clipboard', label: '仅复制到剪贴板' },
-  { value: 'proma-input', label: '仅写入 Locus 输入框' },
-]
+  { value: 'auto', label: 'auto' },
+  { value: 'clipboard', label: 'clipboard' },
+  { value: 'proma-input', label: 'input' },
+] as const
 
 const LANGUAGE_OPTIONS = [
-  { value: 'auto', label: '自动识别' },
-  { value: 'zh-CN', label: '中文普通话' },
-  { value: 'en-US', label: '英语' },
-  { value: 'yue-CN', label: '粤语' },
-  { value: 'ja-JP', label: '日语' },
-  { value: 'ko-KR', label: '韩语' },
-]
+  { value: 'auto', label: 'auto' },
+  { value: 'zh-CN', label: 'zh' },
+  { value: 'en-US', label: 'en' },
+  { value: 'yue-CN', label: 'yue' },
+  { value: 'ja-JP', label: 'ja' },
+  { value: 'ko-KR', label: 'ko' },
+] as const
 
 const VOLCENGINE_SPEECH_SERVICE_URL = 'https://console.volcengine.com/speech/service/'
 
 export function VoiceInputSettings(): React.ReactElement {
+  const t = useT()
   const [settings, setSettings] = React.useState<VoiceDictationSettings | null>(null)
   const [saving, setSaving] = React.useState(false)
   const [testing, setTesting] = React.useState(false)
@@ -54,16 +57,15 @@ export function VoiceInputSettings(): React.ReactElement {
       console.error('[语音输入] 检查麦克风权限失败:', error)
     }
   }, [])
-
   React.useEffect(() => {
     window.electronAPI.getVoiceDictationSettings()
       .then(setSettings)
       .catch((error) => {
         console.error('[语音输入] 加载设置失败:', error)
-        toast.error('加载语音输入设置失败')
+        toast.error(t('settingsIntegrations.voice.loadFailed'))
       })
     refreshMicPermission()
-  }, [refreshMicPermission])
+  }, [refreshMicPermission, t])
 
   const handleRequestMicPermission = React.useCallback(async () => {
     setRequestingPermission(true)
@@ -71,13 +73,13 @@ export function VoiceInputSettings(): React.ReactElement {
       const result = await window.electronAPI.requestMicrophonePermission()
       setMicPermission(result)
       if (result.status === 'granted') {
-        toast.success('麦克风权限已授权')
+        toast.success(t('settingsIntegrations.voice.micGranted'))
       } else if (result.status === 'denied') {
-        toast.error('麦克风权限已被拒绝，请在系统设置中允许')
+        toast.error(t('settingsIntegrations.voice.micDenied'))
       }
     } catch (error) {
       console.error('[语音输入] 请求麦克风权限失败:', error)
-      toast.error('请求麦克风权限失败')
+      toast.error(t('settingsIntegrations.voice.micRequestFailed'))
     } finally {
       setRequestingPermission(false)
     }
@@ -94,7 +96,7 @@ export function VoiceInputSettings(): React.ReactElement {
       window.electronAPI.reregisterGlobalShortcuts().catch(console.error)
     } catch (error) {
       console.error('[语音输入] 保存设置失败:', error)
-      toast.error('保存语音输入设置失败')
+      toast.error(t('settingsIntegrations.voice.saveFailed'))
     } finally {
       setSaving(false)
     }
@@ -111,27 +113,31 @@ export function VoiceInputSettings(): React.ReactElement {
         toast.error(result.message)
       }
     } catch (error) {
-      const message = error instanceof Error ? error.message : '未知错误'
-      toast.error(`测试连接失败: ${message}`)
+      const message = error instanceof Error ? error.message : t('settingsIntegrations.voice.unknownError')
+      toast.error(t('settingsIntegrations.voice.testFailed', { message }))
     } finally {
       setTesting(false)
     }
-  }, [settings])
+  }, [settings, t])
 
   if (!settings) {
     return (
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <Loader2 className="size-4 animate-spin" />
-        正在加载语音输入设置...
+        {t('settingsIntegrations.voice.loading')}
       </div>
     )
   }
 
+  const endpointOptions = ENDPOINT_OPTIONS.map((option) => ({ ...option, label: t(`settingsIntegrations.voice.endpoint.${option.label}`) }))
+  const outputOptions = OUTPUT_OPTIONS.map((option) => ({ ...option, label: t(`settingsIntegrations.voice.output.${option.label}`) }))
+  const languageOptions = LANGUAGE_OPTIONS.map((option) => ({ ...option, label: t(`settingsIntegrations.voice.language.${option.label}`) }))
+
   return (
     <div className="space-y-6">
       <SettingsSection
-        title="豆包流式语音输入"
-        description="通过全局快捷键唤起浮窗，实时识别语音，停止后写入 Locus 输入框或当前光标位置。"
+        title={t('settingsIntegrations.voice.title')}
+        description={t('settingsIntegrations.voice.description')}
         action={
           <Button
             variant="outline"
@@ -140,28 +146,28 @@ export function VoiceInputSettings(): React.ReactElement {
             disabled={testing || !settings.appId || !settings.accessToken || !settings.resourceId}
           >
             {testing ? <Loader2 className="mr-1.5 size-3.5 animate-spin" /> : <TestTube2 className="mr-1.5 size-3.5" />}
-            测试连接
+            {t('settingsIntegrations.shared.testConnection')}
           </Button>
         }
       >
         <div className="rounded-lg bg-muted/55 px-4 py-3 text-sm text-muted-foreground shadow-sm">
-          <div className="mb-1.5 font-medium text-foreground">配置方式</div>
+          <div className="mb-1.5 font-medium text-foreground">{t('settingsIntegrations.voice.howToTitle')}</div>
           <div className="space-y-1 leading-relaxed">
             <p>
-              打开
+              {t('settingsIntegrations.voice.openConsoleBefore')}
               <a
                 href={VOLCENGINE_SPEECH_SERVICE_URL}
                 target="_blank"
                 rel="noreferrer"
                 className="mx-1 inline-flex items-center gap-1 text-primary underline-offset-4 hover:underline"
               >
-                火山引擎语音服务控制台
+                {t('settingsIntegrations.voice.volcConsole')}
                 <ExternalLink className="size-3" />
               </a>
-              ，选择旧版服务界面。
+              {t('settingsIntegrations.voice.openConsoleAfter')}
             </p>
-            <p>找到“豆包流式语音识别模型2.0”类目，选择已申请对应权限的应用。</p>
-            <p>在页面下方对照填写 APP ID、Access Token 和 Resource ID，然后点击“测试连接”。</p>
+            <p>{t('settingsIntegrations.voice.findCategory')}</p>
+            <p>{t('settingsIntegrations.voice.fillFields')}</p>
           </div>
         </div>
 
@@ -180,15 +186,15 @@ export function VoiceInputSettings(): React.ReactElement {
                   <Mic className="size-4 text-muted-foreground" />
                 )}
                 <div>
-                  <span className="font-medium text-foreground">麦克风权限</span>
+                  <span className="font-medium text-foreground">{t('settingsIntegrations.voice.micPermission')}</span>
                   <span className="ml-2 text-muted-foreground">
                     {micPermission.status === 'granted'
-                      ? '已授权，语音输入可正常使用'
+                      ? t('settingsIntegrations.voice.micStatusGranted')
                       : micPermission.status === 'denied'
-                      ? '已被系统阻止，请在系统设置中允许 Locus 访问麦克风'
+                      ? t('settingsIntegrations.voice.micStatusDenied')
                       : micPermission.status === 'not-determined'
-                      ? '未授权，使用语音输入前需要先授权'
-                      : '当前系统不支持预检，录音时将自动弹出权限请求'}
+                      ? t('settingsIntegrations.voice.micStatusNotDetermined')
+                      : t('settingsIntegrations.voice.micStatusUnsupported')}
                   </span>
                 </div>
               </div>
@@ -206,7 +212,7 @@ export function VoiceInputSettings(): React.ReactElement {
                   ) : (
                     <MicOff className="mr-1.5 size-3.5" />
                   )}
-                  {micPermission.status === 'not-determined' ? '允许麦克风权限' : '重新请求权限'}
+                  {micPermission.status === 'not-determined' ? t('settingsIntegrations.voice.allowMic') : t('settingsIntegrations.voice.rerequestMic')}
                 </Button>
               )}
             </div>
@@ -215,66 +221,66 @@ export function VoiceInputSettings(): React.ReactElement {
 
         <SettingsCard>
           <SettingsToggle
-            label="启用语音输入"
-            description="启用后可使用 Ctrl+～ 打开语音输入浮窗，再按一次停止。"
+            label={t('settingsIntegrations.voice.enableLabel')}
+            description={t('settingsIntegrations.voice.enableDesc')}
             checked={settings.enabled}
             onCheckedChange={(enabled) => update({ enabled })}
           />
           <SettingsInput
-            label="豆包 APP ID"
-            description="对应 X-Api-App-Key，请填写火山引擎控制台中的 APP ID。"
+            label={t('settingsIntegrations.voice.appIdLabel')}
+            description={t('settingsIntegrations.voice.appIdDesc')}
             value={settings.appId}
             onChange={(appId) => update({ appId })}
-            placeholder="请输入 APP ID"
+            placeholder={t('settingsIntegrations.voice.appIdPlaceholder')}
           />
           <SettingsSecretInput
-            label="豆包 Access Token"
-            description="对应 X-Api-Access-Key，保存时会加密。"
+            label={t('settingsIntegrations.voice.tokenLabel')}
+            description={t('settingsIntegrations.voice.tokenDesc')}
             value={settings.accessToken}
             onChange={(accessToken) => update({ accessToken })}
-            placeholder="请输入 Access Token"
+            placeholder={t('settingsIntegrations.voice.tokenPlaceholder')}
           />
           <SettingsInput
             label="Resource ID"
-            description="默认使用豆包语音识别模型 2.0 小时版。"
+            description={t('settingsIntegrations.voice.resourceIdDesc')}
             value={settings.resourceId}
             onChange={(resourceId) => update({ resourceId })}
             placeholder="volc.seedasr.sauc.duration"
           />
           <SettingsSelect
-            label="连接模式"
-            description="优化版只在结果变化时返回新包，实时体验更好。"
+            label={t('settingsIntegrations.voice.endpointLabel')}
+            description={t('settingsIntegrations.voice.endpointDesc')}
             value={settings.endpointMode}
             onValueChange={(endpointMode) => update({ endpointMode: endpointMode as VoiceDictationSettings['endpointMode'] })}
-            options={ENDPOINT_OPTIONS}
+            options={endpointOptions}
           />
           <SettingsSelect
-            label="识别语言"
-            description="自动识别适合中英文和方言混合输入。"
+            label={t('settingsIntegrations.voice.languageLabel')}
+            description={t('settingsIntegrations.voice.languageDesc')}
             value={settings.language || 'auto'}
             onValueChange={(language) => update({ language: language === 'auto' ? '' : language })}
-            options={LANGUAGE_OPTIONS}
+            options={languageOptions}
           />
           <SettingsTextarea
-            label="自定义热词"
-            description="每行或逗号分隔一个词，会在本次识别请求中直传给豆包，用于改善产品名、技术词和人名识别。"
+            label={t('settingsIntegrations.voice.hotwordsLabel')}
+            description={t('settingsIntegrations.voice.hotwordsDesc')}
             value={settings.customHotwords}
             onChange={(customHotwords) => update({ customHotwords })}
             placeholder={"Locus\nJotai\nShadcnUI\nClaude Code"}
             minHeight={112}
           />
           <SettingsSelect
-            label="输出方式"
-            description="默认写入当前光标位置；如果唤起时 Locus 是当前激活窗口，会写入当前 Chat 或 Agent 输入框。自动粘贴失败时会保留到剪贴板。"
+            label={t('settingsIntegrations.voice.outputLabel')}
+            description={t('settingsIntegrations.voice.outputDesc')}
             value={settings.outputMode}
             onValueChange={(outputMode) => update({ outputMode: outputMode as VoiceDictationSettings['outputMode'] })}
-            options={OUTPUT_OPTIONS}
+            options={outputOptions}
           />
         </SettingsCard>
       </SettingsSection>
 
       {saving && (
-        <p className="text-xs text-muted-foreground">正在保存语音输入设置...</p>
+        <p className="text-xs text-muted-foreground">{t('settingsIntegrations.voice.saving')}</p>
       )}
     </div>
   )

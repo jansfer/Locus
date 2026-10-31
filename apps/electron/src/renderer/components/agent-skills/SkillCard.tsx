@@ -6,6 +6,7 @@
 
 import * as React from 'react'
 import { Sparkles, RefreshCw, ShieldCheck, ArrowDownToLine } from 'lucide-react'
+import { useT } from '@/i18n'
 import { Switch } from '@/components/ui/switch'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
@@ -21,6 +22,7 @@ interface SkillCardProps {
 }
 
 export function SkillCard({ skill, isBuiltin, updating, onOpen, onToggle, onUpdate }: SkillCardProps): React.ReactElement {
+  const t = useT()
   return (
     <div
       role="button"
@@ -62,21 +64,21 @@ export function SkillCard({ skill, isBuiltin, updating, onOpen, onToggle, onUpda
       </div>
 
       <p className="line-clamp-2 min-h-[40px] text-[13px] leading-6 text-muted-foreground">
-        {skill.description ?? '暂无描述'}
+        {skill.description ?? t('skills.skillCard.noDescription')}
       </p>
 
       <div className="mt-auto flex items-center gap-2">
         {isBuiltin ? (
           <span className="flex items-center gap-1 rounded-md bg-blue-500/10 px-1.5 py-0.5 text-[11px] font-medium text-blue-600 dark:text-blue-400">
-            <ShieldCheck size={12} /> PROMA 内置
+            <ShieldCheck size={12} /> {t('skills.skillCard.builtinBadge')}
           </span>
         ) : skill.importSource ? (
           <span className="truncate rounded-md bg-muted px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground">
-            来自 {skill.importSource.sourceWorkspaceName}
+            {t('skills.skillCard.fromWorkspace', { name: skill.importSource.sourceWorkspaceName })}
           </span>
         ) : (
           <span className="rounded-md bg-muted px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground">
-            本项目
+            {t('skills.skillCard.currentProject')}
           </span>
         )}
 
@@ -90,10 +92,10 @@ export function SkillCard({ skill, isBuiltin, updating, onOpen, onToggle, onUpda
                 className="ml-auto flex items-center gap-1 rounded-md bg-blue-500/10 px-2 py-0.5 text-[11px] font-medium text-blue-600 hover:bg-blue-500/20 transition-colors disabled:opacity-60 dark:text-blue-400"
               >
                 <RefreshCw size={12} className={cn(updating && 'animate-spin')} />
-                {updating ? '更新中' : '有更新'}
+                {updating ? t('skills.skillCard.updating') : t('skills.skillCard.hasUpdate')}
               </button>
             </TooltipTrigger>
-            <TooltipContent side="top">点击同步来源最新版本</TooltipContent>
+            <TooltipContent side="top">{t('skills.skillCard.updateTooltip')}</TooltipContent>
           </Tooltip>
         )}
         {!skill.hasUpdate && skill.importSource && (

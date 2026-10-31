@@ -21,6 +21,14 @@ import type { FileAccessOptions } from '@proma/shared'
 import { extractCodeText, parseImageWidth } from '../../lib/markdown-rich-text'
 import { shouldRenderMermaidCodeBlock } from '../../lib/mermaid-detection'
 import { copyTextToClipboard } from '../../lib/clipboard'
+import { t } from '@/i18n'
+
+/** 复制按钮的 HTML 片段；文案从词典取，随当前语言变化。 */
+function buildCopyButtonHtml(icon: string, label: string): string {
+  return `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${icon}</svg><span>${label}</span>`
+}
+const COPY_ICON = '<rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>'
+const CHECK_ICON = '<polyline points="20 6 9 17 4 12"/>'
 
 type FileAccessRef = { current: FileAccessOptions | undefined }
 type ThemeRef = { current: string }
@@ -652,15 +660,15 @@ function createShikiCodeBlockView(initialNode: ProseMirrorNode) {
   const copyBtn = document.createElement('button')
   copyBtn.type = 'button'
   copyBtn.className = 'flex items-center gap-1 px-1.5 py-0.5 rounded hover:bg-foreground/10 transition-colors text-muted-foreground hover:text-foreground'
-  copyBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span>复制</span>'
+  copyBtn.innerHTML = buildCopyButtonHtml(COPY_ICON, t('common.copy'))
   let copyTimeout: ReturnType<typeof setTimeout> | null = null
   let currentCode = initialNode.textContent
   copyBtn.addEventListener('click', () => {
     copyTextToClipboard(currentCode).then(() => {
-      copyBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span>已复制</span>'
+      copyBtn.innerHTML = buildCopyButtonHtml(CHECK_ICON, t('common.copied'))
       if (copyTimeout) clearTimeout(copyTimeout)
       copyTimeout = setTimeout(() => {
-        copyBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span>复制</span>'
+        copyBtn.innerHTML = buildCopyButtonHtml(COPY_ICON, t('common.copy'))
       }, 2000)
     }).catch(() => {})
   })

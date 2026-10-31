@@ -11,6 +11,7 @@ import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } 
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { resolveVaultWikiLink } from './vault-wikilinks'
+import { useT } from '@/i18n'
 import { VaultLiveMarkdownEditor } from './VaultLiveMarkdownEditor'
 import { VaultNoteTitle } from './VaultNoteTitle'
 import { focusVaultBody } from './vault-title-focus'
@@ -53,7 +54,6 @@ const VAULT_NAME = 'Vault'
 const VAULT_SIDEBAR_MIN_WIDTH = 180
 const VAULT_SIDEBAR_MAX_WIDTH = 520
 const PROMA_MANAGED_VAULT_DISPLAY_NAME = 'Locus Vault'
-const PROMA_SELF_MANAGED_VAULT_LABEL = 'Locus 自建 Vault'
 const MAX_QUOTED_CHARS = 2000
 
 interface VaultTextSelection extends LiveMarkdownTextSelection {
@@ -95,6 +95,7 @@ function VaultFileList({
   canCreate: boolean
   treeAction: { type: 'expand' | 'collapse'; version: number }
 }): React.ReactElement {
+  const t = useT()
   const tree = React.useMemo(() => buildVaultTree(entries), [entries])
   const allFolderPaths = React.useMemo(() => {
     const paths: string[] = []
@@ -163,7 +164,7 @@ function VaultFileList({
                   <button
                     type="button"
                     aria-expanded={expanded}
-                    aria-label={`${expanded ? '收起' : '展开'}文件夹 ${child.name}`}
+                    aria-label={expanded ? t('vault.tree.collapseFolderAria', { name: child.name }) : t('vault.tree.expandFolderAria', { name: child.name })}
                     onClick={() => {
                       onFocusFolder(child.relativePath)
                       setExpandedFolders((current) => {
@@ -185,8 +186,8 @@ function VaultFileList({
                   </button>
                 </ContextMenuTrigger>
                 <ContextMenuContent className="z-[9999] w-40 min-w-0 p-0.5">
-                  <ContextMenuItem disabled={!canCreate} onSelect={() => onCreateNote(child.relativePath)}>新建笔记</ContextMenuItem>
-                  <ContextMenuItem disabled={!canCreate} onSelect={() => onCreateFolder(child.relativePath)}>新建文件夹</ContextMenuItem>
+                  <ContextMenuItem disabled={!canCreate} onSelect={() => onCreateNote(child.relativePath)}>{t('vault.tree.createNote')}</ContextMenuItem>
+                  <ContextMenuItem disabled={!canCreate} onSelect={() => onCreateFolder(child.relativePath)}>{t('vault.tree.createFolder')}</ContextMenuItem>
                 </ContextMenuContent>
               </ContextMenu>
               {expanded && (
@@ -228,14 +229,14 @@ function VaultFileList({
                 <TooltipTrigger asChild>
                   <button
                     type="button"
-                    aria-label={`删除笔记 ${displayDocumentTitle(file.name)}`}
+                    aria-label={t('vault.tree.deleteNoteAria', { name: displayDocumentTitle(file.name) })}
                     onClick={() => onDelete(file)}
                     className="mr-1 flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-[opacity,color,background-color] hover:bg-destructive/10 hover:text-destructive focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring group-hover:opacity-100"
                   >
                     <Trash2 size={13} />
                   </button>
                 </TooltipTrigger>
-                <TooltipContent side="right">删除笔记</TooltipContent>
+                <TooltipContent side="right">{t('vault.tree.deleteNoteTooltip')}</TooltipContent>
               </Tooltip>
             </div>
           )
@@ -248,7 +249,7 @@ function VaultFileList({
   return (
     <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-3 scrollbar-thin titlebar-no-drag">
       {!hasEntries
-        ? <p className="px-4 py-6 text-center text-xs leading-relaxed text-muted-foreground">没有可显示的 Markdown 笔记或文件夹</p>
+        ? <p className="px-4 py-6 text-center text-xs leading-relaxed text-muted-foreground">{t('vault.tree.emptyFileList')}</p>
         : renderEntries(tree, 0)}
     </div>
   )
@@ -319,6 +320,7 @@ function VaultMarkdownEditor({
   const setSidePanelOpen = useSetAtom(agentSidePanelOpenAtomFamily(sessionId ?? 'standalone'))
   const setSidePanelTabMap = useSetAtom(agentDiffPanelTabAtom)
   const focusAgentSessionInput = useFocusAgentSessionInput()
+  const t = useT()
   // Keep the reading position per surface and per note, so switching the center
   // view, a right-workspace tab, or the open note does not jump back to the top.
   const editorHandleRef = React.useRef<LiveMarkdownEditorHandle | null>(null)
@@ -363,7 +365,7 @@ function VaultMarkdownEditor({
   }) : null, [readResult.relativePath, selection])
   const addSelectionToAgent = React.useCallback(() => {
     if (!sessionId) {
-      toast.info('请从 Agent 会话右侧打开 Obsidian 后再添加引用')
+      toast.info(t('vault.chat.addToAgentHint'))
       return
     }
     const quote = createQuote()
@@ -376,7 +378,7 @@ function VaultMarkdownEditor({
   }, [clearSelection, createQuote, focusAgentSessionInput, sessionId, setQuotedSelectionMap])
   const openSelectionChat = React.useCallback(async (): Promise<void> => {
     if (!sessionId) {
-      toast.info('请从 Agent 会话右侧打开 Obsidian 后再发起右侧问答')
+      toast.info(t('vault.chat.openSideChatHint'))
       return
     }
     const quote = createQuote()
@@ -396,12 +398,12 @@ function VaultMarkdownEditor({
     openSelectionChatPendingRef.current = true
     try {
       const conversation = await getOrCreateSideChat(sessionId, () => window.electronAPI.createConversation(
-        'Obsidian 选区问答',
+        t('vault.chat.selectionChatTitle'),
         selectedChatModel?.modelId,
         selectedChatModel?.channelId,
       ))
       setConversations((previous) => previous.some((item) => item.id === conversation.id) ? previous : [conversation, ...previous])
-      setConversationDrafts((previous) => new Map(previous).set(conversation.id, '我的问题：'))
+      setConversationDrafts((previous) => new Map(previous).set(conversation.id, t('vault.chat.conversationDraft')))
       setSideChatMap((previous) => new Map(previous).set(sessionId, conversation.id))
       setSidePanelOpen(true)
       setSidePanelTabMap((previous) => new Map(previous).set(sessionId, 'chat'))
@@ -410,7 +412,7 @@ function VaultMarkdownEditor({
       focusChatInput(conversation.id)
     } catch (error) {
       console.error('[VaultView] 打开 Obsidian 选区聊天失败:', error)
-      toast.error('打开右侧问答失败')
+      toast.error(t('vault.chat.openSideChatFailed'))
     } finally {
       openSelectionChatPendingRef.current = false
     }
@@ -428,6 +430,7 @@ function VaultMarkdownEditor({
     setSidePanelOpen,
     setSidePanelTabMap,
     sideChatMap,
+    t,
   ])
 
   const updateDraft = React.useCallback((nextDraft: string): void => {
@@ -436,9 +439,9 @@ function VaultMarkdownEditor({
 
   React.useEffect(() => {
     if (documentController.observeRemote(readResult) === 'conflict') {
-      toast.error('笔记已被外部修改；已保留本地草稿')
+      toast.error(t('vault.save.noteModifiedExternally'))
     }
-  }, [documentController, readResult])
+  }, [documentController, readResult, t])
 
   const handleEditorPageWheel = (event: React.WheelEvent<HTMLDivElement>): void => {
     if ((event.target as HTMLElement).closest('.vault-ink-mde')) return
@@ -455,11 +458,11 @@ function VaultMarkdownEditor({
   const saveLatest = React.useCallback(async (silent = false): Promise<boolean> => {
     const result = await documentController.flush((request) => onSave(request, { silent }))
     if (!result.ok) {
-      toast.error(result.reason === 'conflict' ? '笔记已被外部修改；已保留本地草稿' : (result.message ?? '保存失败；已保留本地草稿'))
+      toast.error(result.reason === 'conflict' ? t('vault.save.noteModifiedExternally') : (result.message ?? t('vault.save.saveConflictFallback')))
       return false
     }
     return true
-  }, [documentController, onSave])
+  }, [documentController, onSave, t])
 
   const flushPendingSave = React.useCallback((): Promise<boolean> => saveLatest(true), [saveLatest])
 
@@ -486,9 +489,9 @@ function VaultMarkdownEditor({
   const copyLocalDraft = async (): Promise<void> => {
     try {
       await navigator.clipboard.writeText(draft)
-      toast.success('未保存草稿已复制')
+      toast.success(t('vault.save.draftCopied'))
     } catch {
-      toast.error('无法复制本地草稿')
+      toast.error(t('vault.save.draftCopyFailed'))
     }
   }
 
@@ -507,23 +510,23 @@ function VaultMarkdownEditor({
           />
           {saveConflict && (
             <div className="flex shrink-0 items-center gap-1.5 text-xs text-destructive">
-              <span>草稿未保存</span>
-              <button type="button" onClick={() => { void copyLocalDraft() }} className="rounded px-1.5 py-1 hover:bg-destructive/10">复制草稿</button>
-              <button type="button" onClick={() => { documentController.discardLocalDraft(); onReload() }} className="rounded px-1.5 py-1 hover:bg-destructive/10">丢弃并重载</button>
+              <span>{t('vault.editor.draftUnsaved')}</span>
+              <button type="button" onClick={() => { void copyLocalDraft() }} className="rounded px-1.5 py-1 hover:bg-destructive/10">{t('vault.editor.copyDraft')}</button>
+              <button type="button" onClick={() => { documentController.discardLocalDraft(); onReload() }} className="rounded px-1.5 py-1 hover:bg-destructive/10">{t('vault.editor.discardAndReload')}</button>
             </div>
           )}
           <Tooltip>
             <TooltipTrigger asChild>
               <button
                 type="button"
-                aria-label={`${VAULT_NAME} 使用帮助`}
+                aria-label={t('vault.help.aria', { vault: VAULT_NAME })}
                 onClick={onOpenTutorial}
                 className="flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               >
                 <CircleHelp size={16} />
               </button>
             </TooltipTrigger>
-            <TooltipContent>{VAULT_NAME} 使用帮助（自动保存；Cmd/Ctrl + S 可立即保存）</TooltipContent>
+            <TooltipContent>{t('vault.help.tooltip', { vault: VAULT_NAME })}</TooltipContent>
           </Tooltip>
         </div>
         <div className="min-h-0 flex-1">
@@ -582,12 +585,13 @@ function VaultMarkdownPane({
   onOpenTutorial: () => void
   onOpenWikiLink: (target: string) => void
 }): React.ReactElement {
+  const t = useT()
   if (loading || !readResult || !vaultId) {
     return (
       <section className="flex min-w-0 flex-1 flex-col bg-muted/25">
         <div className="mx-auto flex h-full w-full max-w-5xl flex-col px-5 py-5">
           <div className="titlebar-no-drag flex min-w-0 items-center gap-2">
-            <p className="min-w-0 flex-1 truncate px-4 text-sm text-muted-foreground">{loading ? '正在加载笔记' : hasVault ? '选择一篇笔记开始编辑' : '从左下角选择或创建 Vault'}</p>
+            <p className="min-w-0 flex-1 truncate px-4 text-sm text-muted-foreground">{loading ? t('vault.editor.loadingNote') : hasVault ? t('vault.editor.selectNoteToEdit') : t('vault.editor.selectVaultHint')}</p>
           </div>
           {loading && (
             <div className="flex min-h-0 flex-1 items-center justify-center text-muted-foreground">
@@ -622,6 +626,7 @@ function VaultMarkdownPane({
 }
 
 export function VaultView({ embedded = false, sessionId }: { embedded?: boolean; sessionId?: string }): React.ReactElement {
+  const t = useT()
   const vaultSidebarContentId = React.useId()
   const vaultSessionScope = getVaultSessionScope(sessionId)
   const [config, setConfig] = React.useState<VaultSummary | null>(null)
@@ -775,7 +780,7 @@ export function VaultView({ embedded = false, sessionId }: { embedded?: boolean;
         if (!nextEntries.some((entry) => entry.kind === 'file' && entry.relativePath === relativePath)) {
           selectFile(null)
           setReadResult(null)
-          toast.message('已打开的笔记不存在')
+          toast.message(t('vault.toasts.noteMissing'))
           return
         }
         const requestId = ++readRequestRef.current
@@ -784,7 +789,7 @@ export function VaultView({ embedded = false, sessionId }: { embedded?: boolean;
           if (requestId === readRequestRef.current) setReadResult(result)
         } catch (error) {
           if (requestId === readRequestRef.current) {
-            toast.error(error instanceof Error ? error.message : '无法刷新已打开的笔记')
+            toast.error(error instanceof Error ? error.message : t('vault.toasts.refreshOpenNoteFailed'))
           }
         } finally {
           // 刷新可能接管尚未完成的导航读取，也负责结束该请求的加载态。
@@ -792,7 +797,7 @@ export function VaultView({ embedded = false, sessionId }: { embedded?: boolean;
         }
       }
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : `无法读取 ${VAULT_NAME}`)
+      toast.error(error instanceof Error ? error.message : t('vault.toasts.readVaultFailed', { vault: VAULT_NAME }))
     } finally {
       if (showLoading) setLoading(false)
     }
@@ -870,7 +875,7 @@ export function VaultView({ embedded = false, sessionId }: { embedded?: boolean;
         // The tree can be stale when a note is deleted or renamed outside this
         // renderer. Refresh it once so the unavailable note is removed.
         if (isVaultFileNotFoundError(error)) void refresh()
-        toast.error(error instanceof Error ? error.message : '无法打开笔记')
+        toast.error(error instanceof Error ? error.message : t('vault.toasts.openNoteFailed'))
         setReadResult(null)
       }
     } finally {
@@ -882,7 +887,7 @@ export function VaultView({ embedded = false, sessionId }: { embedded?: boolean;
     if (!readResult) return
     const path = resolveVaultWikiLink(target, readResult.relativePath, entries.filter((entry) => entry.kind === 'file').map((entry) => entry.relativePath))
     if (!path) {
-      toast.error(`无法定位笔记“${target}”，请检查名称或使用完整的 Vault 内路径`)
+      toast.error(t('vault.toasts.wikiLinkNotFound', { target }))
       return
     }
     void openFile(path)
@@ -897,7 +902,7 @@ export function VaultView({ embedded = false, sessionId }: { embedded?: boolean;
     setReadResult(null)
     setVaultSwitcherOpen(false)
     setRefreshToken((value) => value + 1)
-    toast.success(`已连接 ${selected.displayName}`)
+    toast.success(t('vault.toasts.connectedTo', { name: selected.displayName }))
   }
 
   const createPromaVault = async (): Promise<void> => {
@@ -909,9 +914,9 @@ export function VaultView({ embedded = false, sessionId }: { embedded?: boolean;
       setReadResult(null)
       setVaultSwitcherOpen(false)
       setRefreshToken((value) => value + 1)
-      toast.success(`已创建 ${selected.displayName}`)
+      toast.success(t('vault.toasts.createdVault', { name: selected.displayName }))
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : `无法创建 ${PROMA_MANAGED_VAULT_DISPLAY_NAME}`)
+      toast.error(error instanceof Error ? error.message : t('vault.toasts.createVaultFailed', { name: PROMA_MANAGED_VAULT_DISPLAY_NAME }))
     }
   }
 
@@ -926,9 +931,9 @@ export function VaultView({ embedded = false, sessionId }: { embedded?: boolean;
       setReadResult(null)
       setVaultSwitcherOpen(false)
       setRefreshToken((value) => value + 1)
-      toast.success(`已连接 ${selected.displayName}`)
+      toast.success(t('vault.toasts.connectedTo', { name: selected.displayName }))
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : `无法连接检测到的 ${VAULT_NAME}`)
+      toast.error(error instanceof Error ? error.message : t('vault.toasts.connectDiscoveredFailed', { vault: VAULT_NAME }))
     }
   }
 
@@ -940,7 +945,7 @@ export function VaultView({ embedded = false, sessionId }: { embedded?: boolean;
       setRefreshToken((value) => value + 1)
       await openFile(result.relativePath)
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : '无法创建笔记')
+      toast.error(error instanceof Error ? error.message : t('vault.toasts.createNoteFailed'))
     }
   }
 
@@ -952,7 +957,7 @@ export function VaultView({ embedded = false, sessionId }: { embedded?: boolean;
       setRefreshToken((value) => value + 1)
       await openFile(result.relativePath)
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : '无法创建笔记')
+      toast.error(error instanceof Error ? error.message : t('vault.toasts.createNoteFailed'))
     }
   }
 
@@ -976,9 +981,9 @@ export function VaultView({ embedded = false, sessionId }: { embedded?: boolean;
       setFocusedFolder(relativePath)
       updateAgentFocus({ kind: 'folder', relativePath })
       setRefreshToken((value) => value + 1)
-      toast.success(`已创建文件夹 ${name}`)
+      toast.success(t('vault.toasts.folderCreated', { name }))
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : '无法创建文件夹')
+      toast.error(error instanceof Error ? error.message : t('vault.toasts.createFolderFailed'))
     } finally {
       setCreatingFolder(false)
     }
@@ -999,10 +1004,10 @@ export function VaultView({ embedded = false, sessionId }: { embedded?: boolean;
       } : previous)
       const nextEntries = await window.electronAPI.listVaultFiles()
       setEntries((current) => hasSameVaultTreeEntries(current, nextEntries) ? current : nextEntries)
-      if (!silent) toast.success(`已保存到 ${VAULT_NAME}`)
+      if (!silent) toast.success(t('vault.save.savedToVault', { vault: VAULT_NAME }))
       return result
     } catch (error) {
-      return { ok: false, reason: 'error', message: error instanceof Error ? error.message : '保存失败' }
+      return { ok: false, reason: 'error', message: error instanceof Error ? error.message : t('vault.save.saveFailed') }
     }
   }, [setReadResult])
 
@@ -1029,11 +1034,11 @@ export function VaultView({ embedded = false, sessionId }: { embedded?: boolean;
       }
       if (result.renamed) {
         setRefreshToken((value) => value + 1)
-        toast.success('已重命名笔记')
+        toast.success(t('vault.save.noteRenamed'))
       }
       return true
     } catch (error) {
-      if (isVaultCurrent()) toast.error(error instanceof Error ? error.message : '无法重命名笔记')
+      if (isVaultCurrent()) toast.error(error instanceof Error ? error.message : t('vault.save.renameNoteFailed'))
       return false
     }
   }
@@ -1066,9 +1071,9 @@ export function VaultView({ embedded = false, sessionId }: { embedded?: boolean;
       }
       setDeleteTarget(null)
       setRefreshToken((value) => value + 1)
-      toast.success('已删除 Vault 笔记')
+      toast.success(t('vault.save.vaultNoteDeleted'))
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : '无法删除笔记')
+      toast.error(error instanceof Error ? error.message : t('vault.toasts.deleteNoteFailed'))
     } finally {
       setDeleting(false)
     }
@@ -1118,7 +1123,7 @@ export function VaultView({ embedded = false, sessionId }: { embedded?: boolean;
             >
               <header className={cn('flex h-14 items-center gap-2 px-3', embedded ? 'titlebar-no-drag' : 'titlebar-drag-region')}>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-[13px] font-medium text-foreground">{config?.displayName ?? '选择 Vault'}</p>
+                  <p className="truncate text-[13px] font-medium text-foreground">{config?.displayName ?? t('vault.tree.selectVault')}</p>
                 </div>
                 <div className="flex items-center gap-0.5 titlebar-no-drag">
                   <Tooltip>
@@ -1141,7 +1146,7 @@ export function VaultView({ embedded = false, sessionId }: { embedded?: boolean;
                     <TooltipTrigger asChild>
                       <button
                         type="button"
-                        aria-label={vaultTreeAction.type === 'expand' ? '全部折叠文件树' : '全部展开文件树'}
+                        aria-label={vaultTreeAction.type === 'expand' ? t('vault.tree.collapseTreeAria') : t('vault.tree.expandTreeAria')}
                         onClick={() => setVaultTreeAction((current) => ({
                           type: current.type === 'expand' ? 'collapse' : 'expand',
                           version: current.version + 1,
@@ -1151,16 +1156,16 @@ export function VaultView({ embedded = false, sessionId }: { embedded?: boolean;
                         <ChevronsUpDown size={15} />
                       </button>
                     </TooltipTrigger>
-                    <TooltipContent>{vaultTreeAction.type === 'expand' ? '全部折叠' : '全部展开'}</TooltipContent>
+                    <TooltipContent>{vaultTreeAction.type === 'expand' ? t('vault.tree.collapseAll') : t('vault.tree.expandAll')}</TooltipContent>
                   </Tooltip>
                   {config && (
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <button type="button" aria-label="新建笔记" onClick={() => { void createNote() }} className="flex size-7 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground">
+                        <button type="button" aria-label={t('vault.tree.createNote')} onClick={() => { void createNote() }} className="flex size-7 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground">
                           <Plus size={16} />
                         </button>
                       </TooltipTrigger>
-                      <TooltipContent>新建笔记</TooltipContent>
+                      <TooltipContent>{t('vault.tree.createNote')}</TooltipContent>
                     </Tooltip>
                   )}
                 </div>
@@ -1188,11 +1193,11 @@ export function VaultView({ embedded = false, sessionId }: { embedded?: boolean;
                   <PopoverTrigger asChild>
                     <button
                       type="button"
-                      aria-label="切换 Vault"
+                      aria-label={t('vault.tree.switchVault')}
                       className="flex min-w-0 flex-1 items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                     >
                       <ChevronsUpDown size={14} className="shrink-0 text-muted-foreground" />
-                      <span className="min-w-0 flex-1 truncate">{config?.displayName ?? '选择 Vault'}</span>
+                      <span className="min-w-0 flex-1 truncate">{config?.displayName ?? t('vault.tree.selectVault')}</span>
                     </button>
                   </PopoverTrigger>
                   <PopoverContent side="top" align="start" className="w-72 p-1.5">
@@ -1210,11 +1215,11 @@ export function VaultView({ embedded = false, sessionId }: { embedded?: boolean;
                           >
                             <BookOpen size={15} className="shrink-0 text-primary" />
                             <span className="min-w-0 flex-1 truncate">{getVaultCandidateDisplayName(candidate)}</span>
-                            {candidate.isPromaManaged && <span className="shrink-0 text-[10px] text-muted-foreground">{PROMA_SELF_MANAGED_VAULT_LABEL}</span>}
+                            {candidate.isPromaManaged && <span className="shrink-0 text-[10px] text-muted-foreground">{t('vault.selfManagedVaultLabel')}</span>}
                           </button>
                         ))
                       ) : (
-                        <p className="px-2 py-4 text-center text-xs leading-relaxed text-muted-foreground">未发现本机 Obsidian Vault</p>
+                        <p className="px-2 py-4 text-center text-xs leading-relaxed text-muted-foreground">{t('vault.tree.noLocalVaultFound')}</p>
                       )}
                     </div>
                     <div className="mt-1 border-t border-border/60 pt-1">
@@ -1224,7 +1229,7 @@ export function VaultView({ embedded = false, sessionId }: { embedded?: boolean;
                         className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-sm text-foreground transition-colors hover:bg-muted"
                       >
                         <Plus size={15} className="shrink-0 text-muted-foreground" />
-                        创建 Locus Vault
+                        {t('vault.tree.createLocusVault')}
                       </button>
                       <button
                         type="button"
@@ -1232,7 +1237,7 @@ export function VaultView({ embedded = false, sessionId }: { embedded?: boolean;
                         className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-sm text-foreground transition-colors hover:bg-muted"
                       >
                         <FolderOpen size={15} className="shrink-0 text-muted-foreground" />
-                        打开本地仓库
+                        {t('vault.tree.openLocalRepo')}
                       </button>
                     </div>
                   </PopoverContent>
@@ -1268,10 +1273,10 @@ export function VaultView({ embedded = false, sessionId }: { embedded?: boolean;
       <ConfirmDialog
         open={deleteTarget !== null}
         onOpenChange={(open) => { if (!open) setDeleteTarget(null) }}
-        title="删除 Vault 笔记？"
-        description={deleteTarget ? `“${deleteTarget.relativePath}”将从 Vault 中永久删除，此操作无法撤销。` : undefined}
-        confirmLabel="删除"
-        loadingLabel="删除中"
+        title={t('vault.deleteConfirm.title')}
+        description={deleteTarget ? t('vault.deleteConfirm.description', { name: deleteTarget.relativePath }) : undefined}
+        confirmLabel={t('common.delete')}
+        loadingLabel={t('vault.deleteConfirm.loading')}
         loading={deleting}
         onConfirm={deleteNote}
       />
@@ -1283,8 +1288,8 @@ export function VaultView({ embedded = false, sessionId }: { embedded?: boolean;
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>新建文件夹</DialogTitle>
-            <DialogDescription>在{newFolderParentPath ? ` ${newFolderParentPath}` : ' Vault 根目录'}中创建文件夹。</DialogDescription>
+            <DialogTitle>{t('vault.tree.createFolder')}</DialogTitle>
+            <DialogDescription>{newFolderParentPath ? t('vault.newFolderDialog.inPath', { path: newFolderParentPath }) : t('vault.newFolderDialog.inRoot')}</DialogDescription>
           </DialogHeader>
           <Input
             autoFocus
@@ -1293,14 +1298,14 @@ export function VaultView({ embedded = false, sessionId }: { embedded?: boolean;
             onKeyDown={(event) => {
               if (event.key === 'Enter') void createFolder()
             }}
-            placeholder="文件夹名称"
-            aria-label="文件夹名称"
+            placeholder={t('vault.newFolderDialog.folderNameLabel')}
+            aria-label={t('vault.newFolderDialog.folderNameLabel')}
           />
           <DialogFooter>
-            <Button variant="outline" disabled={creatingFolder} onClick={() => setNewFolderParentPath(null)}>取消</Button>
+            <Button variant="outline" disabled={creatingFolder} onClick={() => setNewFolderParentPath(null)}>{t('common.cancel')}</Button>
             <Button disabled={!newFolderName.trim() || creatingFolder} onClick={() => { void createFolder() }}>
               {creatingFolder && <Loader2 className="mr-2 size-4 animate-spin" />}
-              创建
+              {t('vault.newFolderDialog.create')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1308,25 +1313,25 @@ export function VaultView({ embedded = false, sessionId }: { embedded?: boolean;
       <Dialog open={vaultHelpOpen} onOpenChange={setVaultHelpOpen}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>在 Locus 中使用 {VAULT_NAME}</DialogTitle>
-            <DialogDescription>Locus 直接读写本机已授权的 Markdown Vault；这些笔记也会继续保留在 {VAULT_NAME} 中。</DialogDescription>
+            <DialogTitle>{t('vault.help.title', { vault: VAULT_NAME })}</DialogTitle>
+            <DialogDescription>{t('vault.help.description', { vault: VAULT_NAME })}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 text-sm leading-6 text-muted-foreground">
             <section>
-              <p className="font-medium text-foreground">切换与管理 Vault</p>
-              <p>点击左下角的 Vault 名称可切换已发现的本地 Vault，也可以创建 Locus Vault 或打开本地仓库。云端 Vault 需先同步或挂载到本机。</p>
+              <p className="font-medium text-foreground">{t('vault.help.switchSection')}</p>
+              <p>{t('vault.help.switchBody')}</p>
             </section>
             <section>
-              <p className="font-medium text-foreground">浏览与新建笔记</p>
-              <p>点击文件夹可展开或收起；顶部左箭头可收起整个文件目录，收起后点击靠边的右箭头即可恢复。旁边按钮可一键展开或折叠全部文件夹，拖动中间分隔线可调整文件树宽度。右键点击文件夹可在该目录中新建笔记或文件夹。</p>
+              <p className="font-medium text-foreground">{t('vault.help.browseSection')}</p>
+              <p>{t('vault.help.browseBody')}</p>
             </section>
             <section>
-              <p className="font-medium text-foreground">编辑与自动保存</p>
-              <p>输入停止 700ms 后会自动保存；按 Cmd/Ctrl + S 可立即保存。直接编辑标题并按 Enter 或移开焦点即可重命名笔记。</p>
+              <p className="font-medium text-foreground">{t('vault.help.editSection')}</p>
+              <p>{t('vault.help.editBody')}</p>
             </section>
           </div>
           <DialogFooter>
-            <Button onClick={() => setVaultHelpOpen(false)}>知道了</Button>
+            <Button onClick={() => setVaultHelpOpen(false)}>{t('vault.help.ok')}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

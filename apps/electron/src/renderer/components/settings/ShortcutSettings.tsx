@@ -21,6 +21,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { shortcutOverridesAtom, sendWithCmdEnterAtom } from '@/atoms/shortcut-atoms'
+import { useT } from '@/i18n'
 import {
   DEFAULT_SHORTCUTS,
   SHORTCUT_CATEGORY_LABELS,
@@ -53,6 +54,7 @@ function ShortcutRecorder({
   onSave,
   onActiveChange,
 }: ShortcutRecorderProps): React.ReactElement {
+  const t = useT()
   const [recording, setRecording] = React.useState(false)
   const [pendingKeys, setPendingKeys] = React.useState('')
   const [conflict, setConflict] = React.useState<string | null>(null)
@@ -211,7 +213,10 @@ function ShortcutRecorder({
       <div className="flex items-center gap-2">
         {conflict ? (
           <span className="text-xs px-2 py-1 rounded bg-destructive/10 text-destructive border border-destructive/20">
-            {getAcceleratorDisplay(pendingKeys)} 与「{conflict}」冲突
+            {t('settingsMisc.shortcut.conflictWith', {
+              keys: getAcceleratorDisplay(pendingKeys),
+              name: conflict,
+            })}
           </span>
         ) : (
           <span className={`text-xs px-2 py-1 rounded border ${
@@ -222,12 +227,12 @@ function ShortcutRecorder({
             {recording
               ? pendingKeys
                 ? `${getAcceleratorDisplay(pendingKeys)} + ...`
-                : '请按下快捷键...'
+                : t('settingsMisc.shortcut.pressPrompt')
               : getAcceleratorDisplay(pendingKeys)}
           </span>
         )}
         <Button variant="ghost" size="sm" className="h-6 text-xs" onClick={handleCancel}>
-          取消
+          {t('common.cancel')}
         </Button>
         <Button
           variant="ghost"
@@ -236,7 +241,7 @@ function ShortcutRecorder({
           disabled={!canSave}
           onClick={handleSave}
         >
-          {saving ? '保存中' : '保存'}
+          {saving ? t('common.saving') : t('common.save')}
         </Button>
       </div>
     )
@@ -248,9 +253,9 @@ function ShortcutRecorder({
         type="button"
         className="text-xs px-2.5 py-1 rounded-md bg-muted/40 text-muted-foreground/70 italic transition-colors hover:bg-muted hover:text-foreground/80"
         onClick={handleStartRecording}
-        title="点击录制新快捷键"
+        title={t('settingsMisc.shortcut.recordTitle')}
       >
-        已禁用
+        {t('settingsMisc.shortcut.disabled')}
       </button>
     )
   }
@@ -260,7 +265,7 @@ function ShortcutRecorder({
       type="button"
       className="rounded-md p-1 transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
       onClick={handleStartRecording}
-      title="点击自定义快捷键"
+      title={t('settingsMisc.shortcut.customizeTitle')}
     >
       <ShortcutKeycaps accelerator={currentAccelerator} />
     </button>
@@ -270,6 +275,7 @@ function ShortcutRecorder({
 // ===== 主组件 =====
 
 export function ShortcutSettings(): React.ReactElement {
+  const t = useT()
   const [overrides, setOverrides] = useAtom(shortcutOverridesAtom)
   const [sendWithCmdEnter, setSendWithCmdEnter] = useAtom(sendWithCmdEnterAtom)
   // 当前正在录制的快捷键 id，用于隐藏并列操作按钮，避免与录制中途的 state 冲突
@@ -330,31 +336,31 @@ export function ShortcutSettings(): React.ReactElement {
           try {
             const registered = await reregisterGlobalShortcut(shortcutId)
             if (!registered) {
-              toast.warning('快捷键已保存，但全局快捷键当前未注册', {
+              toast.warning(t('settingsMisc.shortcut.savedButGlobalNotRegistered'), {
                 id: 'shortcut-save-warning',
-                description: '可能是功能未启用，或该组合已被系统/其他应用占用。',
+                description: t('settingsMisc.shortcut.globalNotRegisteredDesc'),
               })
               return true
             }
           } catch (error) {
             console.error(error)
-            toast.warning('快捷键已保存，但全局快捷键当前未注册', {
+            toast.warning(t('settingsMisc.shortcut.savedButGlobalNotRegistered'), {
               id: 'shortcut-save-warning',
-              description: '重新注册全局快捷键时出错，请重试或换一个组合。',
+              description: t('settingsMisc.shortcut.globalReregisterErrorDesc'),
             })
             return true
           }
         }
 
-        toast.success('快捷键已保存', { id: 'shortcut-save-success' })
+        toast.success(t('settingsMisc.shortcut.saved'), { id: 'shortcut-save-success' })
         return true
       } catch (error) {
         console.error(error)
-        toast.error('快捷键保存失败', { id: 'shortcut-save-error' })
+        toast.error(t('settingsMisc.shortcut.saveFailed'), { id: 'shortcut-save-error' })
         return false
       }
     },
-    [overrides, reregisterGlobalShortcut, setOverrides],
+    [overrides, reregisterGlobalShortcut, setOverrides, t],
   )
 
   // 恢复单个快捷键默认值
@@ -373,28 +379,28 @@ export function ShortcutSettings(): React.ReactElement {
           try {
             const registered = await reregisterGlobalShortcut(shortcutId)
             if (!registered) {
-              toast.warning('已恢复默认，但全局快捷键当前未注册', {
+              toast.warning(t('settingsMisc.shortcut.resetButGlobalNotRegistered'), {
                 id: 'shortcut-save-warning',
-                description: '可能是功能未启用，或默认组合已被系统/其他应用占用。',
+                description: t('settingsMisc.shortcut.resetGlobalDesc'),
               })
               return
             }
           } catch (error) {
             console.error(error)
-            toast.warning('已恢复默认，但全局快捷键重新注册失败', {
+            toast.warning(t('settingsMisc.shortcut.resetGlobalFailed'), {
               id: 'shortcut-save-warning',
             })
             return
           }
         }
 
-        toast.success('已恢复默认快捷键', { id: 'shortcut-save-success' })
+        toast.success(t('settingsMisc.shortcut.resetDone'), { id: 'shortcut-save-success' })
       } catch (error) {
         console.error(error)
-        toast.error('恢复默认快捷键失败', { id: 'shortcut-save-error' })
+        toast.error(t('settingsMisc.shortcut.resetFailed'), { id: 'shortcut-save-error' })
       }
     },
-    [overrides, reregisterGlobalShortcut, setOverrides],
+    [overrides, reregisterGlobalShortcut, setOverrides, t],
   )
 
   // 禁用单个快捷键：将当前平台 override 置为 null
@@ -422,20 +428,20 @@ export function ShortcutSettings(): React.ReactElement {
             await reregisterGlobalShortcut(shortcutId)
           } catch (error) {
             console.error(error)
-            toast.warning('快捷键已禁用，但主进程重新注册时出错', {
+            toast.warning(t('settingsMisc.shortcut.disabledButReregisterError'), {
               id: 'shortcut-save-warning',
             })
             return
           }
         }
 
-        toast.success('快捷键已禁用', { id: 'shortcut-save-success' })
+        toast.success(t('settingsMisc.shortcut.disabledDone'), { id: 'shortcut-save-success' })
       } catch (error) {
         console.error(error)
-        toast.error('禁用快捷键失败', { id: 'shortcut-save-error' })
+        toast.error(t('settingsMisc.shortcut.disableFailed'), { id: 'shortcut-save-error' })
       }
     },
-    [overrides, reregisterGlobalShortcut, setOverrides],
+    [overrides, reregisterGlobalShortcut, setOverrides, t],
   )
 
   // 恢复所有默认值（同时会清除所有"已禁用"标记）
@@ -452,29 +458,29 @@ export function ShortcutSettings(): React.ReactElement {
         const results = await window.electronAPI.reregisterGlobalShortcuts()
         const hasUnregisteredGlobal = Object.values(results).some((registered) => !registered)
         if (hasUnregisteredGlobal) {
-          toast.warning('已恢复全部默认；部分全局快捷键当前未注册', {
+          toast.warning(t('settingsMisc.shortcut.resetAllPartialWarning'), {
             id: 'shortcut-save-warning',
-            description: '可能是对应功能未启用，或默认组合已被系统/其他应用占用。',
+            description: t('settingsMisc.shortcut.resetAllPartialDesc'),
           })
           return
         }
       } catch (error) {
         console.error(error)
-        toast.warning('已恢复全部默认，但全局快捷键重新注册失败', {
+        toast.warning(t('settingsMisc.shortcut.resetAllGlobalFailed'), {
           id: 'shortcut-save-warning',
         })
         return
       }
 
-      toast.success('已恢复全部默认快捷键', {
+      toast.success(t('settingsMisc.shortcut.resetAllDone'), {
         id: 'shortcut-save-success',
-        description: hadDisabled ? '已禁用的快捷键也已重新启用' : undefined,
+        description: hadDisabled ? t('settingsMisc.shortcut.resetAllDoneDesc') : undefined,
       })
     } catch (error) {
       console.error(error)
-      toast.error('恢复全部默认快捷键失败', { id: 'shortcut-save-error' })
+      toast.error(t('settingsMisc.shortcut.resetAllFailed'), { id: 'shortcut-save-error' })
     }
-  }, [overrides, setOverrides])
+  }, [overrides, setOverrides, t])
 
   const hasOverrides = Object.keys(overrides).length > 0
 
@@ -485,14 +491,14 @@ export function ShortcutSettings(): React.ReactElement {
     window.electronAPI
       .updateSettings({ sendWithCmdEnter: newValue })
       .then(() => {
-        toast.success('发送快捷键已保存', { id: 'shortcut-save-success' })
+        toast.success(t('settingsMisc.shortcut.sendKeySaved'), { id: 'shortcut-save-success' })
       })
       .catch((error) => {
         setSendWithCmdEnter(sendWithCmdEnter)
         console.error(error)
-        toast.error('发送快捷键保存失败', { id: 'shortcut-save-error' })
+        toast.error(t('settingsMisc.shortcut.sendKeySaveFailed'), { id: 'shortcut-save-error' })
       })
-  }, [sendWithCmdEnter, setSendWithCmdEnter])
+  }, [sendWithCmdEnter, setSendWithCmdEnter, t])
 
   // 分类顺序
   const categoryOrder: ShortcutCategory[] = ['app', 'navigation', 'edit', 'global']
@@ -502,7 +508,7 @@ export function ShortcutSettings(): React.ReactElement {
       {/* 描述 + 恢复全部按钮 */}
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
-          点击快捷键可自定义，录制后点击保存生效，按 Esc 取消录制
+          {t('settingsMisc.shortcut.headerHint')}
         </p>
         {hasOverrides && (
           <Button
@@ -512,7 +518,7 @@ export function ShortcutSettings(): React.ReactElement {
             onClick={handleResetAll}
           >
             <RotateCcw size={12} className="mr-1" />
-            恢复全部默认
+            {t('settingsMisc.shortcut.resetAll')}
           </Button>
         )}
       </div>
@@ -520,13 +526,13 @@ export function ShortcutSettings(): React.ReactElement {
       {/* 发送消息快捷键切换 */}
       <div>
         <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">
-          发送消息
+          {t('settingsMisc.shortcut.sendSection')}
         </h3>
         <div className="flex items-center justify-between py-2.5 px-3 rounded-lg hover:bg-muted/50 transition-colors">
           <div className="flex-1 min-w-0">
-            <div className="text-sm font-medium text-foreground">发送 / 换行快捷键</div>
+            <div className="text-sm font-medium text-foreground">{t('settingsMisc.shortcut.sendKeyLabel')}</div>
             <div className="text-xs text-muted-foreground mt-0.5">
-              切换 Enter 发送消息或换行的行为
+              {t('settingsMisc.shortcut.sendKeyDesc')}
             </div>
           </div>
           <div className="flex items-center gap-1 ml-4 rounded-lg bg-muted/60 p-0.5">
@@ -539,7 +545,7 @@ export function ShortcutSettings(): React.ReactElement {
               }`}
               onClick={() => sendWithCmdEnter && handleToggleSendKey()}
             >
-              Enter 发送
+              {t('settingsMisc.shortcut.sendWithEnter')}
             </button>
             <button
               type="button"
@@ -550,7 +556,7 @@ export function ShortcutSettings(): React.ReactElement {
               }`}
               onClick={() => !sendWithCmdEnter && handleToggleSendKey()}
             >
-              {isMac ? '⌘' : 'Ctrl'}+Enter 发送
+              {t('settingsMisc.shortcut.sendWithModEnter', { key: isMac ? '⌘' : 'Ctrl' })}
             </button>
           </div>
         </div>
@@ -564,11 +570,11 @@ export function ShortcutSettings(): React.ReactElement {
         return (
           <div key={category}>
             <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">
-              {SHORTCUT_CATEGORY_LABELS[category]}
+              {t(SHORTCUT_CATEGORY_LABELS[category])}
             </h3>
             {category === 'global' && (
               <p className="text-xs text-muted-foreground/70 mb-2">
-                全局快捷键在应用未聚焦时也能触发，可能与系统或其他应用冲突
+                {t('settingsMisc.shortcut.globalHint')}
               </p>
             )}
             <div className="space-y-1">
@@ -585,10 +591,10 @@ export function ShortcutSettings(): React.ReactElement {
                   >
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-medium text-foreground">
-                        {def.name}
+                        {def.nameKey ? t(def.nameKey) : def.name}
                       </div>
                       <div className="text-xs text-muted-foreground mt-0.5">
-                        {def.description}
+                        {def.descriptionKey ? t(def.descriptionKey) : def.description}
                       </div>
                     </div>
                     <div className="flex items-center gap-2 ml-4">
@@ -615,14 +621,14 @@ export function ShortcutSettings(): React.ReactElement {
                                         handleDisable(def.id)
                                       }
                                     }}
-                                    aria-label={isDisabled ? '启用此快捷键' : '禁用此快捷键'}
+                                    aria-label={isDisabled ? t('settingsMisc.shortcut.enableShortcutAria') : t('settingsMisc.shortcut.disableShortcutAria')}
                                   />
                                 </span>
                               </TooltipTrigger>
                               <TooltipContent side="top">
                                 {isDisabled
-                                  ? '已禁用 — 打开以恢复默认快捷键'
-                                  : '关闭以禁用此快捷键，避免与其他应用冲突'}
+                                  ? t('settingsMisc.shortcut.disabledTooltip')
+                                  : t('settingsMisc.shortcut.disableTooltip')}
                               </TooltipContent>
                             </Tooltip>
                           )}
@@ -638,7 +644,7 @@ export function ShortcutSettings(): React.ReactElement {
                                   <RotateCcw size={12} />
                                 </Button>
                               </TooltipTrigger>
-                              <TooltipContent side="top">恢复默认快捷键</TooltipContent>
+                              <TooltipContent side="top">{t('settingsMisc.shortcut.resetTooltip')}</TooltipContent>
                             </Tooltip>
                           )}
                         </>

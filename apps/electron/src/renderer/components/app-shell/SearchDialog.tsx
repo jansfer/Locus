@@ -20,6 +20,7 @@ import { useAtom, useAtomValue, useSetAtom } from 'jotai'
 import { Search, X, MessageSquare, Bot, Archive, Loader2 } from 'lucide-react'
 import { Dialog, DialogContent, DialogPortal, DialogTitle } from '@/components/ui/dialog'
 import { cn } from '@/lib/utils'
+import { useT } from '@/i18n'
 import { searchDialogOpenAtom } from '@/atoms/search-atoms'
 import { conversationsAtom, channelsAtom } from '@/atoms/chat-atoms'
 import {
@@ -204,6 +205,7 @@ function SearchResultRow({
 }
 
 export function SearchDialog(): React.ReactElement {
+  const t = useT()
   const [open, setOpen] = useAtom(searchDialogOpenAtom)
   const conversations = useAtomValue(conversationsAtom)
   const agentSessions = useAtomValue(agentSessionsAtom)
@@ -477,7 +479,7 @@ export function SearchDialog(): React.ReactElement {
         className="w-[min(56rem,calc(100vw_-_2rem))] max-w-[calc(100vw_-_2rem)] p-0 gap-0 overflow-hidden"
         aria-describedby={undefined}
       >
-        <DialogTitle className="sr-only">搜索对话</DialogTitle>
+        <DialogTitle className="sr-only">{t('appShell.searchDialog.title')}</DialogTitle>
         {/* 搜索输入框 */}
         <div className="flex items-center gap-2 px-4 py-3 border-b border-border/50">
           <Search size={16} className="text-foreground/40 flex-shrink-0" />
@@ -488,13 +490,13 @@ export function SearchDialog(): React.ReactElement {
             onCompositionStart={handleCompositionStart}
             onCompositionEnd={handleCompositionEnd}
             onKeyDown={handleKeyDown}
-            placeholder="输入关键词，按 Enter 或点击搜索"
+            placeholder={t('appShell.searchDialog.placeholder')}
             className="min-w-0 flex-1 bg-transparent text-[14px] text-foreground placeholder:text-foreground/40 outline-none"
           />
           {query && (
             <button
               onClick={handleClearQuery}
-              title="清空"
+              title={t('common.clear')}
               className="p-0.5 rounded text-foreground/30 hover:text-foreground/60 transition-colors"
             >
               <X size={14} />
@@ -511,12 +513,12 @@ export function SearchDialog(): React.ReactElement {
             )}
           >
             {loading ? <Loader2 size={12} className="animate-spin" /> : <Search size={12} />}
-            <span>搜索</span>
+            <span>{t('common.search')}</span>
           </button>
           <button
             onClick={() => void handleAgentSearch()}
             disabled={trimmedQuery.length < 2}
-            title="适合在精准搜索找不到的情况下使用，Agent 会帮助你搜索整个 Locus 会话空间"
+            title={t('appShell.searchDialog.agentSearchHint')}
             className={cn(
               'flex shrink-0 items-center gap-1 px-2 py-1 rounded text-[12px] font-medium transition-colors',
               trimmedQuery.length >= 2
@@ -525,7 +527,7 @@ export function SearchDialog(): React.ReactElement {
             )}
           >
             <Bot size={12} />
-            <span>Agent 搜索</span>
+            <span>{t('appShell.searchDialog.agentSearch')}</span>
           </button>
         </div>
 
@@ -535,29 +537,29 @@ export function SearchDialog(): React.ReactElement {
           {!hasSearched && (
             <div className="py-12 text-center text-[13px] text-foreground/40">
               {trimmedQuery.length === 0
-                ? '输入关键词后按 Enter 或点击搜索'
+                ? t('appShell.searchDialog.hintEnterToSearch')
                 : trimmedQuery.length < 2
-                  ? '关键词至少需要 2 个字符'
-                  : '按 Enter 或点击搜索开始查找'}
+                  ? t('appShell.searchDialog.hintMinChars')
+                  : t('appShell.searchDialog.hintPressEnter')}
             </div>
           )}
 
           {hasSearched && loading && allResults.length === 0 && (
             <div className="py-12 flex items-center justify-center gap-2 text-[13px] text-foreground/40">
               <Loader2 size={14} className="animate-spin" />
-              <span>正在搜索...</span>
+              <span>{t('appShell.searchDialog.searching')}</span>
             </div>
           )}
 
           {hasSearched && !loading && allResults.length === 0 && (
             <div className="py-8 flex flex-col items-center gap-3 text-[13px] text-foreground/40">
-              <span>未找到匹配结果</span>
+              <span>{t('appShell.searchDialog.noResults')}</span>
               <button
                 onClick={() => void handleAgentSearch()}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-medium bg-blue-500/10 text-blue-500 hover:bg-blue-500/20 transition-colors"
               >
                 <Bot size={12} />
-                <span>试试 Agent 搜索</span>
+                <span>{t('appShell.searchDialog.tryAgentSearch')}</span>
               </button>
             </div>
           )}
@@ -566,7 +568,7 @@ export function SearchDialog(): React.ReactElement {
           {titleResults.length > 0 && (
             <div className="py-1 animate-in fade-in duration-150">
               <div className="px-4 pt-2 pb-1 text-[11px] font-medium text-foreground/40 select-none">
-                标题匹配
+                {t('appShell.searchDialog.titleMatches')}
               </div>
               {titleResults.map((result, idx) => (
                 <SearchResultRow
@@ -588,7 +590,7 @@ export function SearchDialog(): React.ReactElement {
           {(contentResults.length > 0 || (loading && hasSearched && titleResults.length > 0)) && (
             <div className="py-1 border-t border-border/30 animate-in fade-in duration-150">
               <div className="px-4 pt-2 pb-1 flex items-center gap-2 text-[11px] font-medium text-foreground/40 select-none">
-                <span>消息内容匹配</span>
+                <span>{t('appShell.searchDialog.contentMatches')}</span>
                 {loading && <Loader2 size={12} className="animate-spin text-foreground/30" />}
               </div>
               {contentResults.map((result, i) => (
@@ -613,17 +615,17 @@ export function SearchDialog(): React.ReactElement {
         <div className="flex items-center gap-3 px-4 py-2 border-t border-border/30 text-[11px] text-foreground/30">
           <span className="flex items-center gap-1">
             <kbd className="px-1 py-0.5 rounded bg-foreground/[0.06] font-mono">↵</kbd>
-            <span>{isQueryDirty || !hasSearched ? '搜索' : '打开'}</span>
+            <span>{isQueryDirty || !hasSearched ? t('common.search') : t('common.open')}</span>
           </span>
           {allResults.length > 0 && (
             <span className="flex items-center gap-1">
               <kbd className="px-1 py-0.5 rounded bg-foreground/[0.06] font-mono">↑↓</kbd>
-              <span>选择</span>
+              <span>{t('appShell.searchDialog.select')}</span>
             </span>
           )}
           <span className="flex items-center gap-1">
             <kbd className="px-1 py-0.5 rounded bg-foreground/[0.06] font-mono">Esc</kbd>
-            <span>关闭</span>
+            <span>{t('common.close')}</span>
           </span>
         </div>
       </DialogContent>

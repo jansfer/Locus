@@ -9,6 +9,7 @@ import * as React from 'react'
 import { cn } from '@/lib/utils'
 import { FileTypeIcon } from '@/components/file-browser'
 import { CollapsibleResult } from './collapsible-result'
+import { useT } from '@/i18n'
 
 interface GrepResultRendererProps {
   result: string
@@ -101,6 +102,7 @@ export function GrepResultRenderer({ result, isError, input }: GrepResultRendere
   }
 
   const totalMatches = groups.reduce((sum, g) => sum + g.matches.length, 0)
+  const t = useT()
 
   const renderGroups = React.useCallback((text: string): React.ReactNode => {
     // 根据 text 长度决定显示多少（CollapsibleResult 会截断）
@@ -110,7 +112,7 @@ export function GrepResultRenderer({ result, isError, input }: GrepResultRendere
       <div className="space-y-2">
         {/* 统计 */}
         <div className="text-[11px] text-muted-foreground/60">
-          {totalMatches} 个匹配，{groups.length} 个文件
+          {t('agentMisc.toolResult.grepSummary', { matches: totalMatches, files: groups.length })}
         </div>
 
         {groups.map((group) => (

@@ -15,6 +15,7 @@ import type { QuotedSelection } from '@/atoms/preview-atoms'
 import { SelectionActionPopover } from '@/components/selection/SelectionActionPopover'
 import { useFocusAgentSessionInput } from '@/hooks/useFocusAgentSessionInput'
 import { SELECTION_ACTION_POPOVER_SELECTOR } from '@/lib/quoted-selection'
+import { t, useT } from '@/i18n'
 
 const MAX_AGENT_HISTORY_QUOTED_CHARS = 2000
 const SELECTION_CAPTURE_DEBOUNCE_MS = 80
@@ -55,10 +56,10 @@ function normalizeSelectedText(text: string): string {
 }
 
 function getRoleLabel(role?: string): string {
-  if (role === 'user') return 'Agent 历史 · 用户消息'
-  if (role === 'assistant') return 'Agent 历史 · Agent 回复'
-  if (role === 'system') return 'Agent 历史 · 系统消息'
-  return 'Agent 历史'
+  if (role === 'user') return t('agentMisc.history.roleUser')
+  if (role === 'assistant') return t('agentMisc.history.roleAssistant')
+  if (role === 'system') return t('agentMisc.history.roleSystem')
+  return t('agentMisc.history.roleGeneric')
 }
 
 function isAgentHistoryMessageRole(role: string | null): role is AgentHistoryMessageRole {
@@ -202,6 +203,7 @@ export function AgentHistorySelectionLayer({
   onAddToAgent,
   explorationEnabled = true,
 }: AgentHistorySelectionLayerProps): React.ReactElement | null {
+  const t = useT()
   const setQuotedSelectionMap = useSetAtom(quotedSelectionMapAtom)
   const agentSessions = useAtomValue(agentSessionsAtom)
   const setAgentSessions = useSetAtom(agentSessionsAtom)
@@ -294,7 +296,7 @@ export function AgentHistorySelectionLayer({
       text,
       x: anchorRect.left + anchorRect.width / 2,
       y: Math.max(12, anchorRect.top - 12),
-      sourceLabel: sameMessage ? getRoleLabel(role) : 'Agent 历史 · 多条消息',
+      sourceLabel: sameMessage ? getRoleLabel(role) : t('agentMisc.history.multiMessages'),
       messageId: sameMessage ? startMessageEl.dataset.messageId : undefined,
       messageRole: sameMessage ? role : undefined,
       selectionStart,
@@ -305,7 +307,7 @@ export function AgentHistorySelectionLayer({
     setSelection(nextSelection)
 
     if (truncated) {
-      toast.warning(`已选中超过 ${MAX_AGENT_HISTORY_QUOTED_CHARS} 字符，仅引用前 ${MAX_AGENT_HISTORY_QUOTED_CHARS} 字符`, {
+      toast.warning(t('agentMisc.history.selectionCapWarning', { max: MAX_AGENT_HISTORY_QUOTED_CHARS }), {
         id: `agent-history-selection-cap:${sessionId}`,
         duration: 3000,
       })
@@ -395,20 +397,20 @@ export function AgentHistorySelectionLayer({
     window.getSelection()?.removeAllRanges()
     clearSelection()
     focusAgentSessionInput(sessionId)
-    toast.success('已添加到 Agent 引用')
-  }, [clearSelection, createQuotedSelection, focusAgentSessionInput, onAddToAgent, sessionId, setQuotedSelectionMap])
+    toast.success(t('agentMisc.history.addedToAgent'))
+  }, [clearSelection, createQuotedSelection, focusAgentSessionInput, onAddToAgent, sessionId, setQuotedSelectionMap, t])
 
   const handleOpenExplorationBranch = React.useCallback(async (): Promise<void> => {
     const candidate = selectionRef.current
     if (!candidate || openTemporaryAgentPendingRef.current) return
     if (candidate.messageRole !== 'assistant' || !candidate.messageId) {
-      toast.info('请在一条已完成的 Agent 回复中选择内容，再从该节点探索')
+      toast.info(t('agentMisc.history.selectCompletedReplyFirst'))
       return
     }
 
     const parentSession = agentSessions.find((item) => item.id === sessionId)
     if (!parentSession?.piEntryBindings?.[candidate.messageId]) {
-      toast.warning('这个回复没有可用的 Pi 分叉节点，暂时无法从这里探索')
+      toast.warning(t('agentMisc.history.noForkNode'))
       return
     }
 
@@ -439,14 +441,14 @@ export function AgentHistorySelectionLayer({
       setSidePanelTabMap((prev) => new Map(prev).set(sessionId, getExplorationSidePanelTab(branch.id)))
       window.getSelection()?.removeAllRanges()
       clearSelection()
-      toast.success('已创建探索分支', { description: '它继承此回复之前的完整上下文；探索结论可带回主线。' })
+      toast.success(t('agentMisc.history.branchCreated'), { description: t('agentMisc.history.branchCreatedDescription') })
     } catch (error) {
       console.error('[AgentHistorySelectionLayer] 创建探索分支失败:', error)
-      toast.error('创建探索分支失败', { description: error instanceof Error ? error.message : undefined })
+      toast.error(t('agentMisc.history.branchCreateFailed'), { description: error instanceof Error ? error.message : undefined })
     } finally {
       openTemporaryAgentPendingRef.current = false
     }
-  }, [agentSessions, clearSelection, createQuotedSelection, sessionId, setAgentSessions, setQuotedSelectionMap, setSidePanelOpen, setSidePanelTabMap, setSideTemporaryAgentMap])
+  }, [agentSessions, clearSelection, createQuotedSelection, sessionId, setAgentSessions, setQuotedSelectionMap, setSidePanelOpen, setSidePanelTabMap, setSideTemporaryAgentMap, t])
 
   const canExplore = explorationEnabled && selection?.messageRole === 'assistant' && Boolean(selection.messageId)
   return selection && (

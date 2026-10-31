@@ -18,6 +18,7 @@ import {
 } from './agent-atoms'
 import type { SessionIndicatorStatus } from './agent-atoms'
 import type { PreviewFile } from './preview-atoms'
+import { t } from '@/i18n'
 
 // ===== 类型定义 =====
 
@@ -168,7 +169,7 @@ export function getFileBaseName(filePath: string): string {
 }
 
 export function getPreviewTabTitle(filePath: string): string {
-  return `预览：${getFileBaseName(filePath)}`
+  return t('misc.session.previewTabTitle', { name: getFileBaseName(filePath) })
 }
 
 export function isPreviewTab(tab: TabItem): boolean {
@@ -220,7 +221,7 @@ export function openTab(
       id: item.sessionId,
       type: 'agent' as const,
       sessionId: item.sessionId,
-      title: 'Agent 会话',
+      title: t('misc.session.defaultAgentTabTitle'),
     }
     const previewTab: TabItem = {
       id: createPreviewTabId(item.sessionId),

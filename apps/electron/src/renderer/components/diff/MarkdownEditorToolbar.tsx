@@ -23,6 +23,7 @@ import {
   Loader2,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { useT, t } from '@/i18n'
 import { SCREENSHOT_LIMITS } from '@proma/shared'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
@@ -82,10 +83,10 @@ function buildScreenshotPayload(editor: Editor): {
   // 预检：早失败，避免昂贵工作白做
   const elementCount = root.querySelectorAll('*').length
   if (elementCount > SCREENSHOT_LIMITS.MAX_ELEMENTS) {
-    throw new Error('文档结构过于复杂，请缩短内容后重试')
+    throw new Error(t('diff.toolbar.docTooComplex'))
   }
   if (root.outerHTML.length > SCREENSHOT_LIMITS.MAX_RAW_HTML_BYTES) {
-    throw new Error('文档过大，请缩短内容后重试')
+    throw new Error(t('diff.toolbar.docTooLarge'))
   }
 
   // 克隆 DOM，但不再逐元素 inline computed style——
@@ -160,6 +161,7 @@ function ToolbarButton({
 }
 
 function TableGridPicker({ editor }: { editor: Editor }) {
+  const t = useT()
   const [open, setOpen] = React.useState(false)
   const [hover, setHover] = React.useState({ row: 0, col: 0 })
 
@@ -178,11 +180,11 @@ function TableGridPicker({ editor }: { editor: Editor }) {
             </Button>
           </PopoverTrigger>
         </TooltipTrigger>
-        <TooltipContent side="bottom" className="text-xs">插入表格</TooltipContent>
+        <TooltipContent side="bottom" className="text-xs">{t('diff.toolbar.insertTable')}</TooltipContent>
       </Tooltip>
       <PopoverContent side="bottom" align="start" className="w-auto p-2">
         <div className="mb-1.5 text-center text-xs text-muted-foreground">
-          {hover.row > 0 ? `${hover.row} × ${hover.col}` : '选择大小'}
+          {hover.row > 0 ? `${hover.row} × ${hover.col}` : t('diff.toolbar.pickSize')}
         </div>
         <div className="grid gap-0.5" style={{ gridTemplateColumns: 'repeat(6, 1fr)' }}>
           {Array.from({ length: 36 }, (_, i) => {
@@ -208,6 +210,7 @@ function TableGridPicker({ editor }: { editor: Editor }) {
 }
 
 function LinkPopover({ editor, active }: { editor: Editor; active: boolean }) {
+  const t = useT()
   const [open, setOpen] = React.useState(false)
   const [url, setUrl] = React.useState('')
 
@@ -242,7 +245,7 @@ function LinkPopover({ editor, active }: { editor: Editor; active: boolean }) {
             </Button>
           </PopoverTrigger>
         </TooltipTrigger>
-        <TooltipContent side="bottom" className="text-xs">链接 <span className="text-muted-foreground">⌘K</span></TooltipContent>
+        <TooltipContent side="bottom" className="text-xs">{t('diff.toolbar.link')} <span className="text-muted-foreground">⌘K</span></TooltipContent>
       </Tooltip>
       <PopoverContent side="bottom" align="start" className="w-72 p-2">
         <div className="flex gap-1.5">
@@ -256,7 +259,7 @@ function LinkPopover({ editor, active }: { editor: Editor; active: boolean }) {
             autoFocus
           />
           <Button size="sm" className="h-7 px-2 text-xs" onClick={apply}>
-            确认
+            {t('common.confirm')}
           </Button>
           {active && (
             <Button
@@ -278,6 +281,7 @@ function LinkPopover({ editor, active }: { editor: Editor; active: boolean }) {
 }
 
 export function MarkdownEditorToolbar({ editor }: MarkdownEditorToolbarProps): React.ReactElement {
+  const t = useT()
   const platform = (navigator as Navigator & { userAgentData?: { platform?: string } }).userAgentData?.platform
     ?? navigator.platform
   const isMac = platform.includes('Mac')
@@ -322,12 +326,12 @@ export function MarkdownEditorToolbar({ editor }: MarkdownEditorToolbarProps): R
       }
     } catch (err) {
       console.error('[截图] 失败:', err)
-      toast.error(err instanceof Error ? err.message : '截图失败')
+      toast.error(err instanceof Error ? err.message : t('diff.toolbar.screenshotFailed'))
     } finally {
       screenshottingRef.current = false
       setScreenshotting(false)
     }
-  }, [editor])
+  }, [editor, t])
 
   const handleScreenshotClipboard = React.useCallback(() => {
     void handleScreenshot('clipboard')
@@ -340,32 +344,32 @@ export function MarkdownEditorToolbar({ editor }: MarkdownEditorToolbarProps): R
   return (
     <div className="z-10 flex shrink-0 items-center gap-0.5 border-b border-border/50 bg-background px-2 py-1">
       {/* 行内格式 */}
-      <ToolbarButton icon={Bold} label="加粗" shortcut={`${mod}B`} active={activeState.bold} onClick={() => editor.chain().focus().toggleBold().run()} />
-      <ToolbarButton icon={Italic} label="斜体" shortcut={`${mod}I`} active={activeState.italic} onClick={() => editor.chain().focus().toggleItalic().run()} />
-      <ToolbarButton icon={UnderlineIcon} label="下划线" shortcut={`${mod}U`} active={activeState.underline} onClick={() => editor.chain().focus().toggleUnderline().run()} />
-      <ToolbarButton icon={Strikethrough} label="删除线" shortcut={`${mod}⇧X`} active={activeState.strike} onClick={() => editor.chain().focus().toggleStrike().run()} />
-      <ToolbarButton icon={Code} label="行内代码" shortcut={`${mod}E`} active={activeState.code} onClick={() => editor.chain().focus().toggleCode().run()} />
+      <ToolbarButton icon={Bold} label={t('diff.toolbar.bold')} shortcut={`${mod}B`} active={activeState.bold} onClick={() => editor.chain().focus().toggleBold().run()} />
+      <ToolbarButton icon={Italic} label={t('diff.toolbar.italic')} shortcut={`${mod}I`} active={activeState.italic} onClick={() => editor.chain().focus().toggleItalic().run()} />
+      <ToolbarButton icon={UnderlineIcon} label={t('diff.toolbar.underline')} shortcut={`${mod}U`} active={activeState.underline} onClick={() => editor.chain().focus().toggleUnderline().run()} />
+      <ToolbarButton icon={Strikethrough} label={t('diff.toolbar.strike')} shortcut={`${mod}⇧X`} active={activeState.strike} onClick={() => editor.chain().focus().toggleStrike().run()} />
+      <ToolbarButton icon={Code} label={t('diff.toolbar.inlineCode')} shortcut={`${mod}E`} active={activeState.code} onClick={() => editor.chain().focus().toggleCode().run()} />
 
       <Separator orientation="vertical" className="mx-0.5 h-5" />
 
       {/* 标题 */}
-      <ToolbarButton icon={Heading1} label="标题 1" active={activeState.heading1} onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} />
-      <ToolbarButton icon={Heading2} label="标题 2" active={activeState.heading2} onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} />
-      <ToolbarButton icon={Heading3} label="标题 3" active={activeState.heading3} onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()} />
+      <ToolbarButton icon={Heading1} label={t('diff.toolbar.heading1')} active={activeState.heading1} onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} />
+      <ToolbarButton icon={Heading2} label={t('diff.toolbar.heading2')} active={activeState.heading2} onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} />
+      <ToolbarButton icon={Heading3} label={t('diff.toolbar.heading3')} active={activeState.heading3} onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()} />
 
       <Separator orientation="vertical" className="mx-0.5 h-5" />
 
       {/* 列表 */}
-      <ToolbarButton icon={List} label="无序列表" active={activeState.bulletList} onClick={() => editor.chain().focus().toggleBulletList().run()} />
-      <ToolbarButton icon={ListOrdered} label="有序列表" active={activeState.orderedList} onClick={() => editor.chain().focus().toggleOrderedList().run()} />
-      <ToolbarButton icon={ListChecks} label="任务列表" active={activeState.taskList} onClick={() => editor.chain().focus().toggleTaskList().run()} />
+      <ToolbarButton icon={List} label={t('diff.toolbar.bulletList')} active={activeState.bulletList} onClick={() => editor.chain().focus().toggleBulletList().run()} />
+      <ToolbarButton icon={ListOrdered} label={t('diff.toolbar.orderedList')} active={activeState.orderedList} onClick={() => editor.chain().focus().toggleOrderedList().run()} />
+      <ToolbarButton icon={ListChecks} label={t('diff.toolbar.taskList')} active={activeState.taskList} onClick={() => editor.chain().focus().toggleTaskList().run()} />
 
       <Separator orientation="vertical" className="mx-0.5 h-5" />
 
       {/* 块元素 */}
-      <ToolbarButton icon={Quote} label="引用" active={activeState.blockquote} onClick={() => editor.chain().focus().toggleBlockquote().run()} />
-      <ToolbarButton icon={CodeSquare} label="代码块" active={activeState.codeBlock} onClick={() => editor.chain().focus().toggleCodeBlock().run()} />
-      <ToolbarButton icon={Minus} label="分隔线" onClick={() => editor.chain().focus().setHorizontalRule().run()} />
+      <ToolbarButton icon={Quote} label={t('diff.toolbar.blockquote')} active={activeState.blockquote} onClick={() => editor.chain().focus().toggleBlockquote().run()} />
+      <ToolbarButton icon={CodeSquare} label={t('diff.toolbar.codeBlock')} active={activeState.codeBlock} onClick={() => editor.chain().focus().toggleCodeBlock().run()} />
+      <ToolbarButton icon={Minus} label={t('diff.toolbar.divider')} onClick={() => editor.chain().focus().setHorizontalRule().run()} />
 
       <Separator orientation="vertical" className="mx-0.5 h-5" />
 
@@ -380,23 +384,23 @@ export function MarkdownEditorToolbar({ editor }: MarkdownEditorToolbarProps): R
         <Tooltip>
           <TooltipTrigger asChild>
             <div className="mr-1 flex h-7 w-7 items-center justify-center rounded-md bg-muted text-muted-foreground">
-              <Loader2 className="h-3.5 w-3.5 animate-spin" aria-label="截图处理中" />
+              <Loader2 className="h-3.5 w-3.5 animate-spin" aria-label={t('diff.toolbar.screenshotProcessing')} />
             </div>
           </TooltipTrigger>
           <TooltipContent side="bottom" className="text-xs">
-            生成截图中
+            {t('diff.toolbar.generating')}
           </TooltipContent>
         </Tooltip>
       )}
       <ToolbarButton
         icon={Copy}
-        label="截图到剪贴板"
+        label={t('diff.toolbar.toClipboard')}
         disabled={screenshotting}
         onClick={handleScreenshotClipboard}
       />
       <ToolbarButton
         icon={Camera}
-        label="截图保存文件"
+        label={t('diff.toolbar.toFile')}
         disabled={screenshotting}
         onClick={handleScreenshotFile}
       />

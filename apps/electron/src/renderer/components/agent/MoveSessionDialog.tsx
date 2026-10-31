@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
 import { LocalProjectBadge } from './LocalProjectBadge'
+import { useT } from '@/i18n'
 import type { AgentWorkspace, AgentSessionMeta } from '@proma/shared'
 
 interface MoveSessionDialogProps {
@@ -40,6 +41,7 @@ export function MoveSessionDialog({
   workspaces,
   onMoved,
 }: MoveSessionDialogProps): React.ReactElement {
+  const t = useT()
   const [selectedWorkspaceId, setSelectedWorkspaceId] = React.useState<string>('')
   const [moving, setMoving] = React.useState(false)
 
@@ -67,12 +69,12 @@ export function MoveSessionDialog({
         sessionId,
         targetWorkspaceId: selectedWorkspaceId,
       })
-      await onMoved(updated, targetWs?.name ?? '未知项目')
+      await onMoved(updated, targetWs?.name ?? t('agentMisc.unknownProject'))
       onOpenChange(false)
     } catch (error) {
       console.error('[迁移会话] 迁移失败:', error)
-      const message = error instanceof Error ? error.message : '未知错误'
-      toast.error('迁移失败', { description: message })
+      const message = error instanceof Error ? error.message : t('agentMisc.unknownError')
+      toast.error(t('agentMisc.moveFailed'), { description: message })
       setMoving(false)
     }
   }
@@ -81,20 +83,20 @@ export function MoveSessionDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>迁移到其他项目</DialogTitle>
+          <DialogTitle>{t('agentMisc.moveSessionTitle')}</DialogTitle>
           <DialogDescription>
-            选择目标项目，会话将完整迁移过去。
+            {t('agentMisc.moveSessionDescription')}
           </DialogDescription>
         </DialogHeader>
 
         {availableWorkspaces.length === 0 ? (
           <p className="text-sm text-muted-foreground py-2">
-            没有其他可用的项目，请先创建新的项目。
+            {t('agentMisc.noOtherProjects')}
           </p>
         ) : (
           <Select value={selectedWorkspaceId} onValueChange={setSelectedWorkspaceId}>
             <SelectTrigger>
-              <SelectValue placeholder="选择目标项目" />
+              <SelectValue placeholder={t('agentMisc.selectTargetProject')} />
             </SelectTrigger>
             <SelectContent>
               {availableWorkspaces.map((ws) => (
@@ -114,13 +116,13 @@ export function MoveSessionDialog({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={moving}>
-            取消
+            {t('common.cancel')}
           </Button>
           <Button
             onClick={handleConfirm}
             disabled={!selectedWorkspaceId || moving || availableWorkspaces.length === 0}
           >
-            {moving ? '迁移中...' : '确认迁移'}
+            {moving ? t('agentMisc.moving') : t('agentMisc.confirmMove')}
           </Button>
         </DialogFooter>
       </DialogContent>

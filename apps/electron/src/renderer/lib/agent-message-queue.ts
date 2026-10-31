@@ -1,4 +1,5 @@
 import { resolveSkillMentionName, EMPTY_SKILL_MENTION_NAMES } from './skill-mention-name'
+import { t } from '@/i18n'
 import type { AgentStreamState } from '@/atoms/agent-atoms'
 import type { QuotedSelection } from '@/atoms/preview-atoms'
 import {
@@ -294,11 +295,11 @@ export function getQueuedMessageDisplayParts(
       : referenceType === 'file'
         ? (decodedId.split(/[\\/]/).pop() || decodedId)
         : referenceType === 'session'
-          ? `会话 ${id.slice(0, 8)}`
+          ? t('misc.session.queuedSessionRef', { id: id.slice(0, 8) })
           : referenceType === 'todo'
             ? `Todo ${id.slice(0, 8)}`
             : referenceType === 'calendar_event'
-              ? `日程 ${id.slice(0, 8)}`
+              ? t('misc.session.queuedScheduleRef', { id: id.slice(0, 8) })
               : referenceType === 'skill'
                 ? resolveSkillMentionName(decodedId, skillNames)
                 : decodedId

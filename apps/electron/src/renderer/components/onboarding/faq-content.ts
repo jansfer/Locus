@@ -1,166 +1,107 @@
 /**
  * FAQ 内容数据：按主题分组，供 Onboarding FAQ 页与全局 FAQ 弹窗共用。
+ *
+ * 文案存放在 onboarding 词典（onboarding.faq.*），渲染处经 t() 解析为当前语言；
+ * slug 是与语言无关的稳定标识，用于 React key、DOM id 与锚点跳转。
  */
 
+import type { MessageKey } from '@/i18n'
+
+/** onboarding 词典中的 FAQ 文案键（onboarding.faq.*）。 */
+export type FaqMessageKey = Extract<MessageKey, `onboarding.faq.${string}`>
+
 export interface FaqItem {
-  q: string
-  a: string
+  q: FaqMessageKey
+  a: FaqMessageKey
 }
 
 export interface FaqGroup {
-  topic: string
+  /** 与语言无关的稳定标识，用于 React key、DOM id 与锚点跳转。 */
+  slug: string
+  topic: FaqMessageKey
   items: FaqItem[]
 }
 
 
 export const FAQ_GROUPS: FaqGroup[] = [
   {
-    topic: 'Agent / Chat',
+    slug: 'agent-chat',
+    topic: 'onboarding.faq.topics.agentChat',
     items: [
-      {
-        q: 'Chat 也能完成 Agent 做的事吗？',
-        a: '不能。Chat 适合快速问答，但遇到需要多步规划、调用工具、读写文件的任务，只有 Agent 可以完成。',
-      },
-      {
-        q: '什么时候用 Chat、什么时候用 Agent？',
-        a: '简单问答随手用 Chat；要执行任务、调研、改代码、自动化时用 Agent。拿不准时直接用 Agent，它会判断是否需要多步执行。',
-      },
-      {
-        q: '切换模式会丢失当前对话吗？',
-        a: '不会。Agent 和 Chat 的对话是独立的会话，切换模式不会清除任何内容，你可以随时回来继续。',
-      },
+      { q: 'onboarding.faq.agentChat.q1', a: 'onboarding.faq.agentChat.a1' },
+      { q: 'onboarding.faq.agentChat.q2', a: 'onboarding.faq.agentChat.a2' },
+      { q: 'onboarding.faq.agentChat.q3', a: 'onboarding.faq.agentChat.a3' },
     ],
   },
   {
-    topic: 'Agent 会话',
+    slug: 'agent-sessions',
+    topic: 'onboarding.faq.topics.agentSessions',
     items: [
-      {
-        q: '同一个 Agent 会话可以从 A 模型切到 B 模型吗？',
-        a: '可以。你可以随时切换当前会话使用的模型，切换后会继续使用同一个会话的上下文与记忆。',
-      },
-      {
-        q: 'A 模型切换到 B 模型会不会重建上下文？',
-        a: '新的 B 模型会知道你的上下文，这个意义上不会重建以保证使用的顺滑程度。但是切换后的第一轮 Locus 会把系统提示词 + 全部历史消息重新发给 B 模型，全部历史将按新模型的输入费率重新计算。',
-      },
-      {
-        q: '会话文件和项目文件的区别是什么？',
-        a: '会话文件属于当前这一次对话，仅供本会话的 Agent 读取；项目文件属于整个项目，项目内所有会话共享。',
-      },
-      {
-        q: '百分之多少的时候压缩上下文比较合理？',
-        a: '建议在上下文使用率达到 70%-80% 时主动压缩，避免接近上限后新消息被截断；压缩后关键结论和记忆会保留。',
-      },
-      {
-        q: '我怎么在手机端远程使用 Locus？',
-        a: '推荐配置 Locus 的飞书远程连接，飞书上有对于 Agent 会话完善的渲染和接口支持，在电脑端 Locus 打开的情况下可以顺滑的在飞书完成手机端的使用。',
-      },
+      { q: 'onboarding.faq.agentSessions.q1', a: 'onboarding.faq.agentSessions.a1' },
+      { q: 'onboarding.faq.agentSessions.q2', a: 'onboarding.faq.agentSessions.a2' },
+      { q: 'onboarding.faq.agentSessions.q3', a: 'onboarding.faq.agentSessions.a3' },
+      { q: 'onboarding.faq.agentSessions.q4', a: 'onboarding.faq.agentSessions.a4' },
+      { q: 'onboarding.faq.agentSessions.q5', a: 'onboarding.faq.agentSessions.a5' },
     ],
   },
   {
-    topic: '项目',
+    slug: 'projects',
+    topic: 'onboarding.faq.topics.projects',
     items: [
-      {
-        q: '项目之间会互相影响吗？',
-        a: '不会。每个项目的文件、Agent 记忆、上下文互相隔离，切换项目不会串内容。',
-      },
-      {
-        q: '项目文件是本项目所有会话共享的吗？',
-        a: '是的。项目文件属于整个项目，项目内所有会话都可以访问，适合放共享资料、长期文档和项目级 Context。',
-      },
-      {
-        q: '这两个地方分别应该放什么样的文件？',
-        a: '一次性的材料（如临时截图、附件）放会话文件；需要跨会话共享的长期资料（项目文档、共享素材）放项目文件。',
-      },
+      { q: 'onboarding.faq.projects.q1', a: 'onboarding.faq.projects.a1' },
+      { q: 'onboarding.faq.projects.q2', a: 'onboarding.faq.projects.a2' },
+      { q: 'onboarding.faq.projects.q3', a: 'onboarding.faq.projects.a3' },
     ],
   },
   {
-    topic: '自动任务',
+    slug: 'automation',
+    topic: 'onboarding.faq.topics.automation',
     items: [
-      {
-        q: '自动任务需要一直开着 Locus 吗？',
-        a: '需要 Locus 在运行才会执行。你可以设置触发时间，到时应用会自动运行任务并通知结果。',
-      },
-      {
-        q: '任务结果在哪里看？',
-        a: '一个自动任务就是一个 agent 会话。同时在自动任务的运行历史里也可以看到每次执行的状态、耗时和结果，失败也会记录原因。',
-      },
+      { q: 'onboarding.faq.automation.q1', a: 'onboarding.faq.automation.a1' },
+      { q: 'onboarding.faq.automation.q2', a: 'onboarding.faq.automation.a2' },
     ],
   },
   {
-    topic: '记忆',
+    slug: 'memory',
+    topic: 'onboarding.faq.topics.memory',
     items: [
-      {
-        q: '记忆会保存什么？',
-        a: '项目规则、架构和命令留在项目根与 Locus 工作区的 AGENTS.md；记忆只沉淀稳定协作偏好、纠错和已经确认的经验。',
-      },
-      {
-        q: '记忆系统应该怎么用起来？',
-        a: '去 Agent 技能的记忆页，先点击“开始建立”：Agent 会先核验并建立项目地图，再在真实协作中逐步了解你的偏好。协作画像形成后，才可选择授权分批用历史会话补充证据。',
-      },
+      { q: 'onboarding.faq.memory.q1', a: 'onboarding.faq.memory.a1' },
+      { q: 'onboarding.faq.memory.q2', a: 'onboarding.faq.memory.a2' },
     ],
   },
   {
-    topic: 'Pi',
+    slug: 'pi',
+    topic: 'onboarding.faq.topics.pi',
     items: [
-      {
-        q: 'Pi 是什么？',
-        a: 'Pi 是 Locus 支持的一种 Agent runtime。它可以结合你选定的模型、工具和工作区来完成多步任务，适合需要规划、读写文件或调用工具的工作。',
-      },
+      { q: 'onboarding.faq.pi.q1', a: 'onboarding.faq.pi.a1' },
     ],
   },
   {
-    topic: '侧边回答',
+    slug: 'side-answer',
+    topic: 'onboarding.faq.topics.sideAnswer',
     items: [
-      {
-        q: '侧边回答和普通对话有什么区别？',
-        a: '普通对话是独立问答；侧边回答是围绕你选中的文字展开，右侧面板专门讲解，不打断当前主对话。',
-      },
-      {
-        q: '侧边回答会新建会话吗？',
-        a: '首次打开侧边回答时，会创建一个独立的 Chat 会话（“历史选区问答”）并显示在右侧面板。当前实现中再次从历史选区打开侧边回答也会创建新的会话，不会复用此前的会话。',
-      },
+      { q: 'onboarding.faq.sideAnswer.q1', a: 'onboarding.faq.sideAnswer.a1' },
+      { q: 'onboarding.faq.sideAnswer.q2', a: 'onboarding.faq.sideAnswer.a2' },
     ],
   },
   {
-    topic: '子会话',
+    slug: 'subagent',
+    topic: 'onboarding.faq.topics.subagent',
     items: [
-      {
-        q: '子会话怎么启动？',
-        a: '直接用自然语言说就行，比如「启动 3 个子会话分别研究 A、B、C」，Agent 会自动创建协作子会话。',
-      },
-      {
-        q: '子会话可以指定模型吗？',
-        a: '可以。每个子会话都能指定不同的模型（如 MiniMax、DeepSeek），按任务特点选合适的内核。用自然语言告诉 agent 就行。',
-      },
-      {
-        q: '子会话结果会占用父会话上下文吗？',
-        a: '基本不占。子会话拥有独立上下文，各自研究后再把结论汇总回父会话，节省父会话空间。',
-      },
-      {
-        q: '一个会话下面的子会话是可以开很多个的吗？',
-        a: '可以。你可以根据需要并行开启多个子会话，各自独立研究不同方向，最后汇总回父会话。',
-      },
-      {
-        q: '子会话意外中断怎么办？',
-        a: '中断不会丢失已完成的子会话结果。你可以让子会话 Agent 重新启动中断的会话继续研究，或告诉父会话让他直接汇总已完成的部分。假如父会话说读取不到，就让父会话直接去读该子会话的JSONL文件就好',
-      },
+      { q: 'onboarding.faq.subagent.q1', a: 'onboarding.faq.subagent.a1' },
+      { q: 'onboarding.faq.subagent.q2', a: 'onboarding.faq.subagent.a2' },
+      { q: 'onboarding.faq.subagent.q3', a: 'onboarding.faq.subagent.a3' },
+      { q: 'onboarding.faq.subagent.q4', a: 'onboarding.faq.subagent.a4' },
+      { q: 'onboarding.faq.subagent.q5', a: 'onboarding.faq.subagent.a5' },
     ],
   },
   {
-    topic: '其他问题',
+    slug: 'misc',
+    topic: 'onboarding.faq.topics.misc',
     items: [
-      {
-        q: '为什么有时候用的是我自己配的模型 API，但是还是会扣 Locus 的积分？',
-        a: '部分内置能力（如生图、特定模型调用、云服务）走 Locus 的云渠道，即使主对话用你自己的 API，这些功能仍可能消耗积分；也可以检查是否有内置 MCP 或 Skill 走了云通道。',
-      },
-      {
-        q: '我对于 Locus 的使用有一些问题，我应该怎么做？',
-        a: '可以随时在 agent 模式下直接提问 Locus"你可以完成 XXX 吗？/ XXX 出问题了，帮我排查一下问题"，或查看设置中的帮助与文档；如果遇到无法解决的问题，可以在群里附上复现步骤/你遇见的具体问题和你做过的尝试，开发者或热心群友有空时会来帮忙解答。',
-      },
-      {
-        q: '为什么 Locus 的 DeepSeek 模型可以读图？',
-        a: 'Locus 接入 DeepSeek 时，图片会单独传给其他有视觉能力的模型理解；这也是 Locus 对模型能力的增强之一。可以在设置-视觉助手里调整具体设置。',
-      },
+      { q: 'onboarding.faq.misc.q1', a: 'onboarding.faq.misc.a1' },
+      { q: 'onboarding.faq.misc.q2', a: 'onboarding.faq.misc.a2' },
+      { q: 'onboarding.faq.misc.q3', a: 'onboarding.faq.misc.a3' },
     ],
   },
 ]

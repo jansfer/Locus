@@ -16,9 +16,11 @@ import {
 } from './primitives'
 import { proxyConfigAtom, loadProxyConfigAtom, updateProxyConfigAtom } from '@/atoms/proxy-atoms'
 import { cn } from '@/lib/utils'
+import { useT } from '@/i18n'
 import type { ProxyMode } from '@proma/shared'
 
 export function ProxySettings(): React.ReactElement {
+  const t = useT()
   const [config, setConfig] = useAtom(proxyConfigAtom)
   const loadProxyConfig = useSetAtom(loadProxyConfigAtom)
   const updateProxyConfig = useSetAtom(updateProxyConfigAtom)
@@ -35,7 +37,7 @@ export function ProxySettings(): React.ReactElement {
     return (
       <div className="flex items-center justify-center h-64 text-muted-foreground">
         <Loader2 size={24} className="animate-spin" />
-        <span className="ml-2">加载中...</span>
+        <span className="ml-2">{t('common.loading')}</span>
       </div>
     )
   }
@@ -61,13 +63,13 @@ export function ProxySettings(): React.ReactElement {
       setDetectResult({
         success: result.success,
         message: result.success
-          ? `检测到系统代理: ${result.proxyUrl}`
+          ? t('settingsMisc.proxy.detectedWithUrl', { proxyUrl: result.proxyUrl ?? '' })
           : result.message,
       })
     } catch (error) {
       setDetectResult({
         success: false,
-        message: '检测失败',
+        message: t('settingsMisc.proxy.detectFailed'),
       })
     } finally {
       setDetecting(false)
@@ -78,13 +80,13 @@ export function ProxySettings(): React.ReactElement {
     <div className="space-y-6">
       {/* 代理开关 */}
       <SettingsSection
-        title="代理配置"
-        description="配置后所有 AI API 请求（Chat + Agent）将通过代理发送"
+        title={t('settingsMisc.proxy.title')}
+        description={t('settingsMisc.proxy.titleDesc')}
       >
         <SettingsCard>
           <SettingsToggle
-            label="启用代理"
-            description="开启后可选择系统代理或手动配置代理地址"
+            label={t('settingsMisc.proxy.enable')}
+            description={t('settingsMisc.proxy.enableDesc')}
             checked={config.enabled}
             onCheckedChange={(enabled) => handleUpdate({ enabled })}
           />
@@ -93,7 +95,7 @@ export function ProxySettings(): React.ReactElement {
 
       {/* 代理模式选择（仅在启用时显示） */}
       {config.enabled && (
-        <SettingsSection title="代理模式">
+        <SettingsSection title={t('settingsMisc.proxy.mode')}>
           <SettingsCard divided={false}>
             {/* 系统代理选项 */}
             <div
@@ -112,10 +114,10 @@ export function ProxySettings(): React.ReactElement {
               <div className="flex-1">
                 <div className="text-sm font-medium text-foreground flex items-center gap-2">
                   <Globe size={16} />
-                  <span>系统代理（推荐）</span>
+                  <span>{t('settingsMisc.proxy.systemMode')}</span>
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  自动检测操作系统的代理设置（macOS 网络偏好设置、Windows Internet 选项等）
+                  {t('settingsMisc.proxy.systemModeDesc')}
                 </p>
                 {config.mode === 'system' && (
                   <div className="mt-3">
@@ -132,7 +134,7 @@ export function ProxySettings(): React.ReactElement {
                       ) : (
                         <RefreshCw size={12} />
                       )}
-                      <span>检测系统代理</span>
+                      <span>{t('settingsMisc.proxy.detect')}</span>
                     </button>
                     {detectResult && (
                       <div
@@ -173,9 +175,9 @@ export function ProxySettings(): React.ReactElement {
                   className="mt-0.5 w-4 h-4 accent-foreground cursor-pointer"
                 />
                 <div className="flex-1">
-                  <div className="text-sm font-medium text-foreground">手动配置</div>
+                  <div className="text-sm font-medium text-foreground">{t('settingsMisc.proxy.manualMode')}</div>
                   <p className="text-xs text-muted-foreground mt-1">
-                    手动输入代理地址和端口
+                    {t('settingsMisc.proxy.manualModeDesc')}
                   </p>
                 </div>
               </div>
@@ -186,7 +188,7 @@ export function ProxySettings(): React.ReactElement {
                     value={config.manualUrl}
                     onChange={(value) => handleUpdate({ manualUrl: value })}
                     placeholder="http://127.0.0.1:7890"
-                    description="格式: http://host:port 或 https://host:port"
+                    description={t('settingsMisc.proxy.manualFormatDesc')}
                   />
                 </div>
               )}

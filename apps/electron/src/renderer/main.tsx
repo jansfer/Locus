@@ -12,6 +12,7 @@ import '@fontsource-variable/inter/index.css'
 import React, { useEffect, useMemo, useRef } from 'react'
 import ReactDOM from 'react-dom/client'
 import { useSetAtom, useAtomValue, useStore } from 'jotai'
+import { t } from '@/i18n'
 import App from './App'
 import {
   themeModeAtom,
@@ -394,10 +395,10 @@ function UpdaterInitializer(): null {
           <img src={locusAppIcon} alt="Locus" className="size-8 rounded-lg" />
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5 text-sm leading-5">
-              <span className="font-semibold tracking-tight">Locus 更新已下载</span>
+              <span className="font-semibold tracking-tight">{t('appBoot.update.downloadedTitle')}</span>
               <span className="text-xs text-primary">{versionLabel}</span>
             </div>
-            <p className="text-xs leading-4 text-muted-foreground">所有 Agent 完成后即可自动安装。</p>
+            <p className="text-xs leading-4 text-muted-foreground">{t('appBoot.update.downloadedDesc')}</p>
           </div>
         </div>
         <div className="mt-2.5 flex items-center justify-between">
@@ -406,7 +407,7 @@ function UpdaterInitializer(): null {
             className="h-7 rounded-md px-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground active:scale-[0.96]"
             onClick={() => toast.dismiss(toastId)}
           >
-            取消
+            {t('common.cancel')}
           </button>
           <div className="flex items-center gap-1">
             <button
@@ -414,7 +415,7 @@ function UpdaterInitializer(): null {
               className="flex h-7 items-center gap-1 rounded-md px-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground active:scale-[0.96]"
               onClick={() => { void window.electronAPI.openExternal('https://github.com/jansfer/Locus/releases') }}
             >
-              查看更新
+              {t('appBoot.update.viewUpdate')}
               <ArrowUpRight size={13} />
             </button>
             <button
@@ -426,7 +427,7 @@ function UpdaterInitializer(): null {
                 void window.electronAPI.updater?.installWhenIdle()
                   .then((scheduled) => {
                     if (!scheduled) {
-                      toast.error('更新尚未准备好，请稍后重试')
+                      toast.error(t('appBoot.update.notReady'))
                       return
                     }
 
@@ -435,8 +436,8 @@ function UpdaterInitializer(): null {
                         <div className="flex items-center gap-2.5">
                           <img src={locusAppIcon} alt="Locus" className="size-7 rounded-md" />
                           <div className="min-w-0 flex-1">
-                            <p className="text-sm font-semibold tracking-tight">已安排空闲时更新</p>
-                            <p className="text-xs leading-4 text-muted-foreground">当前任务结束后会自动重启安装。</p>
+                            <p className="text-sm font-semibold tracking-tight">{t('appBoot.update.scheduledTitle')}</p>
+                            <p className="text-xs leading-4 text-muted-foreground">{t('appBoot.update.scheduledDesc')}</p>
                           </div>
                         </div>
                         <div className="mt-2 flex justify-end">
@@ -449,7 +450,7 @@ function UpdaterInitializer(): null {
                               scheduledToastIdRef.current = null
                             }}
                           >
-                            取消安排
+                            {t('appBoot.update.cancelSchedule')}
                           </button>
                         </div>
                       </div>
@@ -460,11 +461,11 @@ function UpdaterInitializer(): null {
                     })
                   })
                   .catch(() => {
-                    toast.error('无法安排空闲更新，请稍后重试')
+                    toast.error(t('appBoot.update.scheduleFailed'))
                   })
               }}
             >
-              空闲时更新
+              {t('appBoot.update.installWhenIdle')}
             </button>
           </div>
         </div>
@@ -499,7 +500,7 @@ function UpdaterInitializer(): null {
       return
     }
 
-    scheduler.start(updateStatus.version || '新版本')
+    scheduler.start(updateStatus.version || t('appBoot.update.fallbackVersion'))
   }, [showDownloadedUpdateReminder, updateStatus.installScheduled, updateStatus.status, updateStatus.version])
 
   useEffect(() => () => {
