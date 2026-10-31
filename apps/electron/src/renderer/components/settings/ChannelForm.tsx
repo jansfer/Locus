@@ -28,6 +28,7 @@ import { useSetAtom } from 'jotai'
 import { channelFormDirtyAtom } from '@/atoms/settings-tab'
 import { cn } from '@/lib/utils'
 import { t, useT } from '@/i18n'
+import type { MessageKey } from '@/i18n/types'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -95,10 +96,10 @@ const PROVIDER_TEST_MODEL_PRESETS: Partial<Record<ProviderType, string[]>> = {
   'qwen-token-plan': ['qwen3.8-max-preview', 'qwen3.7-max', 'qwen3.7-flash', 'qwen3.6-flash'],
 }
 
-/** 供应商选项（用于 SettingsSelect） */
+/** 供应商选项的词典键；label 在组件内用 t() 按当前语言求值，避免模块级快照。 */
 const PROVIDER_SELECT_OPTIONS = PROVIDER_OPTIONS.map((p) => ({
   value: p,
-  label: PROVIDER_LABELS[p],
+  labelKey: `settings.channels.providerLabels.${p}` as MessageKey,
   icon: getProviderLogo(p),
 }))
 
@@ -415,10 +416,11 @@ export function ChannelForm({ channel, onSaved, onCancel }: ChannelFormProps): R
   // 切换供应商时自动更新 Base URL 与名称，并为支持的渠道自动添加预设模型
   const handleProviderChange = (newProvider: string): void => {
     const p = newProvider as ProviderType
-    // 若 name 为空或仍是上一个 provider 的默认名称，则用新 provider 的名称覆盖；用户手动改过的 name 不动
+    // 若 name 为空或仍是上一个 provider 的默认名称，则用新 provider 的名称覆盖；用户手动改过的 name 不动。
+    // 存量渠道的默认名是创建时写入的中文标签，因此比较保留 shared 原值；新默认名随当前界面语言。
     const trimmedName = name.trim()
-    if (!trimmedName || trimmedName === PROVIDER_LABELS[provider]) {
-      setName(PROVIDER_LABELS[p])
+    if (!trimmedName || trimmedName === PROVIDER_LABELS[provider] || trimmedName === t(`settings.channels.providerLabels.${provider}`)) {
+      setName(t(`settings.channels.providerLabels.${p}`))
     }
     setProvider(p)
     setBaseUrl(PROVIDER_DEFAULT_URLS[p])
@@ -579,7 +581,7 @@ export function ChannelForm({ channel, onSaved, onCancel }: ChannelFormProps): R
         toast.success(t('settings.channels.chatgptLoginSuccess'))
       } else {
         const input: ChannelCreateInput = {
-          name: name.trim() || PROVIDER_LABELS['openai-codex'],
+          name: name.trim() || t('settings.channels.providerLabels.openai-codex'),
           provider,
           baseUrl,
           apiKey: credentials,
@@ -650,7 +652,7 @@ export function ChannelForm({ channel, onSaved, onCancel }: ChannelFormProps): R
         toast.success(copilotModels.length > 0 ? t('settings.channels.copilotLoginSuccess') : t('settings.channels.copilotLoginSuccessNoModels'))
       } else {
         const input: ChannelCreateInput = {
-          name: name.trim() || PROVIDER_LABELS['github-copilot'],
+          name: name.trim() || t('settings.channels.providerLabels.github-copilot'),
           provider,
           baseUrl,
           apiKey: credentials,
@@ -719,7 +721,7 @@ export function ChannelForm({ channel, onSaved, onCancel }: ChannelFormProps): R
         toast.success(t('settings.channels.xaiLoginSuccess'))
       } else {
         const input: ChannelCreateInput = {
-          name: name.trim() || PROVIDER_LABELS.xai,
+          name: name.trim() || t('settings.channels.providerLabels.xai'),
           provider,
           baseUrl,
           apiKey: credentials,
@@ -911,14 +913,19 @@ export function ChannelForm({ channel, onSaved, onCancel }: ChannelFormProps): R
    * 动态追加对应选项，避免 SettingsSelect 因找不到 value 而显示占位符。
    */
   const providerSelectOptions = React.useMemo(() => {
+    const translated = PROVIDER_SELECT_OPTIONS.map(({ value, labelKey, icon }) => ({
+      value,
+      label: t(labelKey),
+      icon,
+    }))
     if (isEdit && !PROVIDER_OPTIONS.includes(provider)) {
       return [
-        ...PROVIDER_SELECT_OPTIONS,
-        { value: provider, label: PROVIDER_LABELS[provider], icon: getProviderLogo(provider) },
+        ...translated,
+        { value: provider, label: t(`settings.channels.providerLabels.${provider}`), icon: getProviderLogo(provider) },
       ]
     }
-    return PROVIDER_SELECT_OPTIONS
-  }, [isEdit, provider])
+    return translated
+  }, [isEdit, provider, t])
 
   /** 返回按钮：创建模式下有未保存内容时拦截 */
   const handleBack = (): void => {

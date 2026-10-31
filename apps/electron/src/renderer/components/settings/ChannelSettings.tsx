@@ -264,7 +264,7 @@ function ChannelRow({ channel, onEdit, onDelete, onToggle }: ChannelRowProps): R
   const t = useT()
   const enabledCount = channel.models.filter((m) => m.enabled).length
   const description = [
-    PROVIDER_LABELS[channel.provider],
+    t(`settings.channels.providerLabels.${channel.provider}`),
     enabledCount > 0 ? t('settings.channels.modelsEnabledCount', { n: enabledCount }) : undefined,
   ]
     .filter(Boolean)
