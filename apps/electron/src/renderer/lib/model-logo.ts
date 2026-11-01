@@ -264,6 +264,8 @@ const PROVIDER_LOGO_MAP: Record<ProviderType, string> = {
   'openai-codex': OpenAILogo,
   'github-copilot': GitHubLogo,
   xai: GrokLogo,
+  // Antigravity 是 Google 的 AI IDE，暂复用 Gemini 图标；后续有官方素材再替换。
+  'google-antigravity': GeminiLogo,
   custom: DefaultLogo,
 }
 

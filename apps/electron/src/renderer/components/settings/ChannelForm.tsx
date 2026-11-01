@@ -38,12 +38,14 @@ import {
   parseCodexCredentials,
   parseGithubCopilotCredentials,
   parseXaiCredentials,
+  parseAntigravityCredentials,
 } from '@proma/shared'
 import type {
   Channel,
   ChannelCreateInput,
   ChannelModel,
   ChannelTestResult,
+  AntigravityOAuthManualInputRequest,
   CodexOAuthAuthUrl, CodexOAuthDeviceCode, CodexOAuthManualInputRequest,
   GithubCopilotOAuthDeviceCode,
   FetchModelsResult,
@@ -84,7 +86,7 @@ interface ChannelFormProps {
 }
 
 /** 所有可选供应商（'qwen-anthropic' 仅为兼容存量 Anthropic 渠道保留，不再出现在新建下拉） */
-const PROVIDER_OPTIONS: ProviderType[] = ['anthropic', 'anthropic-compatible', 'openai', 'openai-responses', 'openai-codex', 'github-copilot', 'xai', 'deepseek', 'google', 'kimi-api', 'kimi-coding', 'zhipu', 'zhipu-coding', 'zhipu-coding-team', 'doubao-api', 'minimax', 'qwen', 'qwen-token-plan', 'xiaomi', 'xiaomi-token-plan', 'custom']
+const PROVIDER_OPTIONS: ProviderType[] = ['anthropic', 'anthropic-compatible', 'openai', 'openai-responses', 'openai-codex', 'github-copilot', 'xai', 'google-antigravity', 'deepseek', 'google', 'kimi-api', 'kimi-coding', 'zhipu', 'zhipu-coding', 'zhipu-coding-team', 'doubao-api', 'minimax', 'qwen', 'qwen-token-plan', 'xiaomi', 'xiaomi-token-plan', 'custom']
 
 /** 需要用 messages 端点测试的供应商预设模型 */
 const PROVIDER_TEST_MODEL_PRESETS: Partial<Record<ProviderType, string[]>> = {
@@ -245,11 +247,16 @@ export function ChannelForm({ channel, onSaved, onCancel }: ChannelFormProps): R
   const [githubCopilotEnterpriseUrl, setGithubCopilotEnterpriseUrl] = React.useState('')
   const [xaiLoggingIn, setXaiLoggingIn] = React.useState(false)
   const [xaiDeviceCode, setXaiDeviceCode] = React.useState<XaiOAuthDeviceCode | null>(null)
+  const [antigravityLoggingIn, setAntigravityLoggingIn] = React.useState(false)
+  const [antigravityAuthUrl, setAntigravityAuthUrl] = React.useState<string | null>(null)
+  const [antigravityManualInput, setAntigravityManualInput] = React.useState<AntigravityOAuthManualInputRequest | null>(null)
+  const [antigravityManualInputValue, setAntigravityManualInputValue] = React.useState('')
 
   const setChannelFormDirty = useSetAtom(channelFormDirtyAtom)
   const codexLoggingInRef = React.useRef(false)
   const githubCopilotLoggingInRef = React.useRef(false)
   const xaiLoggingInRef = React.useRef(false)
+  const antigravityLoggingInRef = React.useRef(false)
 
   React.useEffect(() => {
     codexLoggingInRef.current = codexLoggingIn
@@ -262,6 +269,10 @@ export function ChannelForm({ channel, onSaved, onCancel }: ChannelFormProps): R
   React.useEffect(() => {
     xaiLoggingInRef.current = xaiLoggingIn
   }, [xaiLoggingIn])
+
+  React.useEffect(() => {
+    antigravityLoggingInRef.current = antigravityLoggingIn
+  }, [antigravityLoggingIn])
 
   React.useEffect(() => {
     return window.electronAPI.onCodexOAuthDeviceCode(setCodexDeviceCode)
@@ -283,11 +294,20 @@ export function ChannelForm({ channel, onSaved, onCancel }: ChannelFormProps): R
     return window.electronAPI.onXaiOAuthDeviceCode(setXaiDeviceCode)
   }, [])
 
+  React.useEffect(() => {
+    return window.electronAPI.onAntigravityOAuthAuthUrl((authUrl) => setAntigravityAuthUrl(authUrl.url))
+  }, [])
+
+  React.useEffect(() => {
+    return window.electronAPI.onAntigravityOAuthManualInput(setAntigravityManualInput)
+  }, [])
+
   // 关闭或放弃表单时取消仍在轮询的 device-code 授权，避免后台孤立请求。
   React.useEffect(() => () => {
     if (codexLoggingInRef.current) void window.electronAPI.codexOAuthCancel()
     if (githubCopilotLoggingInRef.current) void window.electronAPI.githubCopilotOAuthCancel()
     if (xaiLoggingInRef.current) void window.electronAPI.xaiOAuthCancel()
+    if (antigravityLoggingInRef.current) void window.electronAPI.antigravityOAuthCancel()
   }, [])
 
   /** 编辑模式下加载明文 API Key */
@@ -313,12 +333,14 @@ export function ChannelForm({ channel, onSaved, onCancel }: ChannelFormProps): R
   const isCodexProvider = provider === 'openai-codex'
   const isGithubCopilotProvider = provider === 'github-copilot'
   const isXaiProvider = provider === 'xai'
-  const isSubscriptionProvider = isCodexProvider || isGithubCopilotProvider || isXaiProvider
+  const isAntigravityProvider = provider === 'google-antigravity'
+  const isSubscriptionProvider = isCodexProvider || isGithubCopilotProvider || isXaiProvider || isAntigravityProvider
   const effectiveApiKey = isZhipuTeamProvider ? buildZhipuTeamSecret(zhipuTeamSecret) : apiKey
   // 订阅渠道的 apiKey state 存的是登录后拿到的凭据 JSON；能解析出有效凭据即视为已登录。
   const codexCredentials = isCodexProvider ? parseCodexCredentials(apiKey) : null
   const githubCopilotCredentials = isGithubCopilotProvider ? parseGithubCopilotCredentials(apiKey) : null
   const xaiCredentials = isXaiProvider ? parseXaiCredentials(apiKey) : null
+  const antigravityCredentials = isAntigravityProvider ? parseAntigravityCredentials(apiKey) : null
   const hasRequiredSecret = isZhipuTeamProvider
     ? Boolean(zhipuTeamSecret.apiKey.trim())
     : isCodexProvider
@@ -327,6 +349,8 @@ export function ChannelForm({ channel, onSaved, onCancel }: ChannelFormProps): R
         ? Boolean(githubCopilotCredentials)
         : isXaiProvider
         ? Boolean(xaiCredentials)
+        : isAntigravityProvider
+        ? Boolean(antigravityCredentials)
         : Boolean(apiKey.trim())
   const requiresBaseUrlRiskAcknowledgement = isThirdPartyBaseUrl(provider, baseUrl)
     && normalizeBaseUrl(baseUrl) !== acknowledgedBaseUrl
@@ -742,6 +766,90 @@ export function ChannelForm({ channel, onSaved, onCancel }: ChannelFormProps): R
     }
   }
 
+  const handleCancelAntigravityLogin = (): void => {
+    antigravityLoggingInRef.current = false
+    void window.electronAPI.antigravityOAuthCancel()
+    setAntigravityAuthUrl(null)
+    setAntigravityManualInput(null)
+    setAntigravityManualInputValue('')
+  }
+
+  /** 提交手动粘贴的 Antigravity 回调地址。 */
+  const handleSubmitAntigravityCallback = async (): Promise<void> => {
+    const input = antigravityManualInputValue.trim()
+    if (!input) return
+    await window.electronAPI.antigravityOAuthSubmitCallback(input)
+    setAntigravityManualInputValue('')
+  }
+
+  /** 发起 Antigravity (Google 订阅) OAuth 登录：主进程打开 Google 授权页并解析项目信息。 */
+  const handleAntigravityLogin = async (): Promise<void> => {
+    antigravityLoggingInRef.current = true
+    setAntigravityLoggingIn(true)
+    setAntigravityAuthUrl(null)
+    setAntigravityManualInput(null)
+    setAntigravityManualInputValue('')
+    setTestResult(null)
+    try {
+      const result = await window.electronAPI.antigravityOAuthLogin()
+      if (!result.success || !result.credentials) {
+        toast.error(result.message ?? t('settings.channels.antigravityLoginFailed'))
+        return
+      }
+      const credentials = result.credentials
+      setApiKey(credentials)
+
+      // 模型目录来自 fetchAvailableModels；登录后自动拉取并全部启用。
+      let antigravityModels: ChannelModel[] = []
+      try {
+        const modelsResult = await window.electronAPI.fetchModels({ provider, baseUrl, apiKey: credentials })
+        setFetchResult(modelsResult)
+        if (modelsResult.success && modelsResult.models.length > 0) {
+          antigravityModels = modelsResult.models.map((model) => ({ ...model, enabled: true }))
+          setModels(antigravityModels)
+        }
+      } catch (modelErr) {
+        console.error('[模型配置表单] 拉取 Antigravity 模型失败:', modelErr)
+      }
+
+      // OAuth 登录成功即明确保存意图。编辑模式也立即写入，不能依赖 auto-save，
+      // 避免用户立刻关闭表单而丢失 refresh token。
+      const savedModels = antigravityModels.length > 0 ? antigravityModels : models
+      if (isEdit && channel) {
+        await window.electronAPI.updateChannel(channel.id, {
+          name,
+          provider,
+          baseUrl,
+          apiKey: credentials,
+          models: savedModels,
+          enabled,
+        })
+        toast.success(t('settings.channels.antigravityLoginSuccess'))
+      } else {
+        const input: ChannelCreateInput = {
+          name: name.trim() || t('settings.channels.providerLabels.google-antigravity'),
+          provider,
+          baseUrl,
+          apiKey: credentials,
+          models: savedModels,
+          enabled,
+        }
+        const saved = await window.electronAPI.createChannel(input)
+        toast.success(t('settings.channels.antigravityChannelCreated'))
+        onSaved(saved)
+      }
+    } catch (error) {
+      console.error('[模型配置表单] Antigravity 登录失败:', error)
+      toast.error(t('settings.channels.antigravityLoginFailed'))
+    } finally {
+      antigravityLoggingInRef.current = false
+      setAntigravityLoggingIn(false)
+      setAntigravityAuthUrl(null)
+      setAntigravityManualInput(null)
+      setAntigravityManualInputValue('')
+    }
+  }
+
   /** 从供应商 API 拉取可用模型列表。 */
   const fetchAvailableModels = async (): Promise<void> => {
     // 订阅 provider 走 Pi SDK 内置目录，不依赖 baseUrl；其余 provider 仍要求 baseUrl。
@@ -1052,7 +1160,7 @@ export function ChannelForm({ channel, onSaved, onCancel }: ChannelFormProps): R
           <div className="px-4 py-3 space-y-2">
             <div className="flex items-center justify-between">
               <div className="text-sm font-medium text-foreground">
-                {isCodexProvider ? t('settings.channels.chatgptLogin') : isGithubCopilotProvider ? t('settings.channels.copilotLogin') : isXaiProvider ? t('settings.channels.xaiLogin') : isZhipuTeamProvider ? t('settings.channels.zhipuTeamCredentials') : 'API Key'}
+                {isCodexProvider ? t('settings.channels.chatgptLogin') : isGithubCopilotProvider ? t('settings.channels.copilotLogin') : isXaiProvider ? t('settings.channels.xaiLogin') : isAntigravityProvider ? t('settings.channels.antigravityLogin') : isZhipuTeamProvider ? t('settings.channels.zhipuTeamCredentials') : 'API Key'}
               </div>
               {/* 订阅 OAuth 无标准 API Key 测试路径，隐藏测试按钮 */}
               {!isSubscriptionProvider && (
@@ -1211,6 +1319,56 @@ export function ChannelForm({ channel, onSaved, onCancel }: ChannelFormProps): R
                     <span>{t('settings.channels.xaiLoggedIn')}</span>
                   </div>
                 ) : <div className="text-xs text-muted-foreground">{t('settings.channels.xaiNoSecretHint')}</div>}
+              </div>
+            ) : isAntigravityProvider ? (
+              <div className="space-y-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  type="button"
+                  onClick={handleAntigravityLogin}
+                  disabled={antigravityLoggingIn}
+                  className="w-full"
+                >
+                  {antigravityLoggingIn ? <Loader2 size={14} className="animate-spin" /> : <Zap size={14} />}
+                  <span>{antigravityLoggingIn ? t('settings.channels.waitingBrowserAuthorization') : hasRequiredSecret ? t('settings.channels.reloginAntigravity') : t('settings.channels.loginWithAntigravity')}</span>
+                </Button>
+                {antigravityLoggingIn && (
+                  <Button variant="ghost" size="sm" type="button" onClick={handleCancelAntigravityLogin} className="w-full text-muted-foreground">
+                    {t('settings.channels.cancelLogin')}
+                  </Button>
+                )}
+                {antigravityLoggingIn && antigravityAuthUrl && (
+                  <a href={antigravityAuthUrl} target="_blank" rel="noreferrer" className="block text-xs text-primary hover:underline">
+                    {t('settings.channels.openAntigravityAuthLink')}
+                  </a>
+                )}
+                {antigravityLoggingIn && antigravityManualInput && (
+                  <div className="rounded-md border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground space-y-2">
+                    <div>
+                      {antigravityManualInput.message || t('settings.channels.antigravityManualInputHint')}
+                    </div>
+                    <div className="flex gap-2">
+                      <input
+                        value={antigravityManualInputValue}
+                        onChange={(event) => setAntigravityManualInputValue(event.target.value)}
+                        onKeyDown={(event) => { if (event.key === 'Enter') void handleSubmitAntigravityCallback() }}
+                        placeholder={antigravityManualInput.placeholder || 'http://localhost:<port>/oauth-callback?state=…&code=…'}
+                        className="h-7 flex-1 min-w-0 rounded-md border border-border bg-background px-2 font-mono text-[11px] outline-none focus-visible:border-ring"
+                        aria-label={t('settings.channels.pasteCallbackUrl')}
+                      />
+                      <Button size="sm" variant="outline" type="button" onClick={() => void handleSubmitAntigravityCallback()} disabled={!antigravityManualInputValue.trim()}>
+                        {t('settings.channels.finishLogin')}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+                {hasRequiredSecret ? (
+                  <div className="flex items-center gap-1.5 text-xs text-emerald-600">
+                    <CheckCircle2 size={12} className="shrink-0" />
+                    <span>{antigravityCredentials?.accountId ? t('settings.channels.antigravityLoggedInWithAccount', { id: antigravityCredentials.accountId }) : t('settings.channels.antigravityLoggedIn')}</span>
+                  </div>
+                ) : <div className="text-xs text-muted-foreground">{t('settings.channels.antigravityNoSecretHint')}</div>}
               </div>
             ) : isZhipuTeamProvider ? (
               <div className="space-y-2">

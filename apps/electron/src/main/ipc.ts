@@ -192,10 +192,11 @@ import {
   getChannelPlanQuota,
 } from './lib/channel-manager'
 import { loginCodexOAuth, cancelCodexOAuthLogin, submitCodexOAuthCallbackInput } from './lib/codex-oauth-service'
+import { loginAntigravityOAuth, cancelAntigravityOAuthLogin, submitAntigravityOAuthCallbackInput } from './lib/antigravity-oauth-service'
 import { loginGithubCopilotOAuth, cancelGithubCopilotOAuthLogin } from './lib/github-copilot-oauth-service'
 import { loginXaiOAuth, cancelXaiOAuthLogin } from './lib/xai-oauth-service'
 import { resolvePiReasoningCapability } from './lib/adapters/pi-model-registry'
-import { serializeCodexCredentials, serializeGithubCopilotCredentials, serializeXaiCredentials } from '@proma/shared'
+import { serializeAntigravityCredentials, serializeCodexCredentials, serializeGithubCopilotCredentials, serializeXaiCredentials } from '@proma/shared'
 import type { CodexOAuthDeviceCode, CodexOAuthLoginMethod, GithubCopilotOAuthDeviceCode, XaiOAuthDeviceCode } from '@proma/shared'
 import {
   listConversations,
@@ -1908,6 +1909,50 @@ export function registerIpcHandlers(): void {
     CHANNEL_IPC_CHANNELS.XAI_OAUTH_CANCEL,
     async (): Promise<void> => {
       cancelXaiOAuthLogin()
+    }
+  )
+
+  // 发起 Antigravity (Google 订阅) OAuth 浏览器登录。主进程自研 Google 授权码流：
+  // 本地 loopback 回调服务接收授权码，浏览器无法回连时支持手动粘贴回调地址；
+  // 成功后返回序列化凭据（含 loadCodeAssist 解析的 projectId），沿用 Channel.apiKey 加密存储。
+  ipcMain.handle(
+    CHANNEL_IPC_CHANNELS.ANTIGRAVITY_OAUTH_LOGIN,
+    async (event): Promise<import('@proma/shared').AntigravityOAuthLoginResult> => {
+      try {
+        const credentials = await loginAntigravityOAuth({
+          onAuthUrl: (url) => {
+            if (!event.sender.isDestroyed()) {
+              event.sender.send(CHANNEL_IPC_CHANNELS.ANTIGRAVITY_OAUTH_AUTH_URL, { url })
+            }
+          },
+          onManualInputRequest: (request) => {
+            if (!event.sender.isDestroyed()) {
+              event.sender.send(CHANNEL_IPC_CHANNELS.ANTIGRAVITY_OAUTH_MANUAL_INPUT, request)
+            }
+          },
+        })
+        return {
+          success: true,
+          credentials: serializeAntigravityCredentials(credentials),
+          ...(credentials.accountId ? { accountId: credentials.accountId } : {}),
+        }
+      } catch (error) {
+        return { success: false, message: error instanceof Error ? error.message : String(error) }
+      }
+    }
+  )
+
+  // 渲染层提交手动粘贴的 Antigravity 回调地址；仅在登录流程等待输入时生效。
+  ipcMain.handle(
+    CHANNEL_IPC_CHANNELS.ANTIGRAVITY_OAUTH_SUBMIT_CALLBACK,
+    (_, input: string): boolean => submitAntigravityOAuthCallbackInput(input),
+  )
+
+  // 取消进行中的 Antigravity OAuth 登录流程
+  ipcMain.handle(
+    CHANNEL_IPC_CHANNELS.ANTIGRAVITY_OAUTH_CANCEL,
+    async (): Promise<void> => {
+      cancelAntigravityOAuthLogin()
     }
   )
 

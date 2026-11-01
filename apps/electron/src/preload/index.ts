@@ -365,6 +365,21 @@ export interface ElectronAPI {
   /** 订阅登录期间，接收 xAI device code 与授权链接。返回取消订阅函数。 */
   onXaiOAuthDeviceCode: (callback: (deviceCode: XaiOAuthDeviceCode) => void) => () => void
 
+  /** 发起 Antigravity (Google 订阅) OAuth 浏览器登录 */
+  antigravityOAuthLogin: () => Promise<import('@proma/shared').AntigravityOAuthLoginResult>
+
+  /** 取消进行中的 Antigravity OAuth 登录 */
+  antigravityOAuthCancel: () => Promise<void>
+
+  /** 手动粘贴 Antigravity 回调地址；仅在登录流程等待输入时生效，返回是否被接受 */
+  antigravityOAuthSubmitCallback: (input: string) => Promise<boolean>
+
+  /** 订阅浏览器登录期间，接收授权页地址。返回取消订阅函数。 */
+  onAntigravityOAuthAuthUrl: (callback: (authUrl: import('@proma/shared').AntigravityOAuthAuthUrl) => void) => () => void
+
+  /** 浏览器登录等待手动粘贴回调地址时触发。返回取消订阅函数。 */
+  onAntigravityOAuthManualInput: (callback: (request: import('@proma/shared').AntigravityOAuthManualInputRequest) => void) => () => void
+
   // ===== 对话管理相关 =====
 
   /** 获取对话列表 */
@@ -1629,6 +1644,31 @@ const electronAPI: ElectronAPI = {
     const listener = (_event: Electron.IpcRendererEvent, deviceCode: XaiOAuthDeviceCode) => callback(deviceCode)
     ipcRenderer.on(CHANNEL_IPC_CHANNELS.XAI_OAUTH_DEVICE_CODE, listener)
     return () => ipcRenderer.removeListener(CHANNEL_IPC_CHANNELS.XAI_OAUTH_DEVICE_CODE, listener)
+  },
+
+  antigravityOAuthLogin: () => {
+    return ipcRenderer.invoke(CHANNEL_IPC_CHANNELS.ANTIGRAVITY_OAUTH_LOGIN)
+  },
+
+  antigravityOAuthCancel: () => {
+    return ipcRenderer.invoke(CHANNEL_IPC_CHANNELS.ANTIGRAVITY_OAUTH_CANCEL)
+  },
+
+  /** 手动粘贴 Antigravity 回调地址；仅在登录流程等待输入时生效。 */
+  antigravityOAuthSubmitCallback: (input: string) => {
+    return ipcRenderer.invoke(CHANNEL_IPC_CHANNELS.ANTIGRAVITY_OAUTH_SUBMIT_CALLBACK, input)
+  },
+
+  onAntigravityOAuthAuthUrl: (callback: (authUrl: import('@proma/shared').AntigravityOAuthAuthUrl) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, authUrl: import('@proma/shared').AntigravityOAuthAuthUrl) => callback(authUrl)
+    ipcRenderer.on(CHANNEL_IPC_CHANNELS.ANTIGRAVITY_OAUTH_AUTH_URL, listener)
+    return () => ipcRenderer.removeListener(CHANNEL_IPC_CHANNELS.ANTIGRAVITY_OAUTH_AUTH_URL, listener)
+  },
+
+  onAntigravityOAuthManualInput: (callback: (request: import('@proma/shared').AntigravityOAuthManualInputRequest) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, request: import('@proma/shared').AntigravityOAuthManualInputRequest) => callback(request)
+    ipcRenderer.on(CHANNEL_IPC_CHANNELS.ANTIGRAVITY_OAUTH_MANUAL_INPUT, listener)
+    return () => ipcRenderer.removeListener(CHANNEL_IPC_CHANNELS.ANTIGRAVITY_OAUTH_MANUAL_INPUT, listener)
   },
 
   // 对话管理
