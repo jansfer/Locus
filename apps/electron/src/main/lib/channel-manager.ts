@@ -40,11 +40,20 @@ import {
   parseXaiCredentials,
   serializeXaiCredentials,
   isXaiCredentialExpired,
+  parseAntigravityCredentials,
+  serializeAntigravityCredentials,
+  isAntigravityCredentialExpired,
+  type AntigravityOAuthCredentials,
 } from '@proma/shared'
 import { refreshCodexOAuth } from './codex-oauth-service'
 import { refreshGithubCopilotOAuth } from './github-copilot-oauth-service'
 import { refreshXaiOAuth } from './xai-oauth-service'
 import { refreshXaiOAuthCredentialsSerial, rememberXaiOAuthCredentials } from './xai-oauth-credentials'
+import { refreshAntigravityAccessToken, resolveAntigravityProjectId, fetchAntigravityAvailableModels, mapAntigravityAvailableModels } from './antigravity-api'
+import {
+  refreshAntigravityOAuthCredentialsSerial,
+  rememberAntigravityOAuthCredentials,
+} from './antigravity-oauth-credentials'
 import { parseCodexPlanQuotaResponse } from './codex-plan-quota'
 import { queryGithubCopilotPlanQuota } from './github-copilot-plan-quota'
 import { listCodexModels, listGithubCopilotModels, listXaiModels } from './adapters/pi-model-registry'
@@ -819,6 +828,49 @@ export async function resolveXaiAccessToken(channelId: string): Promise<string> 
   return (await resolveXaiOAuthCredentials(channelId)).access
 }
 
+/** 保存 Pi 或 Locus 刷新后的完整 Antigravity OAuth 凭据。 */
+export function persistAntigravityOAuthCredentials(channelId: string, credentials: AntigravityOAuthCredentials): void {
+  const channel = getChannelById(channelId)
+  if (!channel || channel.provider !== 'google-antigravity') {
+    throw new Error(`Antigravity 渠道不存在或类型不匹配: ${channelId}`)
+  }
+  updateChannel(channelId, { apiKey: serializeAntigravityCredentials(credentials) })
+  rememberAntigravityOAuthCredentials(channelId, credentials, true)
+}
+
+/** 解析 Antigravity (Google 订阅) 凭据，按 expiry 刷新并回写加密渠道存储。 */
+export async function resolveAntigravityOAuthCredentials(channelId: string): Promise<AntigravityOAuthCredentials> {
+  const config = readConfig()
+  const channel = config.channels.find((c) => c.id === channelId)
+  if (!channel || channel.provider !== 'google-antigravity') {
+    throw new Error('Antigravity 订阅渠道不存在或类型不匹配')
+  }
+  const credentials = parseAntigravityCredentials(decryptKey(channel.apiKey))
+  if (!credentials) throw new Error('Antigravity 登录凭据无效或缺失，请重新登录')
+  if (!isAntigravityCredentialExpired(credentials)) {
+    return rememberAntigravityOAuthCredentials(channelId, credentials)
+  }
+
+  const proxyUrl = await getEffectiveProxyUrl()
+  const refreshed = await refreshAntigravityOAuthCredentialsSerial(
+    channelId,
+    credentials,
+    (current) => refreshAntigravityAccessToken(current.refresh, { proxyUrl }).then((token) => ({
+      ...current,
+      access: token.access_token,
+      refresh: token.refresh_token ?? current.refresh,
+      expires: Date.now() + token.expires_in * 1000,
+    })),
+  )
+  persistAntigravityOAuthCredentials(channelId, refreshed)
+  return refreshed
+}
+
+/** 返回当前有效的 Antigravity access token，兼容只需要 bearer token 的调用方。 */
+export async function resolveAntigravityAccessToken(channelId: string): Promise<string> {
+  return (await resolveAntigravityOAuthCredentials(channelId)).access
+}
+
 /**
  * 解析渠道运行时实际使用的认证 token。
  *
@@ -834,6 +886,7 @@ export async function resolveChannelRuntimeApiKey(channelId: string): Promise<st
   if (channel.provider === 'openai-codex') return resolveCodexAccessToken(channelId)
   if (channel.provider === 'github-copilot') return (await resolveGithubCopilotOAuthCredentials(channelId)).access
   if (channel.provider === 'xai') return resolveXaiAccessToken(channelId)
+  if (channel.provider === 'google-antigravity') return resolveAntigravityAccessToken(channelId)
   return decryptApiKey(channelId)
 }
 
@@ -853,6 +906,12 @@ export async function testChannel(channelId: string): Promise<ChannelTestResult>
   const apiKey = decryptKey(channel.apiKey)
   const proxyUrl = await getEffectiveProxyUrl()
   const provider = inferProviderFromBaseUrl(channel.provider, channel.baseUrl)
+
+  // Antigravity 订阅渠道的 apiKey 字段是凭据 JSON 而非 bearer token；
+  // 用 loadCodeAssist 轻量探活（不消耗模型额度）。
+  if (provider === 'google-antigravity') {
+    return await testAntigravityChannel(apiKey, proxyUrl)
+  }
 
   try {
     switch (provider) {
@@ -926,6 +985,30 @@ export async function testChannel(channelId: string): Promise<ChannelTestResult>
       default:
         return { success: false, message: `不支持的供应商: ${provider}，请在渠道设置中重新配置该渠道。` }
     }
+  } catch (error) {
+    return normalizeRequestError(error)
+  }
+}
+
+/**
+ * Antigravity 订阅渠道的连接测试。
+ *
+ * 用凭据中的 access token（过期时顺带刷新）调 loadCodeAssist 探活；
+ * 该端点不消耗模型额度，能同时验证 token 与账号资格。
+ */
+async function testAntigravityChannel(apiKey: string, proxyUrl?: string): Promise<ChannelTestResult> {
+  const credentials = parseAntigravityCredentials(apiKey)
+  if (!credentials) return { success: false, message: 'Antigravity 登录凭据无效或缺失，请重新登录' }
+
+  try {
+    const token = isAntigravityCredentialExpired(credentials)
+      ? (await refreshAntigravityAccessToken(credentials.refresh, { proxyUrl })).access_token
+      : credentials.access
+    const projectId = await resolveAntigravityProjectId(token, { proxyUrl })
+    if (!projectId) {
+      return { success: false, message: 'Antigravity 账号无法解析项目信息（loadCodeAssist 无返回），请确认账号已开通 Antigravity 使用资格' }
+    }
+    return { success: true, message: `Antigravity 连接正常（项目: ${projectId}）` }
   } catch (error) {
     return normalizeRequestError(error)
   }
@@ -1908,6 +1991,7 @@ export async function fetchModels(input: FetchModelsInput): Promise<FetchModelsR
       case 'openai-codex':
       case 'github-copilot':
       case 'xai':
+      case 'google-antigravity':
         if (provider === 'openai-codex') {
           const credentials = parseCodexCredentials(input.apiKey)
           if (!credentials) throw new Error('ChatGPT 登录凭据无效或缺失，请重新登录')
@@ -1934,6 +2018,20 @@ export async function fetchModels(input: FetchModelsInput): Promise<FetchModelsR
             success: true,
             message: `已加载 ${xaiModels.length} 个 xAI（Grok）模型`,
             models: xaiModels.map((m) => ({ id: m.id, name: m.name, enabled: true, source: 'fetched' as const })),
+          }
+        }
+        if (provider === 'google-antigravity') {
+          const credentials = parseAntigravityCredentials(input.apiKey)
+          if (!credentials) throw new Error('Antigravity 登录凭据无效或缺失，请重新登录')
+          const catalog = await fetchAntigravityAvailableModels(credentials.access, { proxyUrl })
+          const antigravityModels = mapAntigravityAvailableModels(catalog)
+          if (antigravityModels.length === 0) {
+            throw new Error('Antigravity 未返回可用模型，请确认账号已开通 Antigravity 使用资格')
+          }
+          return {
+            success: true,
+            message: `已加载 ${antigravityModels.length} 个 Antigravity (Google) 模型`,
+            models: antigravityModels.map((m) => ({ id: m.id, name: m.name, enabled: true, source: 'fetched' as const })),
           }
         }
         if (provider === 'deepseek') {

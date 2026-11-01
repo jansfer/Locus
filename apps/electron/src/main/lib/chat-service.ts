@@ -215,12 +215,14 @@ export async function sendMessage(
   // Subscription OAuth uses Pi provider-specific transports, which Chat mode does
   // not currently implement. Keep this guard for historical conversations that
   // still reference a formerly selectable subscription model.
-  if (channel.provider === 'openai-codex' || channel.provider === 'github-copilot' || channel.provider === 'xai') {
+  if (channel.provider === 'openai-codex' || channel.provider === 'github-copilot' || channel.provider === 'xai' || channel.provider === 'google-antigravity') {
     const providerName = channel.provider === 'xai'
       ? 'xAI（Grok OAuth）'
       : channel.provider === 'github-copilot'
         ? 'GitHub Copilot 订阅'
-        : 'ChatGPT 订阅（Codex OAuth）'
+        : channel.provider === 'google-antigravity'
+          ? 'Antigravity 订阅 (Google OAuth)'
+          : 'ChatGPT 订阅（Codex OAuth）'
     webContents.send(CHAT_IPC_CHANNELS.STREAM_ERROR, {
       conversationId,
       error: `Chat 模式暂不支持 ${providerName}，请切换到 Agent 模式使用。`,
@@ -618,7 +620,7 @@ export async function generateTitle(input: GenerateTitleInput): Promise<string |
     return null
   }
 
-  if (channel.provider === 'openai-codex' || channel.provider === 'github-copilot') {
+  if (channel.provider === 'openai-codex' || channel.provider === 'github-copilot' || channel.provider === 'google-antigravity') {
     const fallbackTitle = createFallbackTitle(userMessage)
     console.log('[标题生成] OAuth 订阅渠道使用本地标题:', fallbackTitle)
     return fallbackTitle

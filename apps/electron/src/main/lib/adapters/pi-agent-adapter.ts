@@ -13,6 +13,7 @@ import { basename, dirname, isAbsolute, join, relative, resolve } from 'node:pat
 import type {
   AgentThinkingLevel,
   AgentProviderAdapter,
+  AntigravityOAuthCredentials,
   CodexOAuthCredentials,
   GithubCopilotOAuthCredentials,
   XaiOAuthCredentials,
@@ -183,6 +184,10 @@ export interface PiAgentQueryOptions extends AgentQueryInput {
   xaiOAuthCredentials?: XaiOAuthCredentials
   /** Pi 运行中刷新 xAI OAuth 后，将新凭据回写到 Locus 渠道存储。 */
   onXaiOAuthCredentialsRefreshed?: (credentials: XaiOAuthCredentials) => void | Promise<void>
+  /** Antigravity (Google 订阅) OAuth 凭据与 projectId，供自定义 v1internal 适配器使用。 */
+  antigravityOAuthCredentials?: AntigravityOAuthCredentials
+  /** Antigravity 运行中刷新凭据后，将新凭据回写到 Locus 渠道存储。 */
+  onAntigravityOAuthCredentialsRefreshed?: (credentials: AntigravityOAuthCredentials) => void | Promise<void>
   /** 会话级 OpenAI（Codex OAuth / Responses API）思考深度。 */
   openAIThinkingLevel?: AgentThinkingLevel
 }

@@ -38,6 +38,17 @@ import type { Api, KnownProvider, Model } from '@earendil-works/pi-ai/compat'
 import type { PiAgentQueryOptions } from './pi-agent-adapter'
 import { rememberXaiOAuthCredentials, refreshXaiOAuthCredentialsSerial } from '../xai-oauth-credentials'
 import { supportsPiDeveloperRole } from './pi-provider-compat'
+import { PROVIDER_DEFAULT_URLS, type AntigravityOAuthCredentials } from '@proma/shared'
+import { refreshAntigravityAccessToken } from '../antigravity-api'
+import {
+  ANTIGRAVITY_CHANNEL_HEADER,
+  ANTIGRAVITY_PI_API,
+  ANTIGRAVITY_PROJECT_HEADER,
+  clearAntigravityRuntimeCredentials,
+  registerAntigravityApiProvider,
+  setAntigravityRuntimeCredentials,
+} from './pi-antigravity-api'
+import { getEffectiveProxyUrl } from '../proxy-settings-service'
 
 type PiSdk = typeof import('@earendil-works/pi-coding-agent')
 type PiAiCompat = typeof import('@earendil-works/pi-ai/compat')
@@ -506,6 +517,9 @@ function normalizePiApi(provider: ProviderType): Api {
       return 'openai-responses'
     case 'google':
       return 'google-generative-ai'
+    // Antigravity 走自定义 v1internal 适配器；api 字符串经 registerApiProvider 分发。
+    case 'google-antigravity':
+      return ANTIGRAVITY_PI_API
     default:
       return 'anthropic-messages'
   }
@@ -612,6 +626,10 @@ async function findPiCatalogModel(provider: ProviderType, modelId: string): Prom
   if (provider === 'github-copilot') {
     return findCatalogModelById(await getGithubCopilotCatalogModels(), modelId)
   }
+  // Antigravity 模型目录来自 fetchAvailableModels（渠道存储），不走 Pi catalog。
+  if (provider === 'google-antigravity') {
+    return undefined
+  }
 
   const preferredProviders = candidatePiProviders(provider)
   const { getProviders } = await loadPiAiCompat()
@@ -661,6 +679,11 @@ export async function resolvePiImageInputCapability(
   if (!resolvedModelId) return 'unknown'
   // 实验变体尚未进入 Pi catalog，不能因目录缺失退回 unknown。
   if (supportsPiNativeImageInput(resolvedModelId)) return 'supported'
+  // Antigravity 的 Gemini / Claude 系模型均支持原生图片输入。
+  if (provider === 'google-antigravity') {
+    const normalizedId = resolvedModelId.toLowerCase()
+    return normalizedId.includes('gemini') || normalizedId.includes('claude') ? 'supported' : 'unknown'
+  }
   const catalogModel = await findPiCatalogModel(provider, resolvedModelId)
   if (!catalogModel) return 'unknown'
   return catalogModel.input.includes('image') ? 'supported' : 'unsupported'
@@ -681,6 +704,13 @@ export async function resolvePiVisionRelayRoute(
   // DeepSeek Flash 的实验视觉模型尚未进入 Pi catalog；其渠道协议无需 catalog 分流。
   if (supportsPiNativeImageInput(resolvedModelId)) {
     return { adapterProvider: provider }
+  }
+  // Antigravity 的 Gemini / Claude 系模型原生支持图片输入，渠道协议直接透传。
+  if (provider === 'google-antigravity') {
+    const normalizedId = resolvedModelId.toLowerCase()
+    return normalizedId.includes('gemini') || normalizedId.includes('claude')
+      ? { adapterProvider: provider }
+      : undefined
   }
 
   const catalogModel = await findPiCatalogModel(provider, resolvedModelId)
@@ -991,6 +1021,104 @@ export async function getGithubCopilotCatalogModels(): Promise<PiCatalogModel[]>
 }
 
 /**
+ * Antigravity 模型默认规格。
+ *
+ * 渠道模型目录来自 fetchAvailableModels（仅 id/name），Pi 无内置 catalog；
+ * 这里按模型族给保守已验证默认值，未知 ID 回落通用默认。
+ */
+export function resolveAntigravityModelDefaults(modelId: string | undefined): PiModelDefaults {
+  const id = stripLegacyAgentSdkContextSuffix(modelId)?.trim().toLowerCase() ?? ''
+  const isGemini = id.includes('gemini')
+  const isGemini3OrLater = /gemini-[3-9]/.test(id)
+  const isClaude = id.includes('claude')
+  const contextWindow = isGemini ? 1_000_000 : DEFAULT_CONTEXT_WINDOW
+  const maxTokens = isGemini3OrLater ? 65_536 : DEFAULT_MAX_TOKENS
+  const thinkingLevelMap = isGemini3OrLater
+    ? { minimal: null, low: 'LOW', medium: 'MEDIUM', high: 'HIGH' }
+    : undefined
+  return {
+    api: ANTIGRAVITY_PI_API,
+    reasoning: true,
+    ...(thinkingLevelMap ? { thinkingLevelMap } : {}),
+    input: ['text', 'image'],
+    cost: { ...ZERO_MODEL_COST },
+    contextWindow,
+    maxTokens,
+  }
+}
+
+/**
+ * 为 Antigravity (Google 订阅) OAuth 渠道构建 Pi 模型。
+ *
+ * - 先幂等注册自定义 `google-antigravity` API 适配器（registerApiProvider）；
+ * - provider 以 access token 为 apiKey、约定头携带 projectId 与 channelId，
+ *   适配器由此组装 v1internal 信封并在 401 时按 channelId 串行刷新；
+ * - baseUrl 仅为 Pi 的模型定义必填项占位，适配器按端点健康度自选。 */
+export async function buildAntigravityModel(sdk: PiSdk, input: PiAgentQueryOptions) {
+  const credentials = input.antigravityOAuthCredentials
+  if (!credentials?.access || !credentials.refresh) {
+    throw new Error('Antigravity OAuth 凭据缺失，请重新登录')
+  }
+  if (!credentials.projectId) {
+    throw new Error('Antigravity 项目信息缺失，请重新登录该渠道')
+  }
+  if (!input.channelId) {
+    throw new Error('Antigravity 渠道标识缺失，无法注册运行时凭据')
+  }
+
+  registerAntigravityApiProvider()
+  setAntigravityRuntimeCredentials(input.channelId, {
+    credentials,
+    refresh: async (current) => {
+      const proxyUrl = await getEffectiveProxyUrl()
+      const token = await refreshAntigravityAccessToken(current.refresh, { proxyUrl })
+      const next: AntigravityOAuthCredentials = {
+        ...current,
+        access: token.access_token,
+        refresh: token.refresh_token ?? current.refresh,
+        expires: Date.now() + token.expires_in * 1000,
+      }
+      await input.onAntigravityOAuthCredentialsRefreshed?.(next)
+      return next
+    },
+  })
+
+  const modelRuntime = await sdk.ModelRuntime.create({ allowModelNetwork: false })
+  const resolvedModelId = stripLegacyAgentSdkContextSuffix(input.model) ?? 'gemini-3-pro-high'
+  const defaults = resolveAntigravityModelDefaults(resolvedModelId)
+  const providerName = `proma-google-antigravity-${input.sessionId}`
+  const baseUrl = PROVIDER_DEFAULT_URLS['google-antigravity']
+  modelRuntime.registerProvider(providerName, {
+    name: input.channelName ?? providerName,
+    apiKey: credentials.access,
+    headers: {
+      [ANTIGRAVITY_PROJECT_HEADER]: credentials.projectId,
+      [ANTIGRAVITY_CHANNEL_HEADER]: input.channelId,
+    },
+    api: ANTIGRAVITY_PI_API,
+    baseUrl,
+    models: [{
+      id: resolvedModelId,
+      name: resolvedModelId,
+      api: ANTIGRAVITY_PI_API,
+      baseUrl,
+      reasoning: defaults.reasoning,
+      ...(defaults.thinkingLevelMap ? { thinkingLevelMap: defaults.thinkingLevelMap } : {}),
+      input: defaults.input,
+      cost: defaults.cost,
+      contextWindow: defaults.contextWindow,
+      maxTokens: defaults.maxTokens,
+    }],
+  })
+  const model = modelRuntime.getModel(providerName, resolvedModelId)
+  if (!model) {
+    clearAntigravityRuntimeCredentials(input.channelId)
+    throw new Error(`Pi model registration failed: ${resolvedModelId}`)
+  }
+  return { modelRuntime, model }
+}
+
+/**
  * GitHub Copilot 的模型可见性由订阅套餐、组织策略和已启用模型决定。
  * 因此必须用携带凭据的 ModelRuntime 读取过滤后的目录，不能退回全量 catalog。
  */
@@ -1039,6 +1167,9 @@ export async function buildModel(sdk: PiSdk, input: PiAgentQueryOptions) {
   }
   if (input.provider === 'github-copilot') {
     return buildGithubCopilotModel(sdk, input)
+  }
+  if (input.provider === 'google-antigravity') {
+    return buildAntigravityModel(sdk, input)
   }
   const providerName = `proma-${input.provider}-${input.sessionId}`
   const resolvedApiKey = resolvePiApiKey(input.provider, input.apiKey)

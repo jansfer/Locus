@@ -20,7 +20,7 @@ import { homedir } from 'node:os'
 import { join, dirname } from 'node:path'
 import type { ToolDefinition } from '@earendil-works/pi-coding-agent'
 import { app } from 'electron'
-import type { AgentSendInput, AgentMessage, AgentGenerateTitleInput, AgentProviderAdapter, AgentSessionMeta, AgentActiveSessionSnapshot, CodexOAuthCredentials, GithubCopilotOAuthCredentials, XaiOAuthCredentials, TypedError, SDKMessage, SDKAssistantMessage, AgentStreamPayload, AgentAssistantDeltaPayload, RewindSessionResult, SkillActivation } from '@proma/shared'
+import type { AgentSendInput, AgentMessage, AgentGenerateTitleInput, AgentProviderAdapter, AgentSessionMeta, AgentActiveSessionSnapshot, AntigravityOAuthCredentials, CodexOAuthCredentials, GithubCopilotOAuthCredentials, XaiOAuthCredentials, TypedError, SDKMessage, SDKAssistantMessage, AgentStreamPayload, AgentAssistantDeltaPayload, RewindSessionResult, SkillActivation } from '@proma/shared'
 import {
   PROMA_DEFAULT_PERMISSION_MODE,
   PROMA_PERMISSION_MODE_CONFIG,
@@ -46,7 +46,7 @@ import { getActiveRunRejectionMessage, shouldPersistInitialUserMessage } from '.
 import { isSessionNotFoundError } from './error-patterns'
 import { AgentEventBus } from './agent-event-bus'
 import { isStaleActiveQueueError } from './agent-queue-routing'
-import { decryptApiKey, getChannelById, listChannels, persistCodexOAuthCredentials, persistGithubCopilotOAuthCredentials, persistXaiOAuthCredentials, resolveChannelRuntimeApiKey, resolveCodexOAuthCredentials, resolveGithubCopilotOAuthCredentials, resolveXaiOAuthCredentials } from './channel-manager'
+import { decryptApiKey, getChannelById, listChannels, persistAntigravityOAuthCredentials, persistCodexOAuthCredentials, persistGithubCopilotOAuthCredentials, persistXaiOAuthCredentials, resolveAntigravityOAuthCredentials, resolveChannelRuntimeApiKey, resolveCodexOAuthCredentials, resolveGithubCopilotOAuthCredentials, resolveXaiOAuthCredentials } from './channel-manager'
 import { getAdapter, fetchTitle } from '@proma/core'
 import pkg from '../../../package.json' with { type: 'json' }
 import { getFetchFn } from './proxy-fetch'
@@ -882,6 +882,7 @@ export class AgentOrchestrator {
     let codexOAuthCredentials: CodexOAuthCredentials | undefined
     let githubCopilotOAuthCredentials: GithubCopilotOAuthCredentials | undefined
     let xaiOAuthCredentials: XaiOAuthCredentials | undefined
+    let antigravityOAuthCredentials: AntigravityOAuthCredentials | undefined
     try {
       // 订阅 OAuth 渠道必须保留完整凭据给 Pi runtime，才能在执行中按真实 expires
       // 自动刷新；其余渠道只需解密 API Key。
@@ -894,21 +895,27 @@ export class AgentOrchestrator {
       } else if (channel.provider === 'xai') {
         xaiOAuthCredentials = await resolveXaiOAuthCredentials(channelId)
         apiKey = xaiOAuthCredentials.access
+      } else if (channel.provider === 'google-antigravity') {
+        antigravityOAuthCredentials = await resolveAntigravityOAuthCredentials(channelId)
+        apiKey = antigravityOAuthCredentials.access
       } else {
         apiKey = decryptApiKey(channelId)
       }
     } catch (err) {
-      if (channel.provider === 'openai-codex' || channel.provider === 'github-copilot' || channel.provider === 'xai') {
+      if (channel.provider === 'openai-codex' || channel.provider === 'github-copilot' || channel.provider === 'xai' || channel.provider === 'google-antigravity') {
         const isXai = channel.provider === 'xai'
         const isGithubCopilot = channel.provider === 'github-copilot'
+        const isAntigravity = channel.provider === 'google-antigravity'
         reportPreflightError({
           code: 'expired_oauth_token',
-          title: isXai ? 'xAI 登录已失效' : isGithubCopilot ? 'GitHub Copilot 登录已失效' : 'ChatGPT 登录已失效',
-          message: isXai
-            ? '无法刷新 xAI 登录凭据，登录可能已过期或被撤销。请在设置中重新登录 xAI。'
-            : isGithubCopilot
-              ? '无法刷新 GitHub Copilot 登录凭据，登录可能已过期、被撤销或不再拥有 Copilot 订阅。请在设置中重新登录。'
-              : '无法刷新 ChatGPT 登录凭据，登录可能已过期或被撤销。请在设置中重新登录 ChatGPT。',
+          title: isAntigravity ? 'Antigravity 登录已失效' : isXai ? 'xAI 登录已失效' : isGithubCopilot ? 'GitHub Copilot 登录已失效' : 'ChatGPT 登录已失效',
+          message: isAntigravity
+            ? '无法刷新 Antigravity 登录凭据，登录可能已过期或被撤销。请在设置中重新登录 Antigravity。'
+            : isXai
+              ? '无法刷新 xAI 登录凭据，登录可能已过期或被撤销。请在设置中重新登录 xAI。'
+              : isGithubCopilot
+                ? '无法刷新 GitHub Copilot 登录凭据，登录可能已过期、被撤销或不再拥有 Copilot 订阅。请在设置中重新登录。'
+                : '无法刷新 ChatGPT 登录凭据，登录可能已过期或被撤销。请在设置中重新登录 ChatGPT。',
           actions: [
             { key: 's', label: '打开渠道设置', action: 'open_channel_settings' },
           ],
@@ -1689,6 +1696,12 @@ export class AgentOrchestrator {
           xaiOAuthCredentials,
           onXaiOAuthCredentialsRefreshed: (credentials: XaiOAuthCredentials) => {
             persistXaiOAuthCredentials(channelId, credentials)
+          },
+        }),
+        ...(antigravityOAuthCredentials && {
+          antigravityOAuthCredentials,
+          onAntigravityOAuthCredentialsRefreshed: (credentials: AntigravityOAuthCredentials) => {
+            persistAntigravityOAuthCredentials(channelId, credentials)
           },
         }),
         ...((channel.provider === 'openai-codex' || channel.provider === 'xai' || channel.provider === 'openai-responses' || channel.provider === 'openai' || channel.provider === 'custom')
