@@ -33,6 +33,13 @@ export type ProviderType =
   | 'github-copilot'
   | 'xai'
   /**
+   * Antigravity 订阅 (Google)。
+   *
+   * 通过 Google OAuth 登录 Antigravity 账号，经 Google Cloud Code v1internal
+   * 协议调用 Gemini / Claude 系列模型；凭据与请求封装由 Locus 自行实现。
+   */
+  | 'google-antigravity'
+  /**
    * OpenAI Chat Completions 的自定义请求地址。
    *
    * Chat 会原样请求 `baseUrl`；`openai` 则将其视为协议根地址并自动补
@@ -69,6 +76,9 @@ export const PROVIDER_DEFAULT_URLS: Record<ProviderType, string> = {
   'openai-codex': '',
   'github-copilot': '',
   xai: '',
+  // Antigravity 的 v1internal 端点由适配器内部按 daily → sandbox → prod 选择，
+  // baseUrl 仅作为渠道展示与连接测试的协议根地址。
+  'google-antigravity': 'https://daily-cloudcode-pa.googleapis.com',
   custom: '',
 }
 
@@ -98,6 +108,7 @@ export const PROVIDER_LABELS: Record<ProviderType, string> = {
   'openai-codex': 'ChatGPT 订阅 (Codex)',
   'github-copilot': 'GitHub Copilot 订阅',
   xai: 'xAI 订阅 (Grok)',
+  'google-antigravity': 'Antigravity 订阅 (Google)',
   custom: 'OpenAI Chat Completions（自定义地址）',
 }
 
@@ -311,6 +322,70 @@ export function parseXaiCredentials(secret: string): XaiOAuthCredentials | null 
 }
 
 export function isXaiCredentialExpired(credentials: XaiOAuthCredentials, skewMs = 60_000): boolean {
+  return Date.now() >= credentials.expires - skewMs
+}
+
+/**
+ * Antigravity 订阅 (Google) OAuth 凭据。
+ *
+ * 与 Codex / xAI 一样序列化后放入 Channel.apiKey，由 Electron safeStorage 加密。
+ * Antigravity 使用 Google OAuth（授权码流，offline 换 refresh_token），access token
+ * 作为 bearer token 调用 Cloud Code v1internal 端点；projectId 在登录时通过
+ * loadCodeAssist 解析，后续请求信封必须携带。
+ */
+export interface AntigravityOAuthCredentials {
+  /** Google OAuth access token（作为 bearer token 传给 v1internal 端点） */
+  access: string
+  /** Google refresh token（过期时用于换取新 access token） */
+  refresh: string
+  /** access token 过期时间戳（Unix 毫秒） */
+  expires: number
+  /** Antigravity 的 cloudaicompanionProject，loadCodeAssist 登录时解析 */
+  projectId?: string
+  /** 登录账号邮箱 / 标识，用于展示登录身份 */
+  accountId?: string
+}
+
+/** 将 Antigravity OAuth 凭据序列化为存入 apiKey 字段的 JSON 字符串。 */
+export function serializeAntigravityCredentials(credentials: AntigravityOAuthCredentials): string {
+  return JSON.stringify({
+    access: credentials.access,
+    refresh: credentials.refresh,
+    expires: credentials.expires,
+    ...(credentials.projectId ? { projectId: credentials.projectId } : {}),
+    ...(credentials.accountId ? { accountId: credentials.accountId } : {}),
+  })
+}
+
+/** 从 apiKey 字段解析 Antigravity OAuth 凭据；非合法 JSON 或缺少必需字段时返回 null。 */
+export function parseAntigravityCredentials(secret: string): AntigravityOAuthCredentials | null {
+  const trimmed = secret.trim()
+  if (!trimmed) return null
+  try {
+    const parsed = JSON.parse(trimmed) as Partial<AntigravityOAuthCredentials>
+    if (typeof parsed.access === 'string' && parsed.access
+      && typeof parsed.refresh === 'string' && parsed.refresh
+      && typeof parsed.expires === 'number') {
+      return {
+        access: parsed.access,
+        refresh: parsed.refresh,
+        expires: parsed.expires,
+        ...(typeof parsed.projectId === 'string' && parsed.projectId ? { projectId: parsed.projectId } : {}),
+        ...(typeof parsed.accountId === 'string' && parsed.accountId ? { accountId: parsed.accountId } : {}),
+      }
+    }
+  } catch {
+    return null
+  }
+  return null
+}
+
+/**
+ * 判断 Antigravity OAuth 凭据是否已过期或即将过期。
+ *
+ * 与 Codex / xAI 相同预留 60s 时钟偏移余量，确保 access token 在真正过期前就触发刷新。
+ */
+export function isAntigravityCredentialExpired(credentials: AntigravityOAuthCredentials, skewMs = 60_000): boolean {
   return Date.now() >= credentials.expires - skewMs
 }
 
@@ -546,6 +621,16 @@ export const CHANNEL_IPC_CHANNELS = {
   XAI_OAUTH_CANCEL: 'channel:xai-oauth-cancel',
   /** xAI device-code 已就绪（主进程推送给发起登录的渲染窗口） */
   XAI_OAUTH_DEVICE_CODE: 'channel:xai-oauth-device-code',
+  /** 发起 Antigravity（Google 订阅）OAuth 浏览器登录 */
+  ANTIGRAVITY_OAUTH_LOGIN: 'channel:antigravity-oauth-login',
+  /** 取消进行中的 Antigravity OAuth 登录流程 */
+  ANTIGRAVITY_OAUTH_CANCEL: 'channel:antigravity-oauth-cancel',
+  /** Antigravity 浏览器登录授权页地址（主进程推送给发起登录的渲染窗口） */
+  ANTIGRAVITY_OAUTH_AUTH_URL: 'channel:antigravity-oauth-auth-url',
+  /** Antigravity 浏览器登录等待手动粘贴回调地址（主进程推送给发起登录的渲染窗口） */
+  ANTIGRAVITY_OAUTH_MANUAL_INPUT: 'channel:antigravity-oauth-manual-input',
+  /** 渲染层提交手动粘贴的回调地址 / 授权码 */
+  ANTIGRAVITY_OAUTH_SUBMIT_CALLBACK: 'channel:antigravity-oauth-submit-callback',
 } as const
 
 /**
@@ -624,4 +709,31 @@ export interface XaiOAuthDeviceCode {
   verificationUri: string
   /** 可扫码交给另一台可联网设备完成授权。 */
   qrCodeData?: string
+}
+
+/** Antigravity（Google 订阅）OAuth 登录结果。 */
+export interface AntigravityOAuthLoginResult {
+  success: boolean
+  /** 序列化后的 OAuth 凭据 JSON；由 channel-manager 加密写入 Channel.apiKey。 */
+  credentials?: string
+  /** 登录账号标识（邮箱），用于 UI 展示 */
+  accountId?: string
+  /** 失败或取消时的用户可读原因 */
+  message?: string
+}
+
+/** Antigravity 浏览器登录的授权页地址（主进程推送给发起登录的渲染窗口）。 */
+export interface AntigravityOAuthAuthUrl {
+  url: string
+}
+
+/**
+ * Antigravity 浏览器登录等待手动输入回调地址。
+ *
+ * 与 Codex 相同：本地回调服务可能因代理或防火墙不可达，用户可把浏览器
+ * 地址栏中的完整回调地址粘贴进来完成登录。
+ */
+export interface AntigravityOAuthManualInputRequest {
+  message: string
+  placeholder: string
 }

@@ -29,6 +29,10 @@ export function inferReasoningTransport(provider: ProviderType | undefined): Rea
       return 'openai-responses'
     case 'google':
       return 'other'
+    // Antigravity 的自定义 v1internal 协议不在 OpenAI / Anthropic profile 管辖内；
+    // Gemini thinking 档位由 Pi google-shared 映射，不生成 OpenAI 系 effort 参数。
+    case 'google-antigravity':
+      return 'other'
     default:
       return 'anthropic-messages'
   }
