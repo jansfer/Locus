@@ -7,6 +7,8 @@ import {
   registerAntigravityApiProvider,
 } from './pi-antigravity-api'
 
+await registerAntigravityApiProvider()
+
 type RequestModel = Parameters<typeof buildAntigravityRequest>[0]['model']
 
 function fakeModel(id: string, reasoning = true): RequestModel {
@@ -191,10 +193,15 @@ describe('Antigravity SSE 解析', () => {
 })
 
 describe('Antigravity API 适配器注册', () => {
-  test('Given 重复注册 When 调用两次 Then 不抛错', () => {
-    expect(() => {
-      registerAntigravityApiProvider()
-      registerAntigravityApiProvider()
-    }).not.toThrow()
+  test('Given 重复注册 When 调用两次 Then 不抛错', async () => {
+    await expect(registerAntigravityApiProvider()).resolves.toBeUndefined()
+    await expect(registerAntigravityApiProvider()).resolves.toBeUndefined()
   })
+})
+
+test('Given response 包装 SSE When 解析 Then 解包文本和结束标志', () => {
+  const { chunks } = parseAntigravitySseText('data: ' + JSON.stringify({ response: { candidates: [{ content: { parts: [{ text: 'hello' }] }, finishReason: 'STOP' }], usageMetadata: { totalTokenCount: 9 } } }))
+  expect(chunks[0]?.candidates?.[0]?.content?.parts?.[0]?.text).toBe('hello')
+  expect(chunks[0]?.candidates?.[0]?.finishReason).toBe('STOP')
+  expect(chunks[0]?.usageMetadata?.totalTokenCount).toBe(9)
 })

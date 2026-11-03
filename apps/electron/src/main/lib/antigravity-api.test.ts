@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test'
+import { describe, expect, spyOn, test } from 'bun:test'
 import {
   ANTIGRAVITY_OAUTH_CLIENT_ID,
   ANTIGRAVITY_V1_INTERNAL_ENDPOINTS,
@@ -7,6 +7,8 @@ import {
   buildAntigravityRequestId,
   buildV1InternalEnvelope,
   mapAntigravityAvailableModels,
+  fetchAntigravityAvailableModels,
+  exchangeAntigravityCode,
   parseAntigravityCallbackUrl,
   shouldTryNextAntigravityEndpoint,
 } from './antigravity-api'
@@ -136,4 +138,31 @@ describe('Antigravity 模型目录映射', () => {
       { id: 'claude-sonnet-4-5', name: 'claude-sonnet-4-5', supportsImages: false },
     ])
   })
+})
+
+test('Given 上游 models 包装响应 When 获取目录 Then 解包后保留模型', async () => {
+  const original = globalThis.fetch
+  globalThis.fetch = (async () => Response.json({ models: { gemini: { displayName: 'Gemini' } } })) as unknown as typeof fetch
+  try {
+    expect(mapAntigravityAvailableModels(await fetchAntigravityAvailableModels('test'))).toEqual([{ id: 'gemini', name: 'Gemini', supportsImages: false }])
+  } finally { globalThis.fetch = original }
+})
+
+test('Given 调用方取消信号 When 交换请求超时 Then 超时仍然生效', async () => {
+  const originalFetch = globalThis.fetch
+  const deadline = new AbortController()
+  const timeout = spyOn(AbortSignal, 'timeout').mockImplementation(() => deadline.signal)
+  globalThis.fetch = (async (_input: unknown, init?: RequestInit) => new Promise<Response>((_resolve, reject) => {
+    init?.signal?.addEventListener('abort', () => reject(init.signal?.reason), { once: true })
+    queueMicrotask(() => deadline.abort(new Error('test timeout')))
+  })) as unknown as typeof fetch
+  const caller = new AbortController()
+  try {
+    await expect(exchangeAntigravityCode('test', 'http://localhost/callback', { signal: caller.signal })).rejects.toThrow()
+    expect(timeout).toHaveBeenCalledWith(30_000)
+    expect(caller.signal.aborted).toBe(false)
+  } finally {
+    timeout.mockRestore()
+    globalThis.fetch = originalFetch
+  }
 })

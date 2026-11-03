@@ -236,6 +236,10 @@ export class PiUtilityAdapter {
       await pending.input.onGithubCopilotOAuthCredentialsRefreshed?.(payload?.credentials as never)
       return { accepted: true }
     }
+    if (request.method === AGENT_RUNTIME_METHODS.CAPABILITY_ANTIGRAVITY_OAUTH_REFRESHED) {
+      await pending.input.onAntigravityOAuthCredentialsRefreshed?.(payload?.credentials as never)
+      return { accepted: true }
+    }
     if (request.method === AGENT_RUNTIME_METHODS.CAPABILITY_XAI_OAUTH_REFRESHED) {
       await pending.input.onXaiOAuthCredentialsRefreshed?.(payload?.credentials as never)
       return { accepted: true }
@@ -316,7 +320,7 @@ export class PiUtilityAdapter {
   }
 }
 
-function serializeQueryInput(input: PiAgentQueryOptions): Record<string, unknown> {
+export function serializeQueryInput(input: PiAgentQueryOptions): Record<string, unknown> {
   const {
     abortSignal: _abortSignal,
     canUseTool: _canUseTool,
@@ -330,6 +334,7 @@ function serializeQueryInput(input: PiAgentQueryOptions): Record<string, unknown
     onCodexOAuthCredentialsRefreshed: _onCodexOAuthCredentialsRefreshed,
     onGithubCopilotOAuthCredentialsRefreshed: _onGithubCopilotOAuthCredentialsRefreshed,
     onXaiOAuthCredentialsRefreshed: _onXaiOAuthCredentialsRefreshed,
+    onAntigravityOAuthCredentialsRefreshed: _onAntigravityOAuthCredentialsRefreshed,
     ...serializable
   } = input
   const serializedCustomTools = (customTools ?? []).map((tool) => {

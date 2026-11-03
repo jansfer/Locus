@@ -85,7 +85,7 @@ function tryListen(host: string): Promise<Server | null> {
   })
 }
 
-const OAUTH_SUCCESS_HTML = '<!doctype html><meta charset="utf-8"><title>Locus</title><body style="font-family:sans-serif;text-align:center;padding-top:48px"><h2>登录成功</h2><p>Antigravity 账号已授权给 Locus，可以关闭此页面。</p></body>'
+const OAUTH_SUCCESS_HTML = '<!doctype html><meta charset="utf-8"><title>Locus</title><body style="font-family:sans-serif;text-align:center;padding-top:48px"><h2>已收到授权回调</h2><p>请返回 Locus 查看登录结果，可以关闭此页面。</p></body>'
 const OAUTH_FAILURE_HTML = '<!doctype html><meta charset="utf-8"><title>Locus</title><body style="font-family:sans-serif;text-align:center;padding-top:48px"><h2>登录未完成</h2><p>Locus 未能接收授权结果，请返回 Locus 重试。</p></body>'
 
 /**
@@ -94,130 +94,82 @@ const OAUTH_FAILURE_HTML = '<!doctype html><meta charset="utf-8"><title>Locus</t
  * 成功返回完整凭据（含 loadCodeAssist 解析出的 projectId）；用户取消或失败则抛错。
  */
 export async function loginAntigravityOAuth(callbacks?: AntigravityLoginCallbacks): Promise<AntigravityLoginOutcome> {
-  if (activeLogin) {
-    activeLogin.cancel()
-  }
-
+  activeLogin?.cancel()
   const state = randomUUID()
   const abort = new AbortController()
   let server: Server | undefined
-  let settled = false
-
-  const cleanup = (): void => {
-    server?.close()
-    server = undefined
-    if (activeLogin?.abort === abort) {
-      activeLogin = undefined
-    }
-  }
-
-  const fail = (error: Error): Error => {
-    if (!settled) {
-      settled = true
-      cleanup()
-    }
-    return error
-  }
-
-  const finish = (): void => {
-    if (!settled) {
-      settled = true
-      cleanup()
-    }
-  }
-
-  // 等待回调（本地服务或手动粘贴）。拒绝后必须不再 resolve，避免悬挂 promise。
-  const waitForCode = new Promise<{ code: string }>((_resolve, reject) => {
-    abort.signal.addEventListener('abort', () => reject(new Error('登录已取消')), { once: true })
-
-    activeLogin = {
-      abort,
-      cancel: (): void => abort.abort(),
-      submitCallbackInput: (input: string): boolean => {
-        if (settled || abort.signal.aborted) return false
-        const parsed = parseAntigravityCallbackUrl(input, state)
-        if (!parsed) return false
-        if ('error' in parsed) {
-          reject(new Error(parsed.error))
-          return true
-        }
-        _resolve(parsed)
-        return true
-      },
-    }
+  let codeReceived = false
+  let acceptCode: (value: { code: string }) => void = () => {}
+  let rejectCode: (error: Error) => void = () => {}
+  const waitForCode = new Promise<{ code: string }>((resolve, reject) => {
+    acceptCode = resolve
+    rejectCode = reject
   })
-
+  // 初始化期间取消也可能先于 await，提前处理 rejection。
+  void waitForCode.catch(() => undefined)
+  abort.signal.addEventListener('abort', () => rejectCode(abort.signal.reason), { once: true })
+  const submit = (input: string): boolean => {
+    if (codeReceived || abort.signal.aborted) return false
+    const parsed = parseAntigravityCallbackUrl(input, state)
+    if (!parsed) return false
+    if ('error' in parsed) {
+      abort.abort(new Error(parsed.error))
+    } else {
+      codeReceived = true
+      acceptCode(parsed)
+    }
+    return true
+  }
+  activeLogin = {
+    abort,
+    cancel: () => abort.abort(new Error('登录已取消')),
+    submitCallbackInput: submit,
+  }
+  // 覆盖授权等待及后续收尾；各网络请求另设独立超时。
+  const timer = setTimeout(() => abort.abort(new Error('登录超时（10 分钟未完成授权）')), 10 * 60_000)
   try {
     const loopback = await startLoopbackServer()
     server = loopback.server
+    abort.signal.throwIfAborted()
+    // 必须先监听，再通知 UI / 打开浏览器；无关请求不能耗尽监听器。
+    server.on('request', (req, res) => {
+      const url = new URL(req.url ?? '/', loopback.redirectUri)
+      if (req.method !== 'GET' || url.pathname !== '/oauth-callback') {
+        res.writeHead(404).end()
+        return
+      }
+      const parsed = parseAntigravityCallbackUrl(url.toString(), state)
+      if (url.searchParams.get('state') !== state || !parsed) {
+        res.writeHead(400, { 'Content-Type': 'text/html; charset=utf-8' }).end(OAUTH_FAILURE_HTML)
+        return
+      }
+      const accepted = submit(url.toString())
+      res.writeHead(accepted ? 200 : 409, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' })
+      res.end(accepted && 'code' in parsed ? OAUTH_SUCCESS_HTML : OAUTH_FAILURE_HTML)
+    })
+    server.on('error', (error) => abort.abort(error))
+    const proxyUrl = await getEffectiveProxyUrl()
+    abort.signal.throwIfAborted()
     const authUrl = buildAntigravityAuthUrl(loopback.redirectUri, state)
     callbacks?.onAuthUrl?.(authUrl)
-    callbacks?.onProgress?.('正在打开浏览器进行 Google 授权…')
-    await shell.openExternal(authUrl).catch((error) => {
-      console.error('[Antigravity OAuth] 打开浏览器失败:', error)
-      callbacks?.onProgress?.('无法自动打开浏览器，请手动复制授权链接到浏览器打开。')
-    })
-
-    // 回调服务：解析第一条带 code 的 GET 请求；state 校验交由 parseAntigravityCallbackUrl。
-    const serverCodePromise = new Promise<{ code: string }>((resolve, reject) => {
-      server!.once('request', (req, res) => {
-        const requestUrl = new URL(req.url ?? '/', `http://${req.headers.host ?? 'localhost'}`)
-        if (!requestUrl.pathname.endsWith('/oauth-callback')) {
-          res.writeHead(404).end()
-          return
-        }
-        const respond = (ok: boolean): void => {
-          res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' })
-          res.end(ok ? OAUTH_SUCCESS_HTML : OAUTH_FAILURE_HTML)
-        }
-        const parsed = parseAntigravityCallbackUrl(requestUrl.toString(), state)
-        if (parsed && 'code' in parsed) {
-          respond(true)
-          resolve(parsed)
-        } else {
-          respond(false)
-          reject(new Error(parsed && 'error' in parsed ? parsed.error : '回调请求缺少授权码'))
-        }
-      })
-      abort.signal.addEventListener('abort', () => reject(new Error('登录已取消')), { once: true })
-    })
-
-    const proxyUrl = await getEffectiveProxyUrl()
-    // 始终提供手动粘贴入口：代理、防火墙或浏览器异常都可能让浏览器无法回连
-    // localhost；渲染层默认折叠该入口，提示文案按是否配置代理微调。
     callbacks?.onManualInputRequest?.({
       message: proxyUrl
-        ? '检测到已配置代理：若浏览器授权后提示「无法访问 localhost」，请把 localhost 加入系统代理直连列表，或把浏览器地址栏中的完整回调地址粘贴到这里。'
-        : '若浏览器授权后未能自动跳回 Locus，可把浏览器地址栏中的完整回调地址粘贴到这里完成登录。',
+        ? '检测到已配置代理：若浏览器无法访问 localhost，请将其加入直连列表，或粘贴完整回调地址。'
+        : '若授权后未能返回 Locus，请粘贴浏览器地址栏中的完整回调地址。',
       placeholder: 'http://localhost:<port>/oauth-callback?state=…&code=…',
     })
-
-    // 任一路径先到先得；手动粘贴与服务回调共用同一 state 校验。
-    // 落选分支的 rejection 需提前标记已处理，避免 abort 后触发 unhandledRejection。
-    const swallowRejection = (promise: Promise<{ code: string }>): void => {
-      promise.catch(() => undefined)
-    }
-    swallowRejection(serverCodePromise)
-    swallowRejection(waitForCode)
-
-    let timeoutTimer: NodeJS.Timeout | undefined
-    const timeoutPromise = new Promise<never>((_, reject) => {
-      // 10 分钟未完成自动超时，避免回调服务长期占用端口。
-      timeoutTimer = setTimeout(() => reject(new Error('登录超时（10 分钟未完成授权）')), 10 * 60_000)
+    callbacks?.onProgress?.('正在打开浏览器进行 Google 授权…')
+    void shell.openExternal(authUrl).catch(() => {
+      callbacks?.onProgress?.('无法自动打开浏览器，请手动打开授权链接。')
     })
-    abort.signal.addEventListener('abort', () => {
-      if (timeoutTimer) clearTimeout(timeoutTimer)
-    }, { once: true })
-
-    try {
-      const received = await Promise.race([serverCodePromise, waitForCode, timeoutPromise])
-      finish()
-      return await completeLogin(received, loopback, abort, callbacks)
-    } finally {
-      if (timeoutTimer) clearTimeout(timeoutTimer)
-    }
-  } catch (error) {
-    throw fail(error instanceof Error ? error : new Error(String(error)))
+    const received = await waitForCode
+    abort.signal.throwIfAborted()
+    return await completeLogin(received, loopback, abort, callbacks, proxyUrl)
+  } finally {
+    clearTimeout(timer)
+    server?.close()
+    if (activeLogin?.abort === abort) activeLogin = undefined
+    abort.abort(new Error('登录已结束'))
   }
 }
 
@@ -227,16 +179,20 @@ async function completeLogin(
   loopback: { redirectUri: string },
   abort: AbortController,
   callbacks?: AntigravityLoginCallbacks,
+  proxyUrl?: string,
 ): Promise<AntigravityLoginOutcome> {
   callbacks?.onProgress?.('已收到授权码，正在换取凭据…')
-  const token = await exchangeAntigravityCode(received.code, loopback.redirectUri, { signal: abort.signal })
+  const token = await exchangeAntigravityCode(received.code, loopback.redirectUri, { signal: abort.signal, proxyUrl })
+  abort.signal.throwIfAborted()
   if (!token.refresh_token) {
     throw new Error('Google 未返回 refresh_token：请先在 Google 账号设置中撤销 Locus / Antigravity 的授权后重试')
   }
 
-  const userInfo: GoogleUserInfo | undefined = await fetchAntigravityUserInfo(token.access_token, { signal: abort.signal })
+  const userInfo: GoogleUserInfo | undefined = await fetchAntigravityUserInfo(token.access_token, { signal: abort.signal, proxyUrl })
+  abort.signal.throwIfAborted()
   callbacks?.onProgress?.('正在解析 Antigravity 项目信息…')
-  const projectId = await resolveAntigravityProjectId(token.access_token, { signal: abort.signal })
+  const projectId = await resolveAntigravityProjectId(token.access_token, { signal: abort.signal, proxyUrl })
+  abort.signal.throwIfAborted()
   if (!projectId) {
     callbacks?.onProgress?.('未能解析 Antigravity 项目信息（账号可能未开通 Antigravity 资格），Agent 运行时可能报错')
   }

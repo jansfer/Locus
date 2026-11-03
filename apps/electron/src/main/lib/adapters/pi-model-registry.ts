@@ -1066,7 +1066,7 @@ export async function buildAntigravityModel(sdk: PiSdk, input: PiAgentQueryOptio
     throw new Error('Antigravity 渠道标识缺失，无法注册运行时凭据')
   }
 
-  registerAntigravityApiProvider()
+  await registerAntigravityApiProvider()
   setAntigravityRuntimeCredentials(input.channelId, {
     credentials,
     refresh: async (current) => {

@@ -9,6 +9,7 @@ const PLAN_QUOTA_PROVIDERS = new Set<ProviderType>([
   'zhipu-coding',
   'zhipu-coding-team',
   'openai-codex',
+  'google-antigravity',
   'github-copilot',
 ])
 

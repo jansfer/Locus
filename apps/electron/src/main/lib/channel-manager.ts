@@ -54,6 +54,7 @@ import {
   refreshAntigravityOAuthCredentialsSerial,
   rememberAntigravityOAuthCredentials,
 } from './antigravity-oauth-credentials'
+import { queryAntigravityPlanQuota } from './antigravity-plan-quota'
 import { parseCodexPlanQuotaResponse } from './codex-plan-quota'
 import { queryGithubCopilotPlanQuota } from './github-copilot-plan-quota'
 import { listCodexModels, listGithubCopilotModels, listXaiModels } from './adapters/pi-model-registry'
@@ -1844,6 +1845,10 @@ export async function getChannelPlanQuota(channelId: string): Promise<ChannelPla
 
   try {
     const proxyUrl = await getEffectiveProxyUrl()
+    if (provider === 'google-antigravity') {
+      const credentials = await resolveAntigravityOAuthCredentials(channelId)
+      return await queryAntigravityPlanQuota(credentials.access, proxyUrl)
+    }
     if (provider === 'github-copilot') {
       return await queryGithubCopilotPlanQuota(apiKey, proxyUrl)
     }

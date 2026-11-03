@@ -45,11 +45,13 @@ export function formatPlanQuotaWindowValue(window: ChannelPlanQuotaWindow, provi
 
 export function getPlanQuotaDisplay(quota: ChannelPlanQuotaResult | null, provider: ProviderType): PlanQuotaDisplay | null {
   const copilot = provider === 'github-copilot'
-  if (!quota) return copilot ? { summary: t('misc.quota.loadingSummary'), title: t('misc.quota.copilotLoadingTitle'), muted: true } : null
+  const antigravity = provider === 'google-antigravity'
+  const showStatus = copilot || antigravity
+  if (!quota) return showStatus ? { summary: t('misc.quota.loadingSummary'), title: t(copilot ? 'misc.quota.copilotLoadingTitle' : 'misc.quota.loadingSummary'), muted: true } : null
   if (!quota.supported || quota.windows.length === 0) {
-    return copilot ? {
+    return showStatus ? {
       summary: quota.supported ? t('misc.quota.unknownSummary') : t('misc.quota.unavailableSummary'),
-      title: quota.message ?? t('misc.quota.copilotNoDataTitle'),
+      title: quota.message ?? t(copilot ? 'misc.quota.copilotNoDataTitle' : 'misc.quota.unknownSummary'),
       muted: true,
     } : null
   }

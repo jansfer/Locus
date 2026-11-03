@@ -20,27 +20,48 @@ import type {
   ToolCall,
   TranscriptContext,
 } from '@earendil-works/pi-ai/compat'
-import { calculateCost, clampThinkingLevel } from '@earendil-works/pi-ai'
-import { registerApiProvider } from '@earendil-works/pi-ai/compat'
-import { AssistantMessageEventStream } from '@earendil-works/pi-ai/utils/event-stream'
-import { buildBaseOptions, thinkingBudgetForLevel } from '@earendil-works/pi-ai/api/simple-options'
-import {
-  convertMessages,
-  convertTools,
-  getDisabledGoogleThinkingConfig,
-  isThinkingPart,
-  mapStopReasonString,
-  resolveGoogleFunctionCallingMode,
-  resolveGoogleThinkingLevel,
-  retainThoughtSignature,
-  supportsGoogleStrictToolSampling,
-  toGoogleThinkingLevel,
-  usesGoogleThinkingLevel,
-} from '@earendil-works/pi-ai/api/google-shared'
-import { getCurrentTools, getInitialSystemMessage } from '@earendil-works/pi-ai/utils/transcript'
-import { getSystemMessageText } from '@earendil-works/pi-ai/utils/text'
-import { sanitizeSurrogates } from '@earendil-works/pi-ai/utils/sanitize-unicode'
-import { formatProviderError, normalizeProviderError } from '@earendil-works/pi-ai/utils/error-body'
+import type { AssistantMessageEventStream as PiAssistantMessageEventStream } from '@earendil-works/pi-ai/utils/event-stream'
+let calculateCost: typeof import('@earendil-works/pi-ai')['calculateCost']
+let clampThinkingLevel: typeof import('@earendil-works/pi-ai')['clampThinkingLevel']
+let registerApiProvider: typeof import('@earendil-works/pi-ai/compat')['registerApiProvider']
+let AssistantMessageEventStream: typeof import('@earendil-works/pi-ai/utils/event-stream')['AssistantMessageEventStream']
+let buildBaseOptions: typeof import('@earendil-works/pi-ai/api/simple-options')['buildBaseOptions']
+let thinkingBudgetForLevel: typeof import('@earendil-works/pi-ai/api/simple-options')['thinkingBudgetForLevel']
+let convertMessages: typeof import('@earendil-works/pi-ai/api/google-shared')['convertMessages']
+let convertTools: typeof import('@earendil-works/pi-ai/api/google-shared')['convertTools']
+let getDisabledGoogleThinkingConfig: typeof import('@earendil-works/pi-ai/api/google-shared')['getDisabledGoogleThinkingConfig']
+let isThinkingPart: typeof import('@earendil-works/pi-ai/api/google-shared')['isThinkingPart']
+let mapStopReasonString: typeof import('@earendil-works/pi-ai/api/google-shared')['mapStopReasonString']
+let resolveGoogleFunctionCallingMode: typeof import('@earendil-works/pi-ai/api/google-shared')['resolveGoogleFunctionCallingMode']
+let resolveGoogleThinkingLevel: typeof import('@earendil-works/pi-ai/api/google-shared')['resolveGoogleThinkingLevel']
+let retainThoughtSignature: typeof import('@earendil-works/pi-ai/api/google-shared')['retainThoughtSignature']
+let supportsGoogleStrictToolSampling: typeof import('@earendil-works/pi-ai/api/google-shared')['supportsGoogleStrictToolSampling']
+let toGoogleThinkingLevel: typeof import('@earendil-works/pi-ai/api/google-shared')['toGoogleThinkingLevel']
+let usesGoogleThinkingLevel: typeof import('@earendil-works/pi-ai/api/google-shared')['usesGoogleThinkingLevel']
+let getCurrentTools: typeof import('@earendil-works/pi-ai/utils/transcript')['getCurrentTools']
+let getInitialSystemMessage: typeof import('@earendil-works/pi-ai/utils/transcript')['getInitialSystemMessage']
+let getSystemMessageText: typeof import('@earendil-works/pi-ai/utils/text')['getSystemMessageText']
+let sanitizeSurrogates: typeof import('@earendil-works/pi-ai/utils/sanitize-unicode')['sanitizeSurrogates']
+let formatProviderError: typeof import('@earendil-works/pi-ai/utils/error-body')['formatProviderError']
+let normalizeProviderError: typeof import('@earendil-works/pi-ai/utils/error-body')['normalizeProviderError']
+
+// 主进程构建为 CJS，Pi 的 ESM 入口必须保留动态 import。
+let runtimeLoad: Promise<void> | undefined
+function loadAntigravityRuntime(): Promise<void> {
+  runtimeLoad ??= (async () => {
+    ;({ calculateCost, clampThinkingLevel } = await import('@earendil-works/pi-ai'))
+    ;({ registerApiProvider } = await import('@earendil-works/pi-ai/compat'))
+    ;({ AssistantMessageEventStream } = await import('@earendil-works/pi-ai/utils/event-stream'))
+    ;({ buildBaseOptions, thinkingBudgetForLevel } = await import('@earendil-works/pi-ai/api/simple-options'))
+    ;({ convertMessages, convertTools, getDisabledGoogleThinkingConfig, isThinkingPart, mapStopReasonString, resolveGoogleFunctionCallingMode, resolveGoogleThinkingLevel, retainThoughtSignature, supportsGoogleStrictToolSampling, toGoogleThinkingLevel, usesGoogleThinkingLevel } = await import('@earendil-works/pi-ai/api/google-shared'))
+    ;({ getCurrentTools, getInitialSystemMessage } = await import('@earendil-works/pi-ai/utils/transcript'))
+    ;({ getSystemMessageText } = await import('@earendil-works/pi-ai/utils/text'))
+    ;({ sanitizeSurrogates } = await import('@earendil-works/pi-ai/utils/sanitize-unicode'))
+    ;({ formatProviderError, normalizeProviderError } = await import('@earendil-works/pi-ai/utils/error-body'))
+  })()
+  return runtimeLoad
+}
+
 import type { AntigravityOAuthCredentials } from '@proma/shared'
 import {
   ANTIGRAVITY_V1_INTERNAL_ENDPOINTS,
@@ -253,7 +274,9 @@ export function parseAntigravitySseText(text: string): ParsedSseResult {
     const payload = line.slice(5).trim()
     if (!payload || payload === '[DONE]') continue
     try {
-      chunks.push(JSON.parse(payload) as GeminiStreamChunk)
+      const parsed = JSON.parse(payload) as GeminiStreamChunk & { response?: GeminiStreamChunk }
+      const chunk = parsed?.response ?? parsed
+      if (chunk && typeof chunk === 'object') chunks.push(chunk)
     } catch {
       // 忽略无法解析的残缺行（网络截断场景由上层整体错误处理兜底）
     }
@@ -298,7 +321,7 @@ export function streamAntigravity(
   model: AntigravityModel,
   context: TranscriptContext,
   options?: AntigravityStreamOptions,
-): AssistantMessageEventStream {
+): PiAssistantMessageEventStream {
   const stream = new AssistantMessageEventStream()
   void (async () => {
     const output = {
@@ -506,7 +529,7 @@ export const streamAntigravitySimple = (
   model: AntigravityModel,
   context: TranscriptContext,
   options?: SimpleStreamOptions,
-): AssistantMessageEventStream => {
+): PiAssistantMessageEventStream => {
   const apiKey = options?.apiKey
   if (!apiKey) {
     throw new Error(`No API key for provider: ${model.provider}`)
@@ -626,7 +649,8 @@ async function requestUpstream(
 let apiProviderRegistered = false
 
 /** 幂等注册自定义 API 适配器；重复调用不会产生副作用。 */
-export function registerAntigravityApiProvider(): void {
+export async function registerAntigravityApiProvider(): Promise<void> {
+  await loadAntigravityRuntime()
   if (apiProviderRegistered) return
   registerApiProvider({
     api: ANTIGRAVITY_PI_API,

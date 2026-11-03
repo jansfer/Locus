@@ -154,6 +154,12 @@ interface AntigravityRequestOptions {
   signal?: AbortSignal
 }
 
+/** 取消信号与请求超时同时生效，避免调用方传 signal 后丢失超时。 */
+function withRequestTimeout(signal: AbortSignal | undefined, timeoutMs: number): AbortSignal {
+  const timeout = AbortSignal.timeout(timeoutMs)
+  return signal ? AbortSignal.any([signal, timeout]) : timeout
+}
+
 /** 交换授权码为 token（登录第二步）。 */
 export async function exchangeAntigravityCode(
   code: string,
@@ -174,7 +180,7 @@ export async function exchangeAntigravityCode(
       redirect_uri: redirectUri,
       grant_type: 'authorization_code',
     }),
-    signal: options?.signal ?? AbortSignal.timeout(30_000),
+    signal: withRequestTimeout(options?.signal, 30_000),
   })
 
   const bodyText = await response.text()
@@ -202,7 +208,7 @@ export async function refreshAntigravityAccessToken(
       refresh_token: refreshToken,
       grant_type: 'refresh_token',
     }),
-    signal: options?.signal ?? AbortSignal.timeout(30_000),
+    signal: withRequestTimeout(options?.signal, 30_000),
   })
 
   const bodyText = await response.text()
@@ -221,7 +227,7 @@ export async function fetchAntigravityUserInfo(
   try {
     const response = await fetchFn(GOOGLE_USERINFO_URL, {
       headers: { Authorization: `Bearer ${accessToken}` },
-      signal: options?.signal ?? AbortSignal.timeout(15_000),
+      signal: withRequestTimeout(options?.signal, 15_000),
     })
     if (!response.ok) return undefined
     const data = parseJsonBody<Partial<GoogleUserInfo>>(await response.text(), 'Google 用户信息')
@@ -254,7 +260,7 @@ export async function resolveAntigravityProjectId(
           'User-Agent': userAgent,
         },
         body: JSON.stringify({ metadata: { ideType: 'ANTIGRAVITY' } }),
-        signal: options?.signal ?? AbortSignal.timeout(20_000),
+        signal: withRequestTimeout(options?.signal, 20_000),
       })
 
       if (response.ok) {
@@ -269,6 +275,7 @@ export async function resolveAntigravityProjectId(
         return null
       }
     } catch (error) {
+      options?.signal?.throwIfAborted()
       lastError = `loadCodeAssist ${base} 请求失败: ${error instanceof Error ? error.message : String(error)}`
     }
   }
@@ -295,18 +302,22 @@ export async function fetchAntigravityAvailableModels(
           'User-Agent': userAgent,
         },
         body: JSON.stringify({}),
-        signal: options?.signal ?? AbortSignal.timeout(20_000),
+        signal: withRequestTimeout(options?.signal, 20_000),
       })
 
       if (response.ok) {
-        const data = parseJsonBody<Record<string, AntigravityAvailableModel>>(await response.text(), 'fetchAvailableModels 响应')
-        return data && typeof data === 'object' ? data : {}
+        const data = parseJsonBody<{ models?: Record<string, AntigravityAvailableModel> }>(await response.text(), 'fetchAvailableModels 响应')
+        if (!data?.models || typeof data.models !== 'object' || Array.isArray(data.models)) {
+          throw new Error('fetchAvailableModels 响应缺少有效的 models 字段')
+        }
+        return data.models
       }
       lastError = `fetchAvailableModels ${base} 返回 HTTP ${response.status}`
       if (!shouldTryNextAntigravityEndpoint(response.status, base)) {
         break
       }
     } catch (error) {
+      options?.signal?.throwIfAborted()
       lastError = `fetchAvailableModels ${base} 请求失败: ${error instanceof Error ? error.message : String(error)}`
     }
   }
