@@ -887,23 +887,38 @@ export async function resolveAntigravityOAuthCredentials(channelId: string): Pro
   }
   const credentials = parseAntigravityCredentials(decryptKey(channel.apiKey))
   if (!credentials) throw new Error('Antigravity 登录凭据无效或缺失，请重新登录')
-  if (!isAntigravityCredentialExpired(credentials)) {
-    return rememberAntigravityOAuthCredentials(channelId, credentials)
-  }
 
   const proxyUrl = await getEffectiveProxyUrl()
-  const refreshed = await refreshAntigravityOAuthCredentialsSerial(
-    channelId,
-    credentials,
-    (current) => refreshAntigravityAccessToken(current.refresh, { proxyUrl }).then((token) => ({
-      ...current,
-      access: token.access_token,
-      refresh: token.refresh_token ?? current.refresh,
-      expires: Date.now() + token.expires_in * 1000,
-    })),
-  )
-  persistAntigravityOAuthCredentials(channelId, refreshed)
-  return refreshed
+  let resolved = isAntigravityCredentialExpired(credentials)
+    ? await refreshAntigravityOAuthCredentialsSerial(
+      channelId,
+      credentials,
+      (current) => refreshAntigravityAccessToken(current.refresh, { proxyUrl }).then((token) => ({
+        ...current,
+        access: token.access_token,
+        refresh: token.refresh_token ?? current.refresh,
+        expires: Date.now() + token.expires_in * 1000,
+      })),
+    )
+    : rememberAntigravityOAuthCredentials(channelId, credentials)
+
+  // projectId 是对话信封与额度查询的必需字段；登录时没解析到时���里补全，
+  // 避免渠道长期报“缺少项目信息”。
+  if (!resolved.projectId) {
+    try {
+      const projectId = await resolveAntigravityProjectId(resolved.access, { proxyUrl })
+      if (projectId) {
+        resolved = { ...resolved, projectId }
+      }
+    } catch (error) {
+      console.warn('[Antigravity] 补全 projectId 失败:', error)
+    }
+  }
+
+  if (resolved !== credentials) {
+    persistAntigravityOAuthCredentials(channelId, resolved)
+  }
+  return resolved
 }
 
 /** 返回当前有效的 Antigravity access token，兼容只需要 bearer token 的调用方。 */
@@ -1886,7 +1901,10 @@ export async function getChannelPlanQuota(channelId: string): Promise<ChannelPla
     const proxyUrl = await getEffectiveProxyUrl()
     if (provider === 'google-antigravity') {
       const credentials = await resolveAntigravityOAuthCredentials(channelId)
-      return await queryAntigravityPlanQuota(credentials.access, proxyUrl)
+      return await queryAntigravityPlanQuota(credentials.access, {
+        projectId: credentials.projectId,
+        proxyUrl,
+      })
     }
     if (provider === 'github-copilot') {
       return await queryGithubCopilotPlanQuota(apiKey, proxyUrl)
