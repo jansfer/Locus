@@ -39,7 +39,7 @@ import type { PiAgentQueryOptions } from './pi-agent-adapter'
 import { rememberXaiOAuthCredentials, refreshXaiOAuthCredentialsSerial } from '../xai-oauth-credentials'
 import { supportsPiDeveloperRole } from './pi-provider-compat'
 import { PROVIDER_DEFAULT_URLS, type AntigravityOAuthCredentials } from '@proma/shared'
-import { refreshAntigravityAccessToken } from '../antigravity-api'
+import { isAntigravityTierVariant, refreshAntigravityAccessToken } from '../antigravity-api'
 import {
   ANTIGRAVITY_CHANNEL_HEADER,
   ANTIGRAVITY_PI_API,
@@ -730,6 +730,10 @@ export async function resolvePiReasoningCapability(
   modelId: string | undefined,
 ): Promise<ReasoningCapability | undefined> {
   const resolvedModelId = stripLegacyAgentSdkContextSuffix(modelId)
+  // Antigravity 不在 Pi catalog 内，档位能力由渠道模型规则直接推导。
+  if (provider === 'google-antigravity') {
+    return resolveAntigravityReasoningCapability(resolvedModelId)
+  }
   const catalogModel = resolvedModelId
     ? await findPiCatalogModel(provider, resolvedModelId)
     : undefined
@@ -1021,6 +1025,44 @@ export async function getGithubCopilotCatalogModels(): Promise<PiCatalogModel[]>
 }
 
 /**
+ * Antigravity 固定思考档位判定统一由协议层导出（antigravity-api），
+ * 避免适配器与注册层各自维护一套正则。
+ */
+export { isAntigravityTierVariant }
+
+/** Gemini 3+ 的思考档位映射：minimal 不支持，low/medium/high 映射到官方枚举。 */
+const ANTIGRAVITY_GEMINI_THINKING_LEVEL_MAP = {
+  off: null,
+  minimal: null,
+  low: 'LOW',
+  medium: 'MEDIUM',
+  high: 'HIGH',
+} as const
+
+/**
+ * Antigravity 模型的会话级 reasoning capability。
+ *
+ * - 固定档位变体（-high/-medium/-low）：深度由模型 ID 决定，返回 undefined
+ *   让 UI 隐藏档位选择，避免用户调整一个无效开关；
+ * - 裸 Gemini 3+：使用官方 thinkingLevel（low/medium/high）；
+ * - Claude 等其他模型：使用 thinkingBudget，保留 off/minimal/low/medium/high。
+ */
+export function resolveAntigravityReasoningCapability(
+  modelId: string | undefined,
+): ReasoningCapability | undefined {
+  const resolvedModelId = stripLegacyAgentSdkContextSuffix(modelId)?.trim().toLowerCase()
+  if (!resolvedModelId) return undefined
+  if (isAntigravityTierVariant(resolvedModelId)) return undefined
+  const isGemini3OrLater = /gemini-[3-9]/.test(resolvedModelId)
+  return resolveReasoningCapability({
+    catalog: {
+      reasoning: true,
+      ...(isGemini3OrLater ? { thinkingLevelMap: { ...ANTIGRAVITY_GEMINI_THINKING_LEVEL_MAP } } : {}),
+    },
+  })
+}
+
+/**
  * Antigravity 模型默认规格。
  *
  * 渠道模型目录来自 fetchAvailableModels（仅 id/name），Pi 无内置 catalog；
@@ -1030,11 +1072,11 @@ export function resolveAntigravityModelDefaults(modelId: string | undefined): Pi
   const id = stripLegacyAgentSdkContextSuffix(modelId)?.trim().toLowerCase() ?? ''
   const isGemini = id.includes('gemini')
   const isGemini3OrLater = /gemini-[3-9]/.test(id)
-  const isClaude = id.includes('claude')
   const contextWindow = isGemini ? 1_000_000 : DEFAULT_CONTEXT_WINDOW
   const maxTokens = isGemini3OrLater ? 65_536 : DEFAULT_MAX_TOKENS
-  const thinkingLevelMap = isGemini3OrLater
-    ? { minimal: null, low: 'LOW', medium: 'MEDIUM', high: 'HIGH' }
+  // 固定档位变体由 ID 决定深度，不注册 thinkingLevelMap
+  const thinkingLevelMap = isGemini3OrLater && !isAntigravityTierVariant(id)
+    ? { ...ANTIGRAVITY_GEMINI_THINKING_LEVEL_MAP }
     : undefined
   return {
     api: ANTIGRAVITY_PI_API,

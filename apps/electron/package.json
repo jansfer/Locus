@@ -1,11 +1,11 @@
 {
   "name": "@proma/electron",
-  "version": "0.19.83",
+  "version": "0.19.84",
   "description": "Locus，为专业用户设计的 Agent（基于 Proma 的 AGPL-3.0 修改版）",
   "main": "dist/main.cjs",
   "author": {
     "name": "Jansfer",
-    "email": "jansfer@users.noreply.github.com"
+    "email": "jansfer@gmail.com"
   },
   "contributors": [
     {

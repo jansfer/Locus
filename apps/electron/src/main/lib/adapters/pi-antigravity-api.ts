@@ -29,7 +29,6 @@ let buildBaseOptions: typeof import('@earendil-works/pi-ai/api/simple-options')[
 let thinkingBudgetForLevel: typeof import('@earendil-works/pi-ai/api/simple-options')['thinkingBudgetForLevel']
 let convertMessages: typeof import('@earendil-works/pi-ai/api/google-shared')['convertMessages']
 let convertTools: typeof import('@earendil-works/pi-ai/api/google-shared')['convertTools']
-let getDisabledGoogleThinkingConfig: typeof import('@earendil-works/pi-ai/api/google-shared')['getDisabledGoogleThinkingConfig']
 let isThinkingPart: typeof import('@earendil-works/pi-ai/api/google-shared')['isThinkingPart']
 let mapStopReasonString: typeof import('@earendil-works/pi-ai/api/google-shared')['mapStopReasonString']
 let resolveGoogleFunctionCallingMode: typeof import('@earendil-works/pi-ai/api/google-shared')['resolveGoogleFunctionCallingMode']
@@ -53,7 +52,7 @@ function loadAntigravityRuntime(): Promise<void> {
     ;({ registerApiProvider } = await import('@earendil-works/pi-ai/compat'))
     ;({ AssistantMessageEventStream } = await import('@earendil-works/pi-ai/utils/event-stream'))
     ;({ buildBaseOptions, thinkingBudgetForLevel } = await import('@earendil-works/pi-ai/api/simple-options'))
-    ;({ convertMessages, convertTools, getDisabledGoogleThinkingConfig, isThinkingPart, mapStopReasonString, resolveGoogleFunctionCallingMode, resolveGoogleThinkingLevel, retainThoughtSignature, supportsGoogleStrictToolSampling, toGoogleThinkingLevel, usesGoogleThinkingLevel } = await import('@earendil-works/pi-ai/api/google-shared'))
+    ;({ convertMessages, convertTools, isThinkingPart, mapStopReasonString, resolveGoogleFunctionCallingMode, resolveGoogleThinkingLevel, retainThoughtSignature, supportsGoogleStrictToolSampling, toGoogleThinkingLevel, usesGoogleThinkingLevel } = await import('@earendil-works/pi-ai/api/google-shared'))
     ;({ getCurrentTools, getInitialSystemMessage } = await import('@earendil-works/pi-ai/utils/transcript'))
     ;({ getSystemMessageText } = await import('@earendil-works/pi-ai/utils/text'))
     ;({ sanitizeSurrogates } = await import('@earendil-works/pi-ai/utils/sanitize-unicode'))
@@ -68,6 +67,7 @@ import {
   buildAntigravityEgressUserAgent,
   buildAntigravityRequestId,
   buildV1InternalEnvelope,
+  isAntigravityTierVariant,
   shouldTryNextAntigravityEndpoint,
   type AntigravityGeminiRequest,
 } from '../antigravity-api'
@@ -141,10 +141,8 @@ function isClaudeModelId(modelId: string): boolean {
   return modelId.toLowerCase().includes('claude')
 }
 
-/** 判断模型是否为预置思考档位变体（ID 以 -high/-medium/-low 结尾）；此类模型不再叠加 thinkingConfig。 */
-function isTieredThinkingVariant(modelId: string): boolean {
-  return /-(high|medium|low)$/i.test(modelId)
-}
+/** 判断模型是否为固定思考档位变体：此类模型深度由 ID 决定，不叠加 thinkingConfig。 */
+const isTieredThinkingVariant = isAntigravityTierVariant
 
 /** contents 中是否包含工具调用往返（functionCall / functionResponse）。 */
 function contentsHaveToolInteractions(contents: unknown): boolean {
@@ -208,25 +206,22 @@ export function buildAntigravityRequest(input: {
     request.toolConfig = { functionCallingConfig: { mode: functionCallingMode } }
   }
 
-  if (input.thinking && !isTieredThinkingVariant(input.model.id)) {
-    if (input.thinking.enabled && input.model.reasoning) {
-      const thinkingConfig: Record<string, unknown> = { includeThoughts: true }
-      if (usesGoogleThinkingLevel(googleModel) && input.thinking.level !== undefined) {
-        thinkingConfig.thinkingLevel = input.thinking.level
-      } else if (input.thinking.level !== undefined) {
-        // Gemini 3 判定不命中（Claude / Gemini 2.5）：Pi 传入的 level 实际是
-        // streamSimple 归一化后的档位，这里回退为预算语义。
-        thinkingConfig.thinkingBudget = input.thinking.budgetTokens
-          ?? thinkingBudgetForLevel(clampThinkingLevelForBudget(googleModel, input.thinking.level))
-      } else if (input.thinking.budgetTokens !== undefined) {
-        thinkingConfig.thinkingBudget = input.thinking.budgetTokens
-      }
-      generationConfig.thinkingConfig = thinkingConfig
-    } else if (input.model.reasoning) {
-      const disabled = getDisabledGoogleThinkingConfig(googleModel)
-      generationConfig.thinkingConfig = disabled
+  if (input.thinking?.enabled && input.model.reasoning && !isTieredThinkingVariant(input.model.id)) {
+    const thinkingConfig: Record<string, unknown> = { includeThoughts: true }
+    if (usesGoogleThinkingLevel(googleModel) && input.thinking.level !== undefined) {
+      thinkingConfig.thinkingLevel = input.thinking.level
+    } else if (input.thinking.level !== undefined) {
+      // Gemini 3 判定不命中（Claude）：Pi 传入的 level 是 streamSimple 归一化后的档位，
+      // 这里回退为预算语义（Anthropic 侧以 thinkingBudget 控制）。
+      thinkingConfig.thinkingBudget = input.thinking.budgetTokens
+        ?? thinkingBudgetForLevel(clampThinkingLevelForBudget(googleModel, input.thinking.level))
+    } else if (input.thinking.budgetTokens !== undefined) {
+      thinkingConfig.thinkingBudget = input.thinking.budgetTokens
     }
+    generationConfig.thinkingConfig = thinkingConfig
   }
+  // 思考关闭时不发送 thinkingConfig：官方行为是保持模型默认，
+  // 而显式 thinkingBudget=0 会被上游翻译层拒绝。
 
   if (Object.keys(generationConfig).length > 0) {
     request.generationConfig = generationConfig

@@ -157,7 +157,7 @@ describe('Antigravity thinkingConfig 映射', () => {
     expect(config?.thinkingBudget).toBe(8192)
   })
 
-  test('Given 思考关闭 When 组装 Then 使用禁用配置', () => {
+  test('Given 思考关闭 When 组装 Then 不发送 thinkingConfig（保持模型默认）', () => {
     const envelope = buildAntigravityRequest({
       model: fakeModel('gemini-3-pro'),
       context: plainContext(),
@@ -166,8 +166,8 @@ describe('Antigravity thinkingConfig 映射', () => {
       userAgent: envelopeBase.userAgent,
       project: envelopeBase.project,
     })
-    const config = (envelope.request as { generationConfig?: { thinkingConfig?: Record<string, unknown> } }).generationConfig?.thinkingConfig
-    expect(config).toBeDefined()
+    const config = (envelope.request as { generationConfig?: { thinkingConfig?: unknown } }).generationConfig?.thinkingConfig
+    expect(config).toBeUndefined()
   })
 })
 
