@@ -35,7 +35,25 @@ env:
   PUBLISH_MODE: ${{ github.event_name == 'push' && 'always' || 'never' }}
 
 jobs:
+  prepare-release:
+    name: 准备唯一的 Release 草稿
+    runs-on: ubuntu-latest
+    steps:
+      - name: 创建或检查草稿
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --json isDraft --jq '.isDraft' > "$RUNNER_TEMP/release-draft"; then
+            test "$(cat "$RUNNER_TEMP/release-draft")" = true
+          else
+            gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --verify-tag --draft --title "$GITHUB_REF_NAME"
+          fi
+
   build-mac-arm64:
+    needs: prepare-release
     name: build (macos-latest, mac, arm64, --arm64)
     runs-on: macos-latest
 
@@ -147,6 +165,7 @@ jobs:
           if-no-files-found: error
 
   build-mac-x64:
+    needs: prepare-release
     name: build (macos-15-intel, mac, x64, --x64)
     runs-on: macos-15-intel
 
@@ -257,6 +276,7 @@ jobs:
           if-no-files-found: error
 
   build-linux:
+    needs: prepare-release
     name: build (linux, ${{ matrix.arch }})
     env:
       USE_SYSTEM_FPM: 'true'
@@ -329,6 +349,7 @@ jobs:
           if-no-files-found: warn
 
   build-windows:
+    needs: prepare-release
     name: build (win, ${{ matrix.arch }})
     strategy:
       fail-fast: false
