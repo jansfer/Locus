@@ -49,7 +49,8 @@ import { refreshCodexOAuth } from './codex-oauth-service'
 import { refreshGithubCopilotOAuth } from './github-copilot-oauth-service'
 import { refreshXaiOAuth } from './xai-oauth-service'
 import { refreshXaiOAuthCredentialsSerial, rememberXaiOAuthCredentials } from './xai-oauth-credentials'
-import { refreshAntigravityAccessToken, resolveAntigravityProjectId, fetchAntigravityAvailableModels, mapAntigravityAvailableModels } from './antigravity-api'
+import { refreshAntigravityAccessToken, resolveAntigravityProjectId, fetchAntigravityAvailableModels } from './antigravity-api'
+import { isAntigravityNoiseModel, selectAntigravityChatModels } from './antigravity-model-catalog'
 import {
   refreshAntigravityOAuthCredentialsSerial,
   rememberAntigravityOAuthCredentials,
@@ -76,6 +77,8 @@ import pkg from '../../../package.json' with { type: 'json' }
 const CONFIG_VERSION = 7
 const RETIRED_VOLCENGINE_PROVIDERS = new Set<ProviderType>(['doubao', 'ark-coding-plan'])
 const RETIRED_OPENCODE_PROVIDER = 'opencode-go-openai'
+/** 一次性清理 ID：只执行一次，避免每次读取都重写配置。 */
+const ANTIGRAVITY_NOISE_PRUNE_ID = 'google-antigravity-noise-prune-v1'
 const RETIRED_OPENCODE_MESSAGE = 'OpenCode Go 渠道已停止支持，请选择其他供应商或自定义渠道'
 
 function assertSupportedProvider(provider: ProviderType): void {
@@ -459,8 +462,9 @@ function readConfig(): ChannelsConfig {
     const parsed = JSON.parse(raw) as ChannelsConfig
     const schemaMigration = migrateConfig(parsed)
     const presetModelUpdate = applyPresetModelCandidateUpdates(schemaMigration.config)
-    const config = presetModelUpdate.config
-    if (schemaMigration.changed || presetModelUpdate.changed) {
+    const antigravityPrune = applyAntigravityNoisePrune(presetModelUpdate.config)
+    const config = antigravityPrune.config
+    if (schemaMigration.changed || presetModelUpdate.changed || antigravityPrune.changed) {
       writeConfig(config)
       console.log('[渠道管理] 渠道配置已迁移并持久化')
     }
@@ -468,6 +472,41 @@ function readConfig(): ChannelsConfig {
   } catch (error) {
     console.error('[渠道管理] 读取配置文件失败:', error)
     return { version: CONFIG_VERSION, channels: [] }
+  }
+}
+
+/**
+ * 一次性清理 Antigravity 渠道里已入库的内部/噪声模型。
+ *
+ * 早期版本直接落了 fetchAvailableModels 的全量目录（含 chat_/tab_ 内部条目）。
+ * 这里只剔除**确定无用**的内部条目，不依据版本基线删除（避免把账号唯一可用的
+ * 旧模型清掉），且始终保留 `source === 'manual'` 的用户手动模型。
+ */
+function applyAntigravityNoisePrune(config: ChannelsConfig): { config: ChannelsConfig; changed: boolean } {
+  const applied = new Set(config.appliedPresetModelUpdates ?? [])
+  if (applied.has(ANTIGRAVITY_NOISE_PRUNE_ID)) return { config, changed: false }
+
+  let changed = false
+  let scanned = false
+  const channels = config.channels.map((channel) => {
+    if (channel.provider !== 'google-antigravity') return channel
+    scanned = true
+    const kept = channel.models.filter((model) => model.source === 'manual' || !isAntigravityNoiseModel(model.id))
+    // 不因清理把渠道模型集清空；否则保留原样。
+    if (kept.length === channel.models.length || kept.length === 0) return channel
+    changed = true
+    console.log(
+      `[渠道管理] 清理 Antigravity 渠道 ${channel.name} 的 ${channel.models.length - kept.length} 个内部模型`,
+    )
+    return { ...channel, models: kept }
+  })
+
+  if (!scanned) return { config, changed: false }
+
+  applied.add(ANTIGRAVITY_NOISE_PRUNE_ID)
+  return {
+    config: { ...config, channels, appliedPresetModelUpdates: [...applied] },
+    changed: true,
   }
 }
 
@@ -2029,14 +2068,16 @@ export async function fetchModels(input: FetchModelsInput): Promise<FetchModelsR
           const credentials = parseAntigravityCredentials(input.apiKey)
           if (!credentials) throw new Error('Antigravity 登录凭据无效或缺失，请重新登录')
           const catalog = await fetchAntigravityAvailableModels(credentials.access, { proxyUrl })
-          const antigravityModels = mapAntigravityAvailableModels(catalog)
-          if (antigravityModels.length === 0) {
-            throw new Error('Antigravity 未返回可用模型，请确认账号已开通 Antigravity 使用资格')
+          const selection = selectAntigravityChatModels(catalog)
+          if (selection.models.length === 0) {
+            throw new Error('Antigravity 未返回可用的对话模型，请确认账号已开通 Antigravity 使用资格')
           }
           return {
             success: true,
-            message: `已加载 ${antigravityModels.length} 个 Antigravity (Google) 模型`,
-            models: antigravityModels.map((m) => ({ id: m.id, name: m.name, enabled: true, source: 'fetched' as const })),
+            message: selection.droppedCount > 0
+              ? `已加载 ${selection.models.length} 个常用模型（已过滤 ${selection.droppedCount} 个内部/旧版条目）`
+              : `已加载 ${selection.models.length} 个 Antigravity (Google) 模型`,
+            models: selection.models.map((m) => ({ id: m.id, name: m.name, enabled: true, source: 'fetched' as const })),
           }
         }
         if (provider === 'deepseek') {

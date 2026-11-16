@@ -6,7 +6,6 @@ import {
   buildAntigravityEgressUserAgent,
   buildAntigravityRequestId,
   buildV1InternalEnvelope,
-  mapAntigravityAvailableModels,
   fetchAntigravityAvailableModels,
   exchangeAntigravityCode,
   parseAntigravityCallbackUrl,
@@ -125,26 +124,13 @@ describe('Antigravity 出站 User-Agent', () => {
   })
 })
 
-describe('Antigravity 模型目录映射', () => {
-  test('Given 官方目录条目 When 映射 Then 保留 id 与 displayName 且过滤空条目', () => {
-    const models = mapAntigravityAvailableModels({
-      'gemini-3-pro-high': { displayName: 'Gemini 3 Pro High', model: 'MODEL_X', supportsImages: true },
-      'claude-sonnet-4-5': { model: 'MODEL_Y' },
-      '': { displayName: '无效空 ID' },
-      _internal: { displayName: '内部占位' },
-    })
-    expect(models).toEqual([
-      { id: 'gemini-3-pro-high', name: 'Gemini 3 Pro High', supportsImages: true },
-      { id: 'claude-sonnet-4-5', name: 'claude-sonnet-4-5', supportsImages: false },
-    ])
-  })
-})
-
 test('Given 上游 models 包装响应 When 获取目录 Then 解包后保留模型', async () => {
   const original = globalThis.fetch
   globalThis.fetch = (async () => Response.json({ models: { gemini: { displayName: 'Gemini' } } })) as unknown as typeof fetch
   try {
-    expect(mapAntigravityAvailableModels(await fetchAntigravityAvailableModels('test'))).toEqual([{ id: 'gemini', name: 'Gemini', supportsImages: false }])
+    const catalog = await fetchAntigravityAvailableModels('test')
+    expect(Object.keys(catalog)).toEqual(['gemini'])
+    expect(catalog.gemini?.displayName).toBe('Gemini')
   } finally { globalThis.fetch = original }
 })
 

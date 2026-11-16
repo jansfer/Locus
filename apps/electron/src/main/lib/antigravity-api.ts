@@ -140,6 +140,8 @@ export interface AntigravityAvailableModel {
   thinkingLevel?: string
   maxOutputTokens?: number
   recommended?: boolean
+  /** 官方内部任务模型标记（chat_/tab_ 等条目），不应进入用户渠道。 */
+  isInternal?: boolean
 }
 
 /** 判断该 HTTP 状态下是否应尝试下一个端点（5xx / 408 / 404 / sandbox 的 400）。 */
@@ -147,6 +149,20 @@ export function shouldTryNextAntigravityEndpoint(status: number, endpointUrl: st
   if (status === 408 || status === 404 || status >= 500) return true
   if (status === 400 && endpointUrl.includes('sandbox')) return true
   return false
+}
+
+/**
+ * 显式思考档位后缀（-high/-medium/-low/-extra-low/-max）。
+ *
+ * 这类模型 ID 本身已固定思考深度：上游不再接受客户端指定的 thinkingLevel，
+ * 因此在请求中不叠加 thinkingConfig，UI 也不展示思考档位选择。
+ */
+export const ANTIGRAVITY_TIER_SUFFIX = /-(?:extra-low|high|medium|low|max)$/i
+
+/** 是否为固定思考档位变体。 */
+export function isAntigravityTierVariant(modelId: string | undefined): boolean {
+  const id = modelId?.trim().toLowerCase()
+  return Boolean(id && ANTIGRAVITY_TIER_SUFFIX.test(id))
 }
 
 interface AntigravityRequestOptions {
@@ -322,28 +338,6 @@ export async function fetchAntigravityAvailableModels(
     }
   }
   throw new Error(lastError)
-}
-
-/**
- * 把 fetchAvailableModels 的目录映射为渠道模型列表。
- *
- * 过滤 isInternal / 无 model 字段条目；名称优先 displayName，缺失时用原始 ID。
- */
-export function mapAntigravityAvailableModels(
-  catalog: Record<string, AntigravityAvailableModel>,
-): { id: string; name: string; supportsImages: boolean }[] {
-  const models: { id: string; name: string; supportsImages: boolean }[] = []
-  for (const [id, entry] of Object.entries(catalog)) {
-    if (!entry || typeof entry !== 'object') continue
-    if (!id || id.startsWith('_')) continue
-    if (!entry.model && !entry.displayName) continue
-    models.push({
-      id,
-      name: entry.displayName?.trim() || id,
-      supportsImages: entry.supportsImages === true,
-    })
-  }
-  return models
 }
 
 /** 构造 OAuth 授权页 URL（state 防 CSRF；redirectUri 由本地回调服务提供）。 */
