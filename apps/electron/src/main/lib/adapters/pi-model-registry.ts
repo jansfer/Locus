@@ -967,6 +967,14 @@ export async function buildCodexModel(sdk: PiSdk, input: CodexModelInput) {
  * List Codex models through Pi's availability abstraction. Codex currently uses
  * Pi's catalog, while a future provider-level subscription filter will be honored automatically.
  */
+/**
+ * List Codex models through Pi's availability abstraction.
+ *
+ * Pi's bundled catalog may lag behind models Locus already declares locally in
+ * CODEX_MODEL_PATCHES (for example gpt-6.1-terra). buildCodexModel resolves from
+ * the merged catalog, so the listing must use the same source — otherwise those
+ * models are usable but never appear in the channel's model list.
+ */
 export async function listCodexModels(
   credentials: CodexOAuthCredentials,
 ): Promise<{ id: string; name: string }[]> {
@@ -975,7 +983,7 @@ export async function listCodexModels(
     credentials: createCodexRuntimeCredentialStore(credentials),
     allowModelNetwork: false,
   })
-  return (await modelRuntime.getAvailable('openai-codex'))
+  return mergeCodexModels(await modelRuntime.getAvailable('openai-codex'))
     .filter(isSupportedCodexModel)
     .map((model) => ({ id: model.id, name: model.name }))
 }

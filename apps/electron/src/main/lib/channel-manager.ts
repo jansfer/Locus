@@ -196,6 +196,17 @@ const PRESET_MODEL_CANDIDATE_UPDATES: readonly {
     },
   },
   {
+    // GPT-6.1 Terra / Sol 由 Locus 本地补丁层声明；存量渠道需要补候选，
+    // 否则它们在拉取列表前一直不可选（与 GPT-6 系列的迁移语义一致）。
+    id: 'openai-codex-gpt-6-1-terra-sol-v1',
+    candidates: {
+      'openai-codex': [
+        { id: 'gpt-6.1-terra', name: 'GPT-6.1 Terra', enabled: true },
+        { id: 'gpt-6.1-sol', name: 'GPT-6.1 Sol', enabled: true },
+      ],
+    },
+  },
+  {
     // 小米 MiMo-V2.6 系列（2026-09-22 发布，1M 上下文）；v2.5 系列于 2026-10-21 下线，
     // 仅以候选形式补充新模型，不改动存量渠道已启用的旧模型。
     id: 'xiaomi-mimo-v2-6-v1',
