@@ -11,11 +11,15 @@ import {
   CODEX_GPT_56_CONTEXT_WINDOW,
   CODEX_GPT_6_CONTEXT_WINDOW,
   CODEX_GPT_61_CONTEXT_WINDOW,
+  CODEX_GPT_62_ASTRA_CONTEXT_WINDOW,
+  CODEX_GPT_62_SOL_CONTEXT_WINDOW,
   extractZhipuCodingTeamApiToken,
   inferContextWindow,
   inferCodexAlignedGPT5ContextWindow,
   getGeminiModelCapability,
   isGpt6AstraFamily,
+  isGpt61Model,
+  isGpt62Model,
   isGpt6LunaFamily,
   isGpt6SolFamily,
   isMimoV26Model,
@@ -444,6 +448,34 @@ const CODEX_MODEL_PATCHES: PiCatalogModelPatch[] = [
     contextWindow: CODEX_GPT_61_CONTEXT_WINDOW,
     maxTokens: CODEX_MAX_TOKENS,
   },
+  // GPT-6.2 已进入 Pi catalog，这里只做与 GPT-6 / 6.1 一致的本地覆盖：
+  // 订阅渠道不计费（cost 归零），并锁定 Codex 实际窗口（同代两个型号窗口不同）。
+  {
+    id: 'gpt-6.2-astra',
+    name: 'GPT-6.2 Astra',
+    api: 'openai-codex-responses',
+    provider: 'openai-codex',
+    baseUrl: CODEX_BASE_URL,
+    reasoning: true,
+    thinkingLevelMap: compilePiReasoningCapabilities('openai-responses', 'gpt-6.2-astra')?.thinkingLevelMap,
+    input: ['text', 'image'],
+    cost: ZERO_MODEL_COST,
+    contextWindow: CODEX_GPT_62_ASTRA_CONTEXT_WINDOW,
+    maxTokens: CODEX_MAX_TOKENS,
+  },
+  {
+    id: 'gpt-6.2-sol',
+    name: 'GPT-6.2 Sol',
+    api: 'openai-codex-responses',
+    provider: 'openai-codex',
+    baseUrl: CODEX_BASE_URL,
+    reasoning: true,
+    thinkingLevelMap: compilePiReasoningCapabilities('openai-responses', 'gpt-6.2-sol')?.thinkingLevelMap,
+    input: ['text', 'image'],
+    cost: ZERO_MODEL_COST,
+    contextWindow: CODEX_GPT_62_SOL_CONTEXT_WINDOW,
+    maxTokens: CODEX_MAX_TOKENS,
+  },
   {
     id: 'gpt-5.4',
     contextWindow: CODEX_GPT_54_55_CONTEXT_WINDOW,
@@ -865,14 +897,26 @@ export function stripLegacyAgentSdkContextSuffix(modelId: string | undefined): s
   return modelId?.replace(/\[1m\]$/i, '')
 }
 
-/** Preserve validated ChatGPT Codex Astra SKU request IDs without accepting near matches. */
-function createCodexAstraFamilyModel(
+/**
+ * 为 catalog 未收录的 Astra SKU 生成模型定义。
+ *
+ * 导出以便直接验证各代基线选择（6.1 为 500K、6.2 为 272K），
+ * 避免带日期后缀的新代 SKU 被错误地按首代窗口注册。
+ */
+export function createCodexAstraFamilyModel(
   models: readonly PiCatalogModel[],
   modelId: string,
 ): PiCatalogModel | undefined {
   if (!isGpt6AstraFamily(modelId)) return undefined
 
-  const baseline = findCatalogModelById(models, 'gpt-6-astra')
+  // 各代 Astra 的窗口不同（6.1 为 500K，6.2 为 272K），未知 SKU 必须沿用本代基线，
+  // 否则带日期后缀的 6.2 型号会被错误地按首代 372K 注册。
+  const baselineId = isGpt62Model(modelId)
+    ? 'gpt-6.2-astra'
+    : isGpt61Model(modelId)
+      ? 'gpt-6.1-astra'
+      : 'gpt-6-astra'
+  const baseline = findCatalogModelById(models, baselineId) ?? findCatalogModelById(models, 'gpt-6-astra')
   if (!baseline) return undefined
   if (baseline.id === modelId) return baseline
 
@@ -880,6 +924,8 @@ function createCodexAstraFamilyModel(
     ...baseline,
     id: modelId,
     name: `GPT-6 Astra (${modelId})`,
+    // 未收录的 SKU 以 shared 的对齐窗口为准（6.1 为 500K、6.2 为 272K）。
+    contextWindow: inferCodexAlignedGPT5ContextWindow(modelId) ?? baseline.contextWindow,
   }
 }
 

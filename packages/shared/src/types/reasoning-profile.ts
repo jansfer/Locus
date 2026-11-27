@@ -1,4 +1,4 @@
-import { isGpt61Model, isGpt6AstraFamily, isGpt6LunaFamily, isGpt6SolFamily, isGpt6TerraFamily } from '../utils/model-family'
+import { isGpt61Model, isGpt62Model, isGpt6AstraFamily, isGpt6LunaFamily, isGpt6SolFamily, isGpt6TerraFamily } from '../utils/model-family'
 import type { ProviderType } from './channel'
 import type { AgentThinkingLevel } from './agent'
 
@@ -343,7 +343,7 @@ const OPENAI_SOL_LUNA_PROFILE: ReasoningProfile = {
   },
 }
 
-/** GPT-6.1 Sol/Terra 不再支持关闭思考，默认使用 high。 */
+/** GPT-6.1 / GPT-6.2 Sol、Terra 不再支持关闭思考，默认使用 high。 */
 const OPENAI_GPT61_PROFILE: ReasoningProfile = {
   id: 'openai-reasoning-gpt61',
   levels: GPT61_LEVELS,
@@ -380,7 +380,8 @@ export function resolveReasoningProfile(input: ResolveReasoningProfileInput): Re
   if (isGpt6AstraFamily(modelId)) {
     return OPENAI_ASTRA_PROFILE.encodings[input.transport] ? OPENAI_ASTRA_PROFILE : undefined
   }
-  if (isGpt61Model(modelId) && (isGpt6SolFamily(modelId) || isGpt6TerraFamily(modelId))) {
+  // GPT-6.1 / 6.2 的 Sol、Terra 都不再允许关闭思考，沿用同一份 profile。
+  if ((isGpt61Model(modelId) || isGpt62Model(modelId)) && (isGpt6SolFamily(modelId) || isGpt6TerraFamily(modelId))) {
     return OPENAI_GPT61_PROFILE.encodings[input.transport] ? OPENAI_GPT61_PROFILE : undefined
   }
   if (isGpt6SolFamily(modelId) || isGpt6LunaFamily(modelId)) {
