@@ -1,7 +1,7 @@
 diff --git a/dist/utils/retry.js b/dist/utils/retry.js
 --- a/dist/utils/retry.js
 +++ b/dist/utils/retry.js
-@@ -80,9 +80,17 @@
+@@ -108,9 +108,17 @@
      // "stream ended without ..." and "Anthropic stream ended before message_stop"
      // (#4433); Bedrock/Smithy can throw an HTTP/2 no-response error (#3594).
      "ended without",
@@ -16,6 +16,6 @@ diff --git a/dist/utils/retry.js b/dist/utils/retry.js
 +    "peer closed connection",
 +    "incomplete chunked read",
 +    "failed to fetch",
-     // Codex CLI mid-stream disconnect, relayed by proxies that wrap the Codex CLI,
-     // e.g. "stream disconnected before completion: stream closed before response.completed" (#11057).
-     "stream disconnected before completion",
+     // An OpenAI-compatible stream that ended with `finish_reason: "error"`, which OpenRouter
+     // sends when its provider fails mid-stream; see `mapStopReason` in openai-completions.ts.
+     "provider finish_reason: error",
