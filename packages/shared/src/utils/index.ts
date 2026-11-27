@@ -25,6 +25,8 @@ export {
   CODEX_GPT_56_CONTEXT_WINDOW,
   CODEX_GPT_6_CONTEXT_WINDOW,
   CODEX_GPT_61_CONTEXT_WINDOW,
+  CODEX_GPT_62_ASTRA_CONTEXT_WINDOW,
+  CODEX_GPT_62_SOL_CONTEXT_WINDOW,
   inferCodexAlignedGPT5ContextWindow,
   supports1MContext,
   inferContextWindow,
@@ -36,6 +38,7 @@ export {
   isGpt6LunaFamily,
   isGpt6TerraFamily,
   isGpt61Model,
+  isGpt62Model,
 } from './model-family'
 export { calculateContextUsageRatio } from './context-usage'
 export {

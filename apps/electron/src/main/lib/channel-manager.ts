@@ -207,6 +207,17 @@ const PRESET_MODEL_CANDIDATE_UPDATES: readonly {
     },
   },
   {
+    // GPT-6.2 Astra / Sol 随 Pi 1.6.1 catalog 一起进入 Codex 渠道；
+    // 存量渠道同样补候选，避免升级后必须手动重新拉取模型列表。
+    id: 'openai-codex-gpt-6-2-astra-sol-v1',
+    candidates: {
+      'openai-codex': [
+        { id: 'gpt-6.2-astra', name: 'GPT-6.2 Astra', enabled: true },
+        { id: 'gpt-6.2-sol', name: 'GPT-6.2 Sol', enabled: true },
+      ],
+    },
+  },
+  {
     // 小米 MiMo-V2.6 系列（2026-09-22 发布，1M 上下文）；v2.5 系列于 2026-10-21 下线，
     // 仅以候选形式补充新模型，不改动存量渠道已启用的旧模型。
     id: 'xiaomi-mimo-v2-6-v1',
@@ -393,8 +404,10 @@ function migrateConfig(config: ChannelsConfig): { config: ChannelsConfig; change
 
 /**
  * 应用尚未执行的一次性模型候选更新。更新 ID 不依赖 schema version，以兼容由其他版本写入的更高配置版本。
+ *
+ * 导出以便直接验证迁移语义（新增候选、保留用户已有模型与显示名）。
  */
-function applyPresetModelCandidateUpdates(config: ChannelsConfig): { config: ChannelsConfig; changed: boolean } {
+export function applyPresetModelCandidateUpdates(config: ChannelsConfig): { config: ChannelsConfig; changed: boolean } {
   const appliedUpdates = new Set(config.appliedPresetModelUpdates ?? [])
   let channels = config.channels
   let changed = false

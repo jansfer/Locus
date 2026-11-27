@@ -30,7 +30,6 @@ let thinkingBudgetForLevel: typeof import('@earendil-works/pi-ai/api/simple-opti
 let convertMessages: typeof import('@earendil-works/pi-ai/api/google-shared')['convertMessages']
 let convertTools: typeof import('@earendil-works/pi-ai/api/google-shared')['convertTools']
 let isThinkingPart: typeof import('@earendil-works/pi-ai/api/google-shared')['isThinkingPart']
-let mapStopReasonString: typeof import('@earendil-works/pi-ai/api/google-shared')['mapStopReasonString']
 let resolveGoogleFunctionCallingMode: typeof import('@earendil-works/pi-ai/api/google-shared')['resolveGoogleFunctionCallingMode']
 let resolveGoogleThinkingLevel: typeof import('@earendil-works/pi-ai/api/google-shared')['resolveGoogleThinkingLevel']
 let retainThoughtSignature: typeof import('@earendil-works/pi-ai/api/google-shared')['retainThoughtSignature']
@@ -52,7 +51,7 @@ function loadAntigravityRuntime(): Promise<void> {
     ;({ registerApiProvider } = await import('@earendil-works/pi-ai/compat'))
     ;({ AssistantMessageEventStream } = await import('@earendil-works/pi-ai/utils/event-stream'))
     ;({ buildBaseOptions, thinkingBudgetForLevel } = await import('@earendil-works/pi-ai/api/simple-options'))
-    ;({ convertMessages, convertTools, isThinkingPart, mapStopReasonString, resolveGoogleFunctionCallingMode, resolveGoogleThinkingLevel, retainThoughtSignature, supportsGoogleStrictToolSampling, toGoogleThinkingLevel, usesGoogleThinkingLevel } = await import('@earendil-works/pi-ai/api/google-shared'))
+    ;({ convertMessages, convertTools, isThinkingPart, resolveGoogleFunctionCallingMode, resolveGoogleThinkingLevel, retainThoughtSignature, supportsGoogleStrictToolSampling, toGoogleThinkingLevel, usesGoogleThinkingLevel } = await import('@earendil-works/pi-ai/api/google-shared'))
     ;({ getCurrentTools, getInitialSystemMessage } = await import('@earendil-works/pi-ai/utils/transcript'))
     ;({ getSystemMessageText } = await import('@earendil-works/pi-ai/utils/text'))
     ;({ sanitizeSurrogates } = await import('@earendil-works/pi-ai/utils/sanitize-unicode'))
@@ -141,6 +140,25 @@ function isClaudeModelId(modelId: string): boolean {
   return modelId.toLowerCase().includes('claude')
 }
 
+/**
+ * 把 Antigravity SSE 里的原始 finishReason 字符串映射为 Pi StopReason。
+ *
+ * Pi 1.5 起 `google-shared` 不再导出面向原始字符串的 `mapStopReasonString`，
+ * 只保留接收 `FinishReason` 枚举的 `mapStopReason`；而 `mapStopReason` 对未列举
+ * 取值会抛错，不适合直接处理上游不可信字符串。这里保持旧实现的宽松语义：
+ * 只有 STOP 视为正常结束，MAX_TOKENS 视为长度截断，其余一律按 error 处理。
+ */
+function mapAntigravityStopReason(reason: string): 'stop' | 'length' | 'error' {
+  switch (reason) {
+    case 'STOP':
+      return 'stop'
+    case 'MAX_TOKENS':
+      return 'length'
+    default:
+      return 'error'
+  }
+}
+
 /** 判断模型是否为固定思考档位变体：此类模型深度由 ID 决定，不叠加 thinkingConfig。 */
 const isTieredThinkingVariant = isAntigravityTierVariant
 
@@ -183,7 +201,7 @@ export function buildAntigravityRequest(input: {
   const initialSystemMessage = getInitialSystemMessage(input.context.messages)
   const currentTools: Tool[] = getCurrentTools(input.context.messages)
   const isClaude = isClaudeModelId(input.model.id)
-  const supportsStrictMode = supportsGoogleStrictToolSampling(input.model.id)
+  const supportsStrictMode = supportsGoogleStrictToolSampling(googleModel)
 
   const generationConfig: Record<string, unknown> = {}
   if (input.temperature !== undefined) generationConfig.temperature = input.temperature
@@ -441,7 +459,7 @@ export function streamAntigravity(
         }
         if (candidate?.finishReason) {
           output.rawStopReason = candidate.finishReason
-          output.stopReason = mapStopReasonString(candidate.finishReason)
+          output.stopReason = mapAntigravityStopReason(candidate.finishReason)
           if (output.content.some((b) => b.type === 'toolCall') && output.stopReason === 'stop') {
             output.stopReason = 'toolUse'
           }

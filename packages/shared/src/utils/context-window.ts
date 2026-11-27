@@ -8,7 +8,7 @@
  */
 
 import { getGeminiModelCapability } from './gemini-model-capabilities'
-import { isGpt61Model, isGpt6AstraFamily, isGpt6LunaFamily, isGpt6SolFamily, isGpt6TerraFamily } from './model-family'
+import { isGpt61Model, isGpt62Model, isGpt6AstraFamily, isGpt6LunaFamily, isGpt6SolFamily, isGpt6TerraFamily } from './model-family'
 
 /** 默认上下文窗口（无法识别模型时使用） */
 export const DEFAULT_CONTEXT_WINDOW = 200_000
@@ -24,6 +24,14 @@ export const CODEX_GPT_56_CONTEXT_WINDOW = 372_000
 export const CODEX_GPT_6_CONTEXT_WINDOW = 372_000
 /** GPT-6.1 系列的 Codex 上下文窗口（Pi catalog 已收 500K）。 */
 export const CODEX_GPT_61_CONTEXT_WINDOW = 500_000
+/**
+ * GPT-6.2 的 Codex 上下文窗口。
+ *
+ * 同一代内两个型号的窗口不同（Astra 272K、Sol 500K），因此不能像 GPT-6.1 那样
+ * 按代际统一；这两个数值取自 Pi 1.6.1 catalog 的 openai-codex 条目。
+ */
+export const CODEX_GPT_62_ASTRA_CONTEXT_WINDOW = 272_000
+export const CODEX_GPT_62_SOL_CONTEXT_WINDOW = 500_000
 
 /**
  * 为 ChatGPT Codex 中的 GPT-5.x / GPT-6 模型返回统一上下文窗口。
@@ -32,6 +40,12 @@ export const CODEX_GPT_61_CONTEXT_WINDOW = 500_000
  * provider catalog 决定，避免把不同 SKU 误写成同一窗口。
  */
 export function inferCodexAlignedGPT5ContextWindow(modelId: string | undefined): number | undefined {
+  // GPT-6.2 必须排在 GPT-6 家族之前：Astra 窗口已从 372K 降到 272K。
+  if (isGpt62Model(modelId)) {
+    if (isGpt6AstraFamily(modelId)) return CODEX_GPT_62_ASTRA_CONTEXT_WINDOW
+    if (isGpt6SolFamily(modelId)) return CODEX_GPT_62_SOL_CONTEXT_WINDOW
+    return undefined
+  }
   if (isGpt61Model(modelId)
     && (isGpt6AstraFamily(modelId) || isGpt6SolFamily(modelId) || isGpt6LunaFamily(modelId) || isGpt6TerraFamily(modelId))) {
     return CODEX_GPT_61_CONTEXT_WINDOW

@@ -1,10 +1,12 @@
-import { describe, expect, test } from 'bun:test'
+import { afterEach, describe, expect, test } from 'bun:test'
 import type { Tool } from '@earendil-works/pi-ai'
 import { normalizeContext } from '@earendil-works/pi-ai/utils/transcript'
 import {
+  ANTIGRAVITY_PROJECT_HEADER,
   buildAntigravityRequest,
   parseAntigravitySseText,
   registerAntigravityApiProvider,
+  streamAntigravity,
 } from './pi-antigravity-api'
 
 await registerAntigravityApiProvider()
@@ -196,6 +198,55 @@ describe('Antigravity API 适配器注册', () => {
   test('Given 重复注册 When 调用两次 Then 不抛错', async () => {
     await expect(registerAntigravityApiProvider()).resolves.toBeUndefined()
     await expect(registerAntigravityApiProvider()).resolves.toBeUndefined()
+  })
+})
+
+describe('Antigravity finishReason 映射', () => {
+  const originalFetch = globalThis.fetch
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch
+  })
+
+  /** 用固定 SSE 文本替换全局 fetch，返回 Pi 事件流的最终结果。 */
+  async function runStream(sseText: string) {
+    globalThis.fetch = (async () => new Response(sseText, {
+      status: 200,
+      headers: { 'content-type': 'text/event-stream' },
+    })) as unknown as typeof globalThis.fetch
+    return streamAntigravity(fakeModel('gemini-3-pro'), plainContext(), {
+      apiKey: 'token',
+      headers: { [ANTIGRAVITY_PROJECT_HEADER]: 'proj-9' },
+    }).result()
+  }
+
+  test('Given 上游返回 STOP When 流结束 Then stopReason 为 stop', async () => {
+    const message = await runStream('data: {"candidates":[{"content":{"parts":[{"text":"hi"}]},"finishReason":"STOP"}]}\n\n')
+    expect(message.stopReason).toBe('stop')
+    expect(message.rawStopReason).toBe('STOP')
+  })
+
+  test('Given 上游返回 MAX_TOKENS When 流结束 Then stopReason 为 length', async () => {
+    const message = await runStream('data: {"candidates":[{"finishReason":"MAX_TOKENS"}]}\n\n')
+    expect(message.stopReason).toBe('length')
+  })
+
+  test('Given 上游返回未列举的 finishReason When 流结束 Then 按 error 上报', async () => {
+    const message = await runStream('data: {"candidates":[{"finishReason":"SAFETY"}]}\n\n')
+    expect(message.stopReason).toBe('error')
+    expect(message.errorMessage).toContain('SAFETY')
+  })
+
+  test('Given STOP 且含工具调用 When 流结束 Then 升级为 toolUse', async () => {
+    const message = await runStream('data: {"candidates":[{"content":{"parts":[{"functionCall":{"name":"read_file","args":{"path":"a"}}}]},"finishReason":"STOP"}]}\n\n')
+    expect(message.stopReason).toBe('toolUse')
+    expect(message.content.some((block) => block.type === 'toolCall')).toBe(true)
+  })
+
+  test('Given 上游未给出 finishReason When 流结束 Then 报错而不是静默完成', async () => {
+    const message = await runStream('data: {"candidates":[{"content":{"parts":[{"text":"hi"}]}}]}\n\n')
+    expect(message.stopReason).toBe('error')
+    expect(message.errorMessage).toContain('without a finish reason')
   })
 })
 
